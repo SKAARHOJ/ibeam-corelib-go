@@ -89,15 +89,6 @@ func (b *IbeamParameterRegistry) getInstanceValues(dpID ibeam_core.DeviceParamet
 	return
 }
 
-const (
-	iBeamVersion = "1.0b"
-	coreVersion  = "1.1a"
-	manufacturer = "Sony"
-	productName  = "PXW-FS7"
-	description  = "Camera Sony PXW-FS7"
-	releaseDate  = "01.10.2020"
-)
-
 func (s *IbeamSonyServer) GetCoreInfo(_ context.Context, _ *ibeam_core.Empty) (*ibeam_core.CoreInfo, error) {
 	return &s.parameterRegistry.coreInfo, nil
 }
