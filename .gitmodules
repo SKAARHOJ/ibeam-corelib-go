@@ -1,0 +1,3 @@
+[submodule "ibeam-core-proto"]
+	path = ibeam-core-proto
+	url = https://github.com/SKAARHOJ/ibeam-core-proto
