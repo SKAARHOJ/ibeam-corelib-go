@@ -89,6 +89,13 @@ func (b *IbeamParameterRegistry) getInstanceValues(dpID ibeam_core.DeviceParamet
 	return
 }
 
+func (d *IbeamParameterRegistry) getModelIndex(deviceID int) uint32 {
+	if len(d.DeviceInfos) <= deviceID {
+		log.Panicf("Could not get model for device with id %v", deviceID)
+	}
+	return d.DeviceInfos[deviceID].ModelID - 1
+}
+
 func (s *IbeamSonyServer) GetCoreInfo(_ context.Context, _ *ibeam_core.Empty) (*ibeam_core.CoreInfo, error) {
 	return &s.parameterRegistry.coreInfo, nil
 }
@@ -278,13 +285,6 @@ func containsDeviceParameter(dpID *ibeam_core.DeviceParameterID, dpIDs *ibeam_co
 		}
 	}
 	return false
-}
-
-func getDeviceParameterID(parameter, device uint32) *ibeam_core.DeviceParameterID {
-	return &ibeam_core.DeviceParameterID{
-		Parameter: parameter,
-		Device:    device,
-	}
 }
 
 func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInfo) (server IbeamSonyServer, manager IbeamParameterManager, registry IbeamParameterRegistry, set chan ibeam_core.Parameter, get chan ibeam_core.Parameter) {
@@ -717,21 +717,4 @@ func (m *IbeamParameterManager) Start() {
 			}
 		}
 	}()
-}
-
-func (d *IbeamParameterRegistry) getModelIndex(deviceID int) uint32 {
-	if len(d.DeviceInfos) <= deviceID {
-		log.Panicf("Could not get model for device with id %v", deviceID)
-	}
-	return d.DeviceInfos[deviceID].ModelID - 1
-}
-
-func generateOptionList(options []string) (OptionList *ibeam_core.OptionList) {
-	for index, option := range options {
-		OptionList.Options = append(OptionList.Options, &ibeam_core.ParameterOption{
-			Id:   uint32(index),
-			Name: option,
-		})
-	}
-	return
 }
