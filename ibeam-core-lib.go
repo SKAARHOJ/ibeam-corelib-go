@@ -18,7 +18,7 @@ type IbeamParameterRegistry struct {
 	DeviceInfos     []*ibeam_core.DeviceInfo
 }
 
-type IbeamSonyServer struct {
+type IbeamServer struct {
 	mu                  sync.Mutex
 	parameterRegistry   IbeamParameterRegistry
 	clientsSetterStream chan ibeam_core.Parameter
@@ -96,12 +96,12 @@ func (d *IbeamParameterRegistry) getModelIndex(deviceID int) uint32 {
 	return d.DeviceInfos[deviceID].ModelID - 1
 }
 
-func (s *IbeamSonyServer) GetCoreInfo(_ context.Context, _ *ibeam_core.Empty) (*ibeam_core.CoreInfo, error) {
+func (s *IbeamServer) GetCoreInfo(_ context.Context, _ *ibeam_core.Empty) (*ibeam_core.CoreInfo, error) {
 	return &s.parameterRegistry.coreInfo, nil
 }
 
 // No id -> get everything
-func (s *IbeamSonyServer) GetDeviceInfo(_ context.Context, dIDs *ibeam_core.DeviceIDs) (*ibeam_core.DeviceInfos, error) {
+func (s *IbeamServer) GetDeviceInfo(_ context.Context, dIDs *ibeam_core.DeviceIDs) (*ibeam_core.DeviceInfos, error) {
 
 	if len(dIDs.Ids) == 0 {
 		return &ibeam_core.DeviceInfos{DeviceInfos: s.parameterRegistry.DeviceInfos}, nil
@@ -119,7 +119,7 @@ func (s *IbeamSonyServer) GetDeviceInfo(_ context.Context, dIDs *ibeam_core.Devi
 	}
 }
 
-func getDeviceWithID(s *IbeamSonyServer, dID uint32) *ibeam_core.DeviceInfo {
+func getDeviceWithID(s *IbeamServer, dID uint32) *ibeam_core.DeviceInfo {
 	for _, device := range s.parameterRegistry.DeviceInfos {
 		if device.DeviceID == dID {
 			return device
@@ -128,7 +128,7 @@ func getDeviceWithID(s *IbeamSonyServer, dID uint32) *ibeam_core.DeviceInfo {
 	return nil
 }
 
-func (s *IbeamSonyServer) GetModelInfo(_ context.Context, mIDs *ibeam_core.ModelIDs) (*ibeam_core.ModelInfos, error) {
+func (s *IbeamServer) GetModelInfo(_ context.Context, mIDs *ibeam_core.ModelIDs) (*ibeam_core.ModelInfos, error) {
 
 	if len(mIDs.Ids) == 0 {
 		return &ibeam_core.ModelInfos{ModelInfos: s.parameterRegistry.ModelInfos}, nil
@@ -146,7 +146,7 @@ func (s *IbeamSonyServer) GetModelInfo(_ context.Context, mIDs *ibeam_core.Model
 	}
 }
 
-func getModelWithID(s *IbeamSonyServer, mID uint32) *ibeam_core.ModelInfo {
+func getModelWithID(s *IbeamServer, mID uint32) *ibeam_core.ModelInfo {
 	for _, model := range s.parameterRegistry.ModelInfos {
 		if model.Id == mID {
 			return model
@@ -157,7 +157,7 @@ func getModelWithID(s *IbeamSonyServer, mID uint32) *ibeam_core.ModelInfo {
 
 // No id -> get everything, as ParamID has 2 dimensions this rule should work
 // in both
-func (s *IbeamSonyServer) Get(_ context.Context, dpIDs *ibeam_core.DeviceParameterIDs) (rParameters *ibeam_core.Parameters, err error) {
+func (s *IbeamServer) Get(_ context.Context, dpIDs *ibeam_core.DeviceParameterIDs) (rParameters *ibeam_core.Parameters, err error) {
 	if len(dpIDs.Ids) == 0 {
 		for pid, pState := range s.parameterRegistry.parameterValue {
 			for did := range pState {
@@ -201,7 +201,7 @@ func (s *IbeamSonyServer) Get(_ context.Context, dpIDs *ibeam_core.DeviceParamet
 	return
 }
 
-func (s *IbeamSonyServer) GetParameterDetails(c context.Context, mpIDs *ibeam_core.ModelParameterIDs) (*ibeam_core.ParameterDetails, error) {
+func (s *IbeamServer) GetParameterDetails(c context.Context, mpIDs *ibeam_core.ModelParameterIDs) (*ibeam_core.ParameterDetails, error) {
 	log.Debugf("Got a GetParameterDetails from ") //TODO lookup how to get IP
 	var rParameterDetails *ibeam_core.ParameterDetails
 	if len(mpIDs.Ids) == 0 {
@@ -222,7 +222,7 @@ func (s *IbeamSonyServer) GetParameterDetails(c context.Context, mpIDs *ibeam_co
 	return rParameterDetails, nil
 }
 
-func (s *IbeamSonyServer) getParameterDetail(mpID *ibeam_core.ModelParameterID) (*ibeam_core.ParameterDetail, error) {
+func (s *IbeamServer) getParameterDetail(mpID *ibeam_core.ModelParameterID) (*ibeam_core.ParameterDetail, error) {
 	if mpID.Model == 0 || mpID.Parameter == 0 {
 		return nil, errors.New("Failed to get instance values " + mpID.String())
 	}
@@ -234,7 +234,7 @@ func (s *IbeamSonyServer) getParameterDetail(mpID *ibeam_core.ModelParameterID) 
 	return nil, errors.New("Cannot find ParameterDetail with given ModelParameterID")
 }
 
-func (s *IbeamSonyServer) Set(_ context.Context, ps *ibeam_core.Parameters) (*ibeam_core.Empty, error) {
+func (s *IbeamServer) Set(_ context.Context, ps *ibeam_core.Parameters) (*ibeam_core.Empty, error) {
 
 	for _, parameter := range ps.Parameters {
 		s.clientsSetterStream <- *parameter
@@ -245,7 +245,7 @@ func (s *IbeamSonyServer) Set(_ context.Context, ps *ibeam_core.Parameters) (*ib
 
 // No id -> subscribe to everything
 // On subscribe all current values should be sent back!
-func (s *IbeamSonyServer) Subscribe(dpIDs *ibeam_core.DeviceParameterIDs, stream ibeam_core.IbeamCore_SubscribeServer) error {
+func (s *IbeamServer) Subscribe(dpIDs *ibeam_core.DeviceParameterIDs, stream ibeam_core.IbeamCore_SubscribeServer) error {
 	log.Info("New Client subscribed")
 	// Fist send all parameters
 	parameters, err := s.Get(nil, dpIDs)
@@ -287,7 +287,7 @@ func containsDeviceParameter(dpID *ibeam_core.DeviceParameterID, dpIDs *ibeam_co
 	return false
 }
 
-func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInfo) (server IbeamSonyServer, manager IbeamParameterManager, registry IbeamParameterRegistry, set chan ibeam_core.Parameter, get chan ibeam_core.Parameter) {
+func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInfo) (server IbeamServer, manager IbeamParameterManager, registry IbeamParameterRegistry, set chan ibeam_core.Parameter, get chan ibeam_core.Parameter) {
 
 	clientsSetter := make(chan ibeam_core.Parameter, 100)
 	get = make(chan ibeam_core.Parameter, 100)
@@ -309,7 +309,7 @@ func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInf
 		parameterValue:  [][][]IBeamParameterValueBuffer{},
 	}
 
-	server = IbeamSonyServer{
+	server = IbeamServer{
 		parameterRegistry:   registry,
 		clientsSetterStream: clientsSetter,
 		serverClientsStream: watcher,
