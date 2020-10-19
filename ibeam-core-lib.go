@@ -7,8 +7,12 @@ import (
 	"time"
 
 	"github.com/SKAARHOJ/ibeam-core-go/ibeam_core"
-	log "github.com/sirupsen/logrus"
+	log "github.com/s00500/env_logger"
 )
+
+func init() {
+	log.ConfigureDefaultLogger()
+}
 
 type IbeamParameterRegistry struct {
 	coreInfo        ibeam_core.CoreInfo
@@ -111,9 +115,8 @@ func (s *IbeamServer) GetDeviceInfo(_ context.Context, dIDs *ibeam_core.DeviceID
 		for _, ID := range dIDs.Ids {
 			if device := getDeviceWithID(s, ID); device != nil {
 				rDeviceInfos.DeviceInfos = append(rDeviceInfos.DeviceInfos, device)
-			} else {
-				// What should we do if we have no Device with such a ID ???
 			}
+			// If we have no Device with such a ID, skip
 		}
 		return &rDeviceInfos, nil
 	}
@@ -138,9 +141,8 @@ func (s *IbeamServer) GetModelInfo(_ context.Context, mIDs *ibeam_core.ModelIDs)
 		for _, ID := range mIDs.Ids {
 			if model := getModelWithID(s, ID); model != nil {
 				rModelInfos.ModelInfos = append(rModelInfos.ModelInfos, model)
-			} else {
-				// What should we do if we have no Model with such a ID ???
 			}
+			// If we have no Model with such an ID, skip
 		}
 		return &rModelInfos, nil
 	}
@@ -459,7 +461,7 @@ func (m *IbeamParameterManager) Start() {
 						continue
 					}
 					if value.InstanceID == 0 || len(state[deviceIndex][parameterIndex]) < int(value.InstanceID) {
-						log.Warnf("Received invalid instance id %v for parameter %v", value.InstanceID, parameterIndex+1)
+						log.Errorf("Received invalid instance id %v for parameter %v", value.InstanceID, parameterIndex+1)
 						continue
 					}
 					if value.Value == nil {
@@ -580,7 +582,7 @@ func (m *IbeamParameterManager) Start() {
 						continue
 					}
 					if len(state[deviceIndex][parameterIndex]) <= int(value.InstanceID-1) {
-						log.Warnf("Received invalid instance id %v for parameter %v", value.InstanceID, parameterIndex)
+						log.Errorf("Received invalid instance id %v for parameter %v", value.InstanceID, parameterIndex)
 						continue
 					}
 					parameterBuffer := state[deviceIndex][parameterIndex][value.InstanceID-1]
