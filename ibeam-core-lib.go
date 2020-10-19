@@ -4,12 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
 	"time"
 
 	"github.com/SKAARHOJ/ibeam-core-go/ibeam_core"
 	log "github.com/s00500/env_logger"
-	"google.golang.org/grpc"
 )
 
 func init() {
@@ -286,7 +284,7 @@ func (s *IbeamServer) Subscribe(dpIDs *ibeam_core.DeviceParameterIDs, stream ibe
 				if len(dpIDs.Ids) != 0 && !containsDeviceParameter(parameter.Id, dpIDs) {
 					continue
 				}
-				log.Debugf("Send Parameter with ID '%v' to client From ServerClientsStream", parameter.Id)
+				log.Debugf("Send Parameter with ID '%v' to client from ServerClientsStream", parameter.Id)
 				stream.Send(&parameter)
 			}
 		}
@@ -652,6 +650,44 @@ func (m *IbeamParameterManager) Start() {
 							parameterBuffer := state[did][parameterDetail.Id.Parameter-1][iid]
 							switch parameterDetail.ControlStyle {
 							case ibeam_core.ControlStyle_Normal:
+								if parameterDetail.FeedbackStyle == ibeam_core.FeedbackStyle_NoFeedback ||
+									parameterBuffer.currentValue.Value == parameterBuffer.targetValue.Value ||
+									time.Until(parameterBuffer.lastUpdate).Milliseconds() < int64(parameterDetail.ControlDelayMs) {
+									continue
+								}
+								if parameterDetail.RetryCount != 0 {
+									parameterBuffer.tryCount++
+									if parameterBuffer.tryCount > parameterDetail.RetryCount {
+										log.Errorf("Failed to set parameter %v in %v tries on device %v", parameterDetail.Id.Parameter, parameterDetail.RetryCount, did+1)
+										parameterBuffer.targetValue = parameterBuffer.currentValue
+										parameterBuffer.isAssumedState = false
+										m.serverClientsStream <- ibeam_core.Parameter{
+											Value: []*ibeam_core.ParameterValue{parameterBuffer.getParameterValue()},
+											Id: &ibeam_core.DeviceParameterID{
+												Device:    uint32(did + 1),
+												Parameter: parameterDetail.Id.Parameter,
+											},
+											Error: ibeam_core.ParameterError_MaxRetrys,
+										}
+										continue
+									}
+								}
+
+								parameterBuffer.lastUpdate = time.Now()
+								parameterBuffer.isAssumedState = true
+								if parameterDetail.Id == nil {
+									log.Error("No Parameter provided")
+									continue
+								}
+
+								m.out <- ibeam_core.Parameter{
+									Value: []*ibeam_core.ParameterValue{parameterBuffer.getParameterValue()},
+									Id: &ibeam_core.DeviceParameterID{
+										Device:    uint32(did + 1),
+										Parameter: parameterDetail.Id.Parameter,
+									},
+									Error: 0,
+								}
 
 							case ibeam_core.ControlStyle_ControlledIncremental:
 								if parameterDetail.FeedbackStyle == ibeam_core.FeedbackStyle_NoFeedback ||
@@ -747,6 +783,12 @@ func (m *IbeamParameterManager) Start() {
 	}()
 }
 
+/*
+
+Just for Quick testing
+
+
+
 const (
 	iBeamVersion = "1.0b"
 	coreVersion  = "1.1a"
@@ -792,7 +834,7 @@ func main() {
 		ControlDelayMs:      100,
 		QuarantineDelayMs:   100,
 		RetryCount:          10,
-		ValueType:           ibeam_core.ValueType_Floating,
+		ValueType:           ibeam_core.ValueType_Opt,
 		DisplayStyle:        ibeam_core.DisplayStyle_DisplayFstop,
 		OptionList:          generateOptionList([]string{"4", "4.5", "5", "5.6", "6.3", "7.1", "8", "9", "10", "11", "13", "14", "16", "18", "20", "22"}),
 		OptionListIsDynamic: false,
@@ -838,3 +880,4 @@ func generateOptionList(options []string) (OptionList *ibeam_core.OptionList) {
 	}
 	return
 }
+*/
