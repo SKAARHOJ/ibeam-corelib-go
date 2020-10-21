@@ -1,4 +1,4 @@
-package ibeam_core_go
+package ibeam_core
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SKAARHOJ/ibeam-core-go/ibeam_core"
 	log "github.com/s00500/env_logger"
 )
 
@@ -19,26 +18,26 @@ type IbeamParameterRegistry struct {
 	muInfo          sync.RWMutex
 	muDetail        sync.RWMutex
 	muValue         sync.RWMutex
-	coreInfo        ibeam_core.CoreInfo
-	DeviceInfos     []*ibeam_core.DeviceInfo
-	ModelInfos      []*ibeam_core.ModelInfo
-	ParameterDetail [][]*ibeam_core.ParameterDetail  //Parameter Value: model, parameter
+	coreInfo        CoreInfo
+	DeviceInfos     []*DeviceInfo
+	ModelInfos      []*ModelInfo
+	ParameterDetail [][]*ParameterDetail             //Parameter Value: model, parameter
 	parameterValue  [][][]*IBeamParameterValueBuffer //Parameter State: device,parameter,instance
 }
 
 type IbeamServer struct {
 	parameterRegistry        *IbeamParameterRegistry
-	clientsSetterStream      chan ibeam_core.Parameter
-	serverClientsStream      chan ibeam_core.Parameter
-	serverClientsDistributor map[chan ibeam_core.Parameter]bool
+	clientsSetterStream      chan Parameter
+	serverClientsStream      chan Parameter
+	serverClientsDistributor map[chan Parameter]bool
 }
 
 type IbeamParameterManager struct {
 	parameterRegistry   *IbeamParameterRegistry
-	out                 chan ibeam_core.Parameter
-	in                  chan ibeam_core.Parameter
-	clientsSetterStream chan ibeam_core.Parameter
-	serverClientsStream chan ibeam_core.Parameter
+	out                 chan Parameter
+	in                  chan Parameter
+	clientsSetterStream chan Parameter
+	serverClientsStream chan Parameter
 }
 
 type IBeamParameterValueBuffer struct {
@@ -47,12 +46,12 @@ type IBeamParameterValueBuffer struct {
 	isAssumedState bool
 	lastUpdate     time.Time
 	tryCount       uint32
-	currentValue   ibeam_core.ParameterValue
-	targetValue    ibeam_core.ParameterValue
+	currentValue   ParameterValue
+	targetValue    ParameterValue
 }
 
-func (b *IBeamParameterValueBuffer) getParameterValue() *ibeam_core.ParameterValue {
-	return &ibeam_core.ParameterValue{
+func (b *IBeamParameterValueBuffer) getParameterValue() *ParameterValue {
+	return &ParameterValue{
 		InstanceID:     b.instanceID,
 		Available:      b.available,
 		IsAssumedState: b.isAssumedState,
@@ -60,29 +59,29 @@ func (b *IBeamParameterValueBuffer) getParameterValue() *ibeam_core.ParameterVal
 	}
 }
 
-func (b *IBeamParameterValueBuffer) incrementParameterValue() *ibeam_core.ParameterValue {
-	return &ibeam_core.ParameterValue{
+func (b *IBeamParameterValueBuffer) incrementParameterValue() *ParameterValue {
+	return &ParameterValue{
 		InstanceID:     b.instanceID,
 		Available:      b.available,
 		IsAssumedState: b.isAssumedState,
-		Value: &ibeam_core.ParameterValue_Cmd{
-			Cmd: ibeam_core.Command_Increment,
+		Value: &ParameterValue_Cmd{
+			Cmd: Command_Increment,
 		},
 	}
 }
-func (b *IBeamParameterValueBuffer) decrementParameterValue() *ibeam_core.ParameterValue {
-	return &ibeam_core.ParameterValue{
+func (b *IBeamParameterValueBuffer) decrementParameterValue() *ParameterValue {
+	return &ParameterValue{
 		InstanceID:     b.instanceID,
 		Available:      b.available,
 		IsAssumedState: b.isAssumedState,
-		Value: &ibeam_core.ParameterValue_Cmd{
-			Cmd: ibeam_core.Command_Decrement,
+		Value: &ParameterValue_Cmd{
+			Cmd: Command_Decrement,
 		},
 	}
 }
 
 // device,parameter,instance
-func (r *IbeamParameterRegistry) getInstanceValues(dpID ibeam_core.DeviceParameterID) (values []*ibeam_core.ParameterValue) {
+func (r *IbeamParameterRegistry) getInstanceValues(dpID DeviceParameterID) (values []*ParameterValue) {
 	deviceIndex := int(dpID.Device) - 1
 	parameterIndex := int(dpID.Parameter) - 1
 
@@ -106,17 +105,17 @@ func (r *IbeamParameterRegistry) getModelIndex(deviceID int) uint32 {
 	return r.DeviceInfos[deviceID].ModelID //Todo was -1 before
 }
 
-func (s *IbeamServer) GetCoreInfo(_ context.Context, _ *ibeam_core.Empty) (*ibeam_core.CoreInfo, error) {
+func (s *IbeamServer) GetCoreInfo(_ context.Context, _ *Empty) (*CoreInfo, error) {
 	return &s.parameterRegistry.coreInfo, nil
 }
 
 // No id -> get everything
-func (s *IbeamServer) GetDeviceInfo(_ context.Context, dIDs *ibeam_core.DeviceIDs) (*ibeam_core.DeviceInfos, error) {
+func (s *IbeamServer) GetDeviceInfo(_ context.Context, dIDs *DeviceIDs) (*DeviceInfos, error) {
 	log.Debugf("Client asks for DeviceInfo with ids %v", dIDs.Ids)
 	if len(dIDs.Ids) == 0 {
-		return &ibeam_core.DeviceInfos{DeviceInfos: s.parameterRegistry.DeviceInfos}, nil
+		return &DeviceInfos{DeviceInfos: s.parameterRegistry.DeviceInfos}, nil
 	} else {
-		var rDeviceInfos ibeam_core.DeviceInfos
+		var rDeviceInfos DeviceInfos
 
 		for _, ID := range dIDs.Ids {
 			if device := getDeviceWithID(s, ID); device != nil {
@@ -128,7 +127,7 @@ func (s *IbeamServer) GetDeviceInfo(_ context.Context, dIDs *ibeam_core.DeviceID
 	}
 }
 
-func getDeviceWithID(s *IbeamServer, dID uint32) *ibeam_core.DeviceInfo {
+func getDeviceWithID(s *IbeamServer, dID uint32) *DeviceInfo {
 	for _, device := range s.parameterRegistry.DeviceInfos {
 		if device.DeviceID == dID {
 			return device
@@ -137,12 +136,12 @@ func getDeviceWithID(s *IbeamServer, dID uint32) *ibeam_core.DeviceInfo {
 	return nil
 }
 
-func (s *IbeamServer) GetModelInfo(_ context.Context, mIDs *ibeam_core.ModelIDs) (*ibeam_core.ModelInfos, error) {
+func (s *IbeamServer) GetModelInfo(_ context.Context, mIDs *ModelIDs) (*ModelInfos, error) {
 
 	if len(mIDs.Ids) == 0 {
-		return &ibeam_core.ModelInfos{ModelInfos: s.parameterRegistry.ModelInfos}, nil
+		return &ModelInfos{ModelInfos: s.parameterRegistry.ModelInfos}, nil
 	} else {
-		var rModelInfos ibeam_core.ModelInfos
+		var rModelInfos ModelInfos
 
 		for _, ID := range mIDs.Ids {
 			if model := getModelWithID(s, ID); model != nil {
@@ -154,7 +153,7 @@ func (s *IbeamServer) GetModelInfo(_ context.Context, mIDs *ibeam_core.ModelIDs)
 	}
 }
 
-func getModelWithID(s *IbeamServer, mID uint32) *ibeam_core.ModelInfo {
+func getModelWithID(s *IbeamServer, mID uint32) *ModelInfo {
 	for _, model := range s.parameterRegistry.ModelInfos {
 		if model.Id == mID {
 			return model
@@ -165,18 +164,18 @@ func getModelWithID(s *IbeamServer, mID uint32) *ibeam_core.ModelInfo {
 
 // No id -> get everything, as ParamID has 2 dimensions this rule should work
 // in both
-func (s *IbeamServer) Get(_ context.Context, dpIDs *ibeam_core.DeviceParameterIDs) (rParameters *ibeam_core.Parameters, err error) {
-	rParameters = &ibeam_core.Parameters{}
+func (s *IbeamServer) Get(_ context.Context, dpIDs *DeviceParameterIDs) (rParameters *Parameters, err error) {
+	rParameters = &Parameters{}
 	if len(dpIDs.Ids) == 0 {
 		for pid, pState := range s.parameterRegistry.parameterValue {
 			for did := range pState {
-				dpID := ibeam_core.DeviceParameterID{
+				dpID := DeviceParameterID{
 					Parameter: uint32(pid) + 1,
 					Device:    uint32(did) + 1,
 				}
 				iv := s.parameterRegistry.getInstanceValues(dpID)
 				if iv != nil {
-					rParameters.Parameters = append(rParameters.Parameters, &ibeam_core.Parameter{
+					rParameters.Parameters = append(rParameters.Parameters, &Parameter{
 						Id:    &dpID,
 						Error: 0,
 						Value: iv,
@@ -193,15 +192,15 @@ func (s *IbeamServer) Get(_ context.Context, dpIDs *ibeam_core.DeviceParameterID
 			}
 			iv := s.parameterRegistry.getInstanceValues(*dpID)
 			if err != nil || len(iv) == 0 {
-				rParameters.Parameters = append(rParameters.Parameters, &ibeam_core.Parameter{
+				rParameters.Parameters = append(rParameters.Parameters, &Parameter{
 					Id:    dpID,
-					Error: ibeam_core.ParameterError_UnknownError,
+					Error: ParameterError_UnknownError,
 					Value: nil,
 				})
 			} else {
-				rParameters.Parameters = append(rParameters.Parameters, &ibeam_core.Parameter{
+				rParameters.Parameters = append(rParameters.Parameters, &Parameter{
 					Id:    dpID,
-					Error: ibeam_core.ParameterError_NoError,
+					Error: ParameterError_NoError,
 					Value: iv,
 				})
 			}
@@ -210,9 +209,9 @@ func (s *IbeamServer) Get(_ context.Context, dpIDs *ibeam_core.DeviceParameterID
 	return
 }
 
-func (s *IbeamServer) GetParameterDetails(c context.Context, mpIDs *ibeam_core.ModelParameterIDs) (*ibeam_core.ParameterDetails, error) {
+func (s *IbeamServer) GetParameterDetails(c context.Context, mpIDs *ModelParameterIDs) (*ParameterDetails, error) {
 	log.Debugf("Got a GetParameterDetails from ") //TODO lookup how to get IP
-	rParameterDetails := &ibeam_core.ParameterDetails{}
+	rParameterDetails := &ParameterDetails{}
 	if len(mpIDs.Ids) == 0 {
 		for _, modelDetails := range s.parameterRegistry.ParameterDetail {
 			rParameterDetails.Details = append(rParameterDetails.Details, modelDetails...)
@@ -231,7 +230,7 @@ func (s *IbeamServer) GetParameterDetails(c context.Context, mpIDs *ibeam_core.M
 	return rParameterDetails, nil
 }
 
-func (s *IbeamServer) getParameterDetail(mpID *ibeam_core.ModelParameterID) (*ibeam_core.ParameterDetail, error) {
+func (s *IbeamServer) getParameterDetail(mpID *ModelParameterID) (*ParameterDetail, error) {
 	if mpID.Model == 0 || mpID.Parameter == 0 {
 		return nil, errors.New("Failed to get instance values " + mpID.String())
 	}
@@ -246,16 +245,16 @@ func (s *IbeamServer) getParameterDetail(mpID *ibeam_core.ModelParameterID) (*ib
 	return nil, errors.New("Cannot find ParameterDetail with given ModelParameterID")
 }
 
-func (s *IbeamServer) Set(_ context.Context, ps *ibeam_core.Parameters) (*ibeam_core.Empty, error) {
+func (s *IbeamServer) Set(_ context.Context, ps *Parameters) (*Empty, error) {
 	for _, parameter := range ps.Parameters {
 		s.clientsSetterStream <- *parameter
 	}
-	return &ibeam_core.Empty{}, nil
+	return &Empty{}, nil
 }
 
 // No id -> subscribe to everything
 // On subscribe all current values should be sent back!
-func (s *IbeamServer) Subscribe(dpIDs *ibeam_core.DeviceParameterIDs, stream ibeam_core.IbeamCore_SubscribeServer) error {
+func (s *IbeamServer) Subscribe(dpIDs *DeviceParameterIDs, stream IbeamCore_SubscribeServer) error {
 	log.Info("New Client subscribed")
 	// Fist send all parameters
 	parameters, err := s.Get(nil, dpIDs)
@@ -267,7 +266,7 @@ func (s *IbeamServer) Subscribe(dpIDs *ibeam_core.DeviceParameterIDs, stream ibe
 		stream.Send(parameter)
 	}
 
-	distributor := make(chan ibeam_core.Parameter, 100)
+	distributor := make(chan Parameter, 100)
 	s.serverClientsDistributor[distributor] = true
 
 	log.Debugf("Added distributor number %v", len(s.serverClientsDistributor))
@@ -297,7 +296,7 @@ func (s *IbeamServer) Subscribe(dpIDs *ibeam_core.DeviceParameterIDs, stream ibe
 	}()
 	return nil
 }
-func containsDeviceParameter(dpID *ibeam_core.DeviceParameterID, dpIDs *ibeam_core.DeviceParameterIDs) bool {
+func containsDeviceParameter(dpID *DeviceParameterID, dpIDs *DeviceParameterIDs) bool {
 	for _, ids := range dpIDs.Ids {
 		if ids == dpID {
 			return true
@@ -306,25 +305,25 @@ func containsDeviceParameter(dpID *ibeam_core.DeviceParameterID, dpIDs *ibeam_co
 	return false
 }
 
-func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInfo) (server IbeamServer, manager *IbeamParameterManager, registry *IbeamParameterRegistry, set chan ibeam_core.Parameter, get chan ibeam_core.Parameter) {
+func CreateServer(coreInfo CoreInfo, defaultModel ModelInfo) (server IbeamServer, manager *IbeamParameterManager, registry *IbeamParameterRegistry, set chan Parameter, get chan Parameter) {
 
-	clientsSetter := make(chan ibeam_core.Parameter, 100)
-	get = make(chan ibeam_core.Parameter, 100)
-	set = make(chan ibeam_core.Parameter, 100)
+	clientsSetter := make(chan Parameter, 100)
+	get = make(chan Parameter, 100)
+	set = make(chan Parameter, 100)
 
-	fistParameter := ibeam_core.Parameter{}
-	fistParameter.Id = &ibeam_core.DeviceParameterID{
+	fistParameter := Parameter{}
+	fistParameter.Id = &DeviceParameterID{
 		Device:    0,
 		Parameter: 0,
 	}
 
-	watcher := make(chan ibeam_core.Parameter)
+	watcher := make(chan Parameter)
 
 	registry = &IbeamParameterRegistry{
 		coreInfo:        coreInfo,
-		DeviceInfos:     []*ibeam_core.DeviceInfo{},
-		ModelInfos:      []*ibeam_core.ModelInfo{},
-		ParameterDetail: [][]*ibeam_core.ParameterDetail{},
+		DeviceInfos:     []*DeviceInfo{},
+		ModelInfos:      []*ModelInfo{},
+		ParameterDetail: [][]*ParameterDetail{},
 		parameterValue:  [][][]*IBeamParameterValueBuffer{},
 	}
 
@@ -332,7 +331,7 @@ func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInf
 		parameterRegistry:        registry,
 		clientsSetterStream:      clientsSetter,
 		serverClientsStream:      watcher,
-		serverClientsDistributor: make(map[chan ibeam_core.Parameter]bool),
+		serverClientsDistributor: make(map[chan Parameter]bool),
 	}
 
 	manager = &IbeamParameterManager{
@@ -363,7 +362,7 @@ func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInf
 }
 
 // Add desc
-func (m *IbeamParameterRegistry) RegisterParameter(detail *ibeam_core.ParameterDetail) uint32 {
+func (m *IbeamParameterRegistry) RegisterParameter(detail *ParameterDetail) uint32 {
 	mid := uint32(1)
 	if detail.Id != nil {
 		if detail.Id.Model != 0 {
@@ -379,7 +378,7 @@ func (m *IbeamParameterRegistry) RegisterParameter(detail *ibeam_core.ParameterD
 	modelconfig := &m.ParameterDetail[mid-1]
 	paramIndex := uint32(len(*modelconfig) + 1)
 	m.muDetail.RUnlock()
-	detail.Id = &ibeam_core.ModelParameterID{
+	detail.Id = &ModelParameterID{
 		Parameter: paramIndex,
 		Model:     mid,
 	}
@@ -391,7 +390,7 @@ func (m *IbeamParameterRegistry) RegisterParameter(detail *ibeam_core.ParameterD
 }
 
 // Add desc
-func (m *IbeamParameterRegistry) RegisterModel(model *ibeam_core.ModelInfo) uint32 {
+func (m *IbeamParameterRegistry) RegisterModel(model *ModelInfo) uint32 {
 	m.muDetail.RLock()
 	model.Id = uint32(len(m.ParameterDetail) + 1)
 	m.muDetail.RUnlock()
@@ -399,14 +398,14 @@ func (m *IbeamParameterRegistry) RegisterModel(model *ibeam_core.ModelInfo) uint
 	m.ModelInfos = append(m.ModelInfos, model)
 	m.muInfo.Unlock()
 	m.muDetail.Lock()
-	m.ParameterDetail = append(m.ParameterDetail, []*ibeam_core.ParameterDetail{})
+	m.ParameterDetail = append(m.ParameterDetail, []*ParameterDetail{})
 	m.muDetail.Unlock()
 	log.Debugf("Model '%v' registered with ID: %v ", model.Name, model.Id)
 	return model.Id
 }
 
 // Add desc
-func (m *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //ibeam_core.DeviceInfo) {
+func (m *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //DeviceInfo) {
 	mid := uint32(1)
 	if modelID != 0 {
 		mid = modelID
@@ -427,22 +426,22 @@ func (m *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //ibeam
 	parameterValuesBuffer := &[][]*IBeamParameterValueBuffer{}
 	for _, parameterDetail := range modelConfig {
 		valueInstances := []*IBeamParameterValueBuffer{}
-		initialValue := ibeam_core.ParameterValue{Value: &ibeam_core.ParameterValue_Integer{Integer: 0}}
+		initialValue := ParameterValue{Value: &ParameterValue_Integer{Integer: 0}}
 
 		switch parameterDetail.ValueType.Type() {
 		// This is redundant:
-		//case ibeam_core.ValueType_NoValue.Type():
-		//	initialValue.Value = &ibeam_core.ParameterValue_Integer{Integer: 0}
-		//case ibeam_core.ValueType_Integer.Type():
-		//	initialValue.Value = &ibeam_core.ParameterValue_Integer{Integer: 0}
-		case ibeam_core.ValueType_Floating.Type():
-			initialValue.Value = &ibeam_core.ParameterValue_Floating{Floating: 0.0}
-		case ibeam_core.ValueType_Opt.Type():
-			initialValue.Value = &ibeam_core.ParameterValue_CurrentOption{CurrentOption: 0}
-		case ibeam_core.ValueType_String.Type():
-			initialValue.Value = &ibeam_core.ParameterValue_Str{Str: ""}
-		case ibeam_core.ValueType_Binary.Type():
-			initialValue.Value = &ibeam_core.ParameterValue_Binary{Binary: false}
+		//case ValueType_NoValue.Type():
+		//	initialValue.Value = &ParameterValue_Integer{Integer: 0}
+		//case ValueType_Integer.Type():
+		//	initialValue.Value = &ParameterValue_Integer{Integer: 0}
+		case ValueType_Floating.Type():
+			initialValue.Value = &ParameterValue_Floating{Floating: 0.0}
+		case ValueType_Opt.Type():
+			initialValue.Value = &ParameterValue_CurrentOption{CurrentOption: 0}
+		case ValueType_String.Type():
+			initialValue.Value = &ParameterValue_Str{Str: ""}
+		case ValueType_Binary.Type():
+			initialValue.Value = &ParameterValue_Binary{Binary: false}
 		}
 
 		for i := uint32(0); i < parameterDetail.Instances; i++ {
@@ -465,7 +464,7 @@ func (m *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //ibeam
 	deviceIndex := uint32(len(m.DeviceInfos) + 1)
 	m.muInfo.RUnlock()
 	m.muInfo.Lock()
-	m.DeviceInfos = append(m.DeviceInfos, &ibeam_core.DeviceInfo{
+	m.DeviceInfos = append(m.DeviceInfos, &DeviceInfo{
 		DeviceID: deviceIndex,
 		ModelID:  modelID,
 	})
@@ -515,34 +514,34 @@ func (m *IbeamParameterManager) Start() {
 					}
 					parameterBuffer := state[deviceIndex][parameterIndex][value.InstanceID-1]
 					switch v := value.Value.(type) {
-					case *ibeam_core.ParameterValue_Cmd:
+					case *ParameterValue_Cmd:
 						log.Debugf("Got Set CMD: %v", v)
-						m.out <- ibeam_core.Parameter{
+						m.out <- Parameter{
 							Id:    parameter.Id,
 							Error: 0,
-							Value: []*ibeam_core.ParameterValue{value},
+							Value: []*ParameterValue{value},
 						}
-					case *ibeam_core.ParameterValue_Binary:
+					case *ParameterValue_Binary:
 						log.Debugf("Got Set Binary: %v", v)
-					case *ibeam_core.ParameterValue_Floating:
+					case *ParameterValue_Floating:
 						log.Debugf("Got Set Float: %v", v)
 						modelIndex := m.parameterRegistry.getModelIndex(deviceIndex)
 						parameterConfig := m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex]
 						if v.Floating > parameterConfig.Maximum {
 							log.Debugf("Max violation for parameter %v", parameterIndex+1)
-							m.serverClientsStream <- ibeam_core.Parameter{
+							m.serverClientsStream <- Parameter{
 								Id:    parameter.Id,
-								Error: ibeam_core.ParameterError_MaxViolation,
-								Value: []*ibeam_core.ParameterValue{},
+								Error: ParameterError_MaxViolation,
+								Value: []*ParameterValue{},
 							}
 							continue
 						}
 						if v.Floating < parameterConfig.Minimum {
 							log.Debugf("Min violation for parameter %v", parameterIndex+1)
-							m.serverClientsStream <- ibeam_core.Parameter{
+							m.serverClientsStream <- Parameter{
 								Id:    parameter.Id,
-								Error: ibeam_core.ParameterError_MinViolation,
-								Value: []*ibeam_core.ParameterValue{},
+								Error: ParameterError_MinViolation,
+								Value: []*ParameterValue{},
 							}
 							continue
 						}
@@ -552,25 +551,25 @@ func (m *IbeamParameterManager) Start() {
 						parameterBuffer.targetValue.Value = v
 						parameterBuffer.tryCount = 0
 
-					case *ibeam_core.ParameterValue_Integer:
+					case *ParameterValue_Integer:
 						log.Debugf("Got Set Integer: %v", v)
 						modelIndex := m.parameterRegistry.getModelIndex(deviceIndex)
 						parameterConfig := m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex]
 						if v.Integer > int32(parameterConfig.Maximum) {
 							log.Debugf("Max violation for parameter %v", parameterIndex+1)
-							m.serverClientsStream <- ibeam_core.Parameter{
+							m.serverClientsStream <- Parameter{
 								Id:    parameter.Id,
-								Error: ibeam_core.ParameterError_MaxViolation,
-								Value: []*ibeam_core.ParameterValue{},
+								Error: ParameterError_MaxViolation,
+								Value: []*ParameterValue{},
 							}
 							continue
 						}
 						if v.Integer < int32(parameterConfig.Minimum) {
 							log.Debugf("Min violation for parameter %v", parameterIndex+1)
-							m.serverClientsStream <- ibeam_core.Parameter{
+							m.serverClientsStream <- Parameter{
 								Id:    parameter.Id,
-								Error: ibeam_core.ParameterError_MinViolation,
-								Value: []*ibeam_core.ParameterValue{},
+								Error: ParameterError_MinViolation,
+								Value: []*ParameterValue{},
 							}
 							continue
 						}
@@ -580,12 +579,12 @@ func (m *IbeamParameterManager) Start() {
 						parameterBuffer.targetValue.Value = v
 						parameterBuffer.tryCount = 0
 
-					case *ibeam_core.ParameterValue_OptionList:
+					case *ParameterValue_OptionList:
 						log.Debugf("Got Set Option List: %v", v)
 
-					case *ibeam_core.ParameterValue_Str:
+					case *ParameterValue_Str:
 						log.Debugf("Got Set String: %v", v)
-					case *ibeam_core.ParameterValue_CurrentOption:
+					case *ParameterValue_CurrentOption:
 						log.Debugf("Got Set Current Option: %v", v)
 
 						modelIndex := m.parameterRegistry.getModelIndex(deviceIndex)
@@ -596,10 +595,10 @@ func (m *IbeamParameterManager) Start() {
 						}
 						if v.CurrentOption > uint32(len(parameterConfig.OptionList.Options)) {
 							log.Errorf("Invalid operation index for parameter %v", parameterIndex+1)
-							m.serverClientsStream <- ibeam_core.Parameter{
+							m.serverClientsStream <- Parameter{
 								Id:    parameter.Id,
-								Error: ibeam_core.ParameterError_UnknownID,
-								Value: []*ibeam_core.ParameterValue{},
+								Error: ParameterError_UnknownID,
+								Value: []*ParameterValue{},
 							}
 							continue
 						}
@@ -650,7 +649,7 @@ func (m *IbeamParameterManager) Start() {
 				}
 
 				if values := m.parameterRegistry.getInstanceValues(*parameter.Id); values != nil {
-					m.serverClientsStream <- ibeam_core.Parameter{Value: values, Id: parameter.Id, Error: 0}
+					m.serverClientsStream <- Parameter{Value: values, Id: parameter.Id, Error: 0}
 				}
 
 			}
@@ -659,7 +658,7 @@ func (m *IbeamParameterManager) Start() {
 			state := m.parameterRegistry.parameterValue
 			for _, device := range m.parameterRegistry.ParameterDetail {
 				for _, parameterDetail := range device {
-					if ibeam_core.ControlStyle_Undefined == parameterDetail.ControlStyle {
+					if ControlStyle_Undefined == parameterDetail.ControlStyle {
 						continue
 					}
 
@@ -672,8 +671,8 @@ func (m *IbeamParameterManager) Start() {
 
 							parameterBuffer := state[did][parameterDetail.Id.Parameter-1][iid]
 							switch parameterDetail.ControlStyle {
-							case ibeam_core.ControlStyle_Normal:
-								if parameterDetail.FeedbackStyle == ibeam_core.FeedbackStyle_NoFeedback ||
+							case ControlStyle_Normal:
+								if parameterDetail.FeedbackStyle == FeedbackStyle_NoFeedback ||
 									parameterBuffer.currentValue.Value == parameterBuffer.targetValue.Value ||
 									time.Until(parameterBuffer.lastUpdate).Milliseconds() < int64(parameterDetail.ControlDelayMs) {
 									continue
@@ -684,13 +683,13 @@ func (m *IbeamParameterManager) Start() {
 										log.Errorf("Failed to set parameter %v in %v tries on device %v", parameterDetail.Id.Parameter, parameterDetail.RetryCount, did+1)
 										parameterBuffer.targetValue = parameterBuffer.currentValue
 										parameterBuffer.isAssumedState = false
-										m.serverClientsStream <- ibeam_core.Parameter{
-											Value: []*ibeam_core.ParameterValue{parameterBuffer.getParameterValue()},
-											Id: &ibeam_core.DeviceParameterID{
+										m.serverClientsStream <- Parameter{
+											Value: []*ParameterValue{parameterBuffer.getParameterValue()},
+											Id: &DeviceParameterID{
 												Device:    uint32(did + 1),
 												Parameter: parameterDetail.Id.Parameter,
 											},
-											Error: ibeam_core.ParameterError_MaxRetrys,
+											Error: ParameterError_MaxRetrys,
 										}
 										continue
 									}
@@ -703,17 +702,17 @@ func (m *IbeamParameterManager) Start() {
 									continue
 								}
 
-								m.out <- ibeam_core.Parameter{
-									Value: []*ibeam_core.ParameterValue{parameterBuffer.getParameterValue()},
-									Id: &ibeam_core.DeviceParameterID{
+								m.out <- Parameter{
+									Value: []*ParameterValue{parameterBuffer.getParameterValue()},
+									Id: &DeviceParameterID{
 										Device:    uint32(did + 1),
 										Parameter: parameterDetail.Id.Parameter,
 									},
 									Error: 0,
 								}
 
-							case ibeam_core.ControlStyle_ControlledIncremental:
-								if parameterDetail.FeedbackStyle == ibeam_core.FeedbackStyle_NoFeedback ||
+							case ControlStyle_ControlledIncremental:
+								if parameterDetail.FeedbackStyle == FeedbackStyle_NoFeedback ||
 									parameterBuffer.currentValue.Value == parameterBuffer.targetValue.Value ||
 									time.Until(parameterBuffer.lastUpdate).Milliseconds() < int64(parameterDetail.ControlDelayMs) {
 									continue
@@ -737,24 +736,24 @@ func (m *IbeamParameterManager) Start() {
 								var cmdAction action
 
 								switch value := parameterBuffer.currentValue.Value.(type) {
-								case *ibeam_core.ParameterValue_Integer:
-									if targetValue, ok := parameterBuffer.targetValue.Value.(*ibeam_core.ParameterValue_Integer); ok {
+								case *ParameterValue_Integer:
+									if targetValue, ok := parameterBuffer.targetValue.Value.(*ParameterValue_Integer); ok {
 										if value.Integer < targetValue.Integer {
 											cmdAction = Increment
 										} else if value.Integer > targetValue.Integer {
 											cmdAction = Decrement
 										}
 									}
-								case *ibeam_core.ParameterValue_Floating:
-									if targetValue, ok := parameterBuffer.targetValue.Value.(*ibeam_core.ParameterValue_Floating); ok {
+								case *ParameterValue_Floating:
+									if targetValue, ok := parameterBuffer.targetValue.Value.(*ParameterValue_Floating); ok {
 										if value.Floating < targetValue.Floating {
 											cmdAction = Increment
 										} else if value.Floating > targetValue.Floating {
 											cmdAction = Decrement
 										}
 									}
-								case *ibeam_core.ParameterValue_CurrentOption:
-									if targetValue, ok := parameterBuffer.targetValue.Value.(*ibeam_core.ParameterValue_CurrentOption); ok {
+								case *ParameterValue_CurrentOption:
+									if targetValue, ok := parameterBuffer.targetValue.Value.(*ParameterValue_CurrentOption); ok {
 										if value.CurrentOption < targetValue.CurrentOption {
 											cmdAction = Increment
 										} else if value.CurrentOption > targetValue.CurrentOption {
@@ -765,7 +764,7 @@ func (m *IbeamParameterManager) Start() {
 									log.Errorf("Could not match Valuetype %T", value)
 								}
 
-								var cmdValue []*ibeam_core.ParameterValue
+								var cmdValue []*ParameterValue
 
 								switch cmdAction {
 								case Increment:
@@ -780,8 +779,8 @@ func (m *IbeamParameterManager) Start() {
 									log.Errorf("No DeviceParameterID")
 									continue
 								}
-								param := ibeam_core.Parameter{
-									Id: &ibeam_core.DeviceParameterID{
+								param := Parameter{
+									Id: &DeviceParameterID{
 										Device:    uint32(did + 1),
 										Parameter: parameterDetail.Id.Parameter,
 									},
@@ -791,7 +790,7 @@ func (m *IbeamParameterManager) Start() {
 
 								m.out <- param
 
-							case ibeam_core.ControlStyle_NoControl, ibeam_core.ControlStyle_Incremental, ibeam_core.ControlStyle_Oneshot:
+							case ControlStyle_NoControl, ControlStyle_Incremental, ControlStyle_Oneshot:
 								// DO Nothing
 							default:
 								log.Errorf("Could not match controlltype")
