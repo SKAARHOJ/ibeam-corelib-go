@@ -1,9 +1,10 @@
-package main
+package ibeam_core_go
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/SKAARHOJ/ibeam-core-go/ibeam_core"
@@ -15,6 +16,9 @@ func init() {
 }
 
 type IbeamParameterRegistry struct {
+	muInfo          sync.RWMutex
+	muDetail        sync.RWMutex
+	muValue         sync.RWMutex
 	coreInfo        ibeam_core.CoreInfo
 	DeviceInfos     []*ibeam_core.DeviceInfo
 	ModelInfos      []*ibeam_core.ModelInfo
@@ -78,26 +82,28 @@ func (b *IBeamParameterValueBuffer) decrementParameterValue() *ibeam_core.Parame
 }
 
 // device,parameter,instance
-func (b *IbeamParameterRegistry) getInstanceValues(dpID ibeam_core.DeviceParameterID) (values []*ibeam_core.ParameterValue) {
+func (r *IbeamParameterRegistry) getInstanceValues(dpID ibeam_core.DeviceParameterID) (values []*ibeam_core.ParameterValue) {
 	deviceIndex := int(dpID.Device) - 1
 	parameterIndex := int(dpID.Parameter) - 1
 
-	if dpID.Device == 0 || dpID.Parameter == 0 || len(b.parameterValue) <= deviceIndex || len(b.parameterValue[deviceIndex]) <= parameterIndex {
+	r.muValue.RLock()
+	if dpID.Device == 0 || dpID.Parameter == 0 || len(r.parameterValue) <= deviceIndex || len(r.parameterValue[deviceIndex]) <= parameterIndex {
 		log.Errorf("Could not get instance Values for DeviceParameterID: %v", dpID)
+		r.muValue.Unlock()
 		return nil
 	}
-
-	for _, value := range b.parameterValue[deviceIndex][parameterIndex] {
+	for _, value := range r.parameterValue[deviceIndex][parameterIndex] {
 		values = append(values, value.getParameterValue())
 	}
+	r.muValue.Unlock()
 	return
 }
 
-func (d *IbeamParameterRegistry) getModelIndex(deviceID int) uint32 {
-	if len(d.DeviceInfos) <= deviceID {
+func (r *IbeamParameterRegistry) getModelIndex(deviceID int) uint32 {
+	if len(r.DeviceInfos) <= deviceID {
 		log.Panicf("Could not get model for device with id %v", deviceID)
 	}
-	return d.DeviceInfos[deviceID].ModelID //Todo was -1 before
+	return r.DeviceInfos[deviceID].ModelID //Todo was -1 before
 }
 
 func (s *IbeamServer) GetCoreInfo(_ context.Context, _ *ibeam_core.Empty) (*ibeam_core.CoreInfo, error) {
@@ -364,6 +370,7 @@ func (m *IbeamParameterRegistry) RegisterParameter(detail *ibeam_core.ParameterD
 			mid = detail.Id.Model
 		}
 	}
+	m.muDetail.RLock()
 	if uint32(len(m.ParameterDetail)) <= (mid - 1) {
 		log.Panic("Could not register parameter for nonexistent model ", mid)
 		return 0
@@ -371,21 +378,29 @@ func (m *IbeamParameterRegistry) RegisterParameter(detail *ibeam_core.ParameterD
 
 	modelconfig := &m.ParameterDetail[mid-1]
 	paramIndex := uint32(len(*modelconfig) + 1)
-
+	m.muDetail.RUnlock()
 	detail.Id = &ibeam_core.ModelParameterID{
 		Parameter: paramIndex,
 		Model:     mid,
 	}
+	m.muDetail.Lock()
 	*modelconfig = append(*modelconfig, detail)
+	m.muDetail.Unlock()
 	log.Debugf("ParameterDetail '%v' registered with ID: %v for Model %v", detail.Name, detail.Id.Parameter, detail.Id.Model)
 	return paramIndex
 }
 
 // Add desc
 func (m *IbeamParameterRegistry) RegisterModel(model *ibeam_core.ModelInfo) uint32 {
+	m.muDetail.RLock()
 	model.Id = uint32(len(m.ParameterDetail) + 1)
+	m.muDetail.RUnlock()
+	m.muInfo.Lock()
 	m.ModelInfos = append(m.ModelInfos, model)
+	m.muInfo.Unlock()
+	m.muDetail.Lock()
 	m.ParameterDetail = append(m.ParameterDetail, []*ibeam_core.ParameterDetail{})
+	m.muDetail.Unlock()
 	log.Debugf("Model '%v' registered with ID: %v ", model.Name, model.Id)
 	return model.Id
 }
@@ -396,20 +411,21 @@ func (m *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //ibeam
 	if modelID != 0 {
 		mid = modelID
 	}
+	m.muDetail.RLock()
 	if uint32(len(m.ParameterDetail)) <= (mid - 1) {
 		log.Panicf("Could not register device for nonexistent model with id: %v", mid)
 		return 0
 	}
 
-	modelConfig := &m.ParameterDetail[mid-1]
+	modelConfig := m.ParameterDetail[mid-1]
+	m.muDetail.RUnlock()
 
 	// create device info
 	// take all params from model and generate a value buffer array for all instances
 	// add value buffers to the state array
 
 	parameterValuesBuffer := &[][]*IBeamParameterValueBuffer{}
-
-	for _, parameterDetail := range *modelConfig {
+	for _, parameterDetail := range modelConfig {
 		valueInstances := []*IBeamParameterValueBuffer{}
 		initialValue := ibeam_core.ParameterValue{Value: &ibeam_core.ParameterValue_Integer{Integer: 0}}
 
@@ -445,13 +461,18 @@ func (m *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //ibeam
 		}
 	}
 
+	m.muInfo.RLock()
 	deviceIndex := uint32(len(m.DeviceInfos) + 1)
-
+	m.muInfo.RUnlock()
+	m.muInfo.Lock()
 	m.DeviceInfos = append(m.DeviceInfos, &ibeam_core.DeviceInfo{
 		DeviceID: deviceIndex,
 		ModelID:  modelID,
 	})
+	m.muInfo.Unlock()
+	m.muValue.Lock()
 	m.parameterValue = append(m.parameterValue, *parameterValuesBuffer)
+	m.muValue.Unlock()
 
 	log.Debugf("Device '%v' registered with model: %v (%v)", deviceIndex, mid, m.ModelInfos[mid-1].Name)
 	return deviceIndex
@@ -459,9 +480,11 @@ func (m *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //ibeam
 
 func (m *IbeamParameterRegistry) GetIdMap() map[string]uint32 {
 	idMap := make(map[string]uint32)
+	m.muDetail.RLock()
 	for _, parameter := range m.ParameterDetail[0] {
 		idMap[parameter.Name] = parameter.Id.Parameter
 	}
+	m.muDetail.RUnlock()
 	return idMap
 }
 
@@ -782,102 +805,3 @@ func (m *IbeamParameterManager) Start() {
 		}
 	}()
 }
-
-/*
-
-Just for Quick testing
-
-
-
-const (
-	iBeamVersion = "1.0b"
-	coreVersion  = "1.1a"
-	manufacturer = "Sony"
-	productName  = "PXW-FS7"
-	description  = "Camera Sony PXW-FS7"
-	releaseDate  = "01.10.2020"
-)
-
-func main() {
-	log.Info("Starting Application")
-
-	coreInfo := ibeam_core.CoreInfo{
-		IbeamVersion:     iBeamVersion,
-		CoreVersion:      coreVersion,
-		Description:      "",
-		Name:             "",
-		MaxDevices:       1,
-		ConnectedClients: 0,
-	}
-
-	modelInfo := ibeam_core.ModelInfo{
-		Id:             0,
-		Name:           productName,
-		Description:    description,
-		ConnectionType: ibeam_core.ConnectionType_Network,
-	}
-
-	server, manager, registry, _, _ := CreateServer(coreInfo, modelInfo)
-	manager.Start()
-
-	registry.RegisterParameter(&ibeam_core.ParameterDetail{
-		Id:                  nil, // choose default device
-		Name:                "Iris",
-		Instances:           1,
-		Label:               "Iris",
-		ShortLabel:          "Iris",
-		Description:         "The Iris of the Camera",
-		GenericType:         ibeam_core.GenericType_Iris,
-		IsSpeedValue:        true,
-		ControlStyle:        ibeam_core.ControlStyle_Normal,
-		FeedbackStyle:       ibeam_core.FeedbackStyle_NormalFeedback,
-		ControlDelayMs:      100,
-		QuarantineDelayMs:   100,
-		RetryCount:          10,
-		ValueType:           ibeam_core.ValueType_Opt,
-		DisplayStyle:        ibeam_core.DisplayStyle_DisplayFstop,
-		OptionList:          generateOptionList([]string{"4", "4.5", "5", "5.6", "6.3", "7.1", "8", "9", "10", "11", "13", "14", "16", "18", "20", "22"}),
-		OptionListIsDynamic: false,
-	})
-
-	registry.RegisterParameter(&ibeam_core.ParameterDetail{
-		Id:                  nil, // choose default device
-		Name:                "Test Parameter",
-		Instances:           1,
-		Label:               "Test",
-		ShortLabel:          "Test",
-		Description:         "The Test of the Camera",
-		IsSpeedValue:        true,
-		ControlStyle:        ibeam_core.ControlStyle_Normal,
-		FeedbackStyle:       ibeam_core.FeedbackStyle_NormalFeedback,
-		ControlDelayMs:      100,
-		QuarantineDelayMs:   100,
-		RetryCount:          10,
-		ValueType:           ibeam_core.ValueType_Floating,
-		DisplayStyle:        ibeam_core.DisplayStyle_DisplayFstop,
-		OptionListIsDynamic: false,
-	})
-
-	registry.RegisterDevice(modelInfo.Id)
-
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", 5000))
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
-	}
-
-	grpcServer := grpc.NewServer()
-	ibeam_core.RegisterIbeamCoreServer(grpcServer, &server)
-	grpcServer.Serve(lis)
-}
-
-func generateOptionList(options []string) (OptionList *ibeam_core.OptionList) {
-	OptionList = &ibeam_core.OptionList{}
-	for index, option := range options {
-		OptionList.Options = append(OptionList.Options, &ibeam_core.ParameterOption{
-			Id:   uint32(index),
-			Name: option,
-		})
-	}
-	return
-}
-*/
