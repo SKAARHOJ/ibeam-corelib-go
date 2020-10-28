@@ -88,13 +88,13 @@ func (r *IbeamParameterRegistry) getInstanceValues(dpID DeviceParameterID) (valu
 	r.muValue.RLock()
 	if dpID.Device == 0 || dpID.Parameter == 0 || len(r.parameterValue) <= deviceIndex || len(r.parameterValue[deviceIndex]) <= parameterIndex {
 		log.Errorf("Could not get instance Values for DeviceParameterID: %v", dpID)
-		r.muValue.Unlock()
+		r.muValue.RUnlock()
 		return nil
 	}
 	for _, value := range r.parameterValue[deviceIndex][parameterIndex] {
 		values = append(values, value.getParameterValue())
 	}
-	r.muValue.Unlock()
+	r.muValue.RUnlock()
 	return
 }
 
@@ -271,16 +271,24 @@ func (s *IbeamServer) Subscribe(dpIDs *DeviceParameterIDs, stream IbeamCore_Subs
 
 	log.Debugf("Added distributor number %v", len(s.serverClientsDistributor))
 
+	ping := time.NewTicker(time.Second)
+
 	go func() {
 		for {
 			select {
-			/*
-				// TODO check if Stream is closed
-					case <-stream:
-						s.serverClientsDistributor[distributor] = false
-						log.Warn("Connection to client for subscription lost")
-						break
-			*/
+
+			// TODO check if Stream is closed
+			case <-ping.C:
+				err := stream.Context().Err()
+				if err != nil {
+					log.Info("lost client")
+					s.serverClientsDistributor[distributor] = false
+					log.Warn("Connection to client for subscription lost")
+					break
+				}
+
+				break
+
 			case parameter := <-distributor:
 				if parameter.Id == nil || parameter.Id.Device == 0 || parameter.Id.Parameter == 0 {
 					continue
@@ -305,10 +313,10 @@ func containsDeviceParameter(dpID *DeviceParameterID, dpIDs *DeviceParameterIDs)
 	return false
 }
 
-func CreateServer(coreInfo CoreInfo, defaultModel ModelInfo) (server IbeamServer, manager *IbeamParameterManager, registry *IbeamParameterRegistry, set chan Parameter, get chan Parameter) {
+func CreateServer(coreInfo CoreInfo, defaultModel ModelInfo) (server IbeamServer, manager *IbeamParameterManager, registry *IbeamParameterRegistry, set chan Parameter, getFromGRCP chan Parameter) {
 
 	clientsSetter := make(chan Parameter, 100)
-	get = make(chan Parameter, 100)
+	getFromGRCP = make(chan Parameter, 100)
 	set = make(chan Parameter, 100)
 
 	fistParameter := Parameter{}
@@ -336,7 +344,7 @@ func CreateServer(coreInfo CoreInfo, defaultModel ModelInfo) (server IbeamServer
 
 	manager = &IbeamParameterManager{
 		parameterRegistry:   registry,
-		out:                 get,
+		out:                 getFromGRCP,
 		in:                  set,
 		clientsSetterStream: clientsSetter,
 		serverClientsStream: watcher,
@@ -356,7 +364,7 @@ func CreateServer(coreInfo CoreInfo, defaultModel ModelInfo) (server IbeamServer
 		}
 	}()
 
-	log.Debug("Server created")
+	log.Info("Server created")
 	registry.RegisterModel(&defaultModel)
 	return
 }
@@ -429,9 +437,9 @@ func (m *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //Devic
 		initialValue := ParameterValue{Value: &ParameterValue_Integer{Integer: 0}}
 
 		switch parameterDetail.ValueType.Type() {
-		// This is redundant:
-		//case ValueType_NoValue.Type():
-		//	initialValue.Value = &ParameterValue_Integer{Integer: 0}
+		case ValueType_NoValue.Type():
+			initialValue.Value = &ParameterValue_Cmd{Cmd: Command_Trigger}
+			// This is redundant:
 		//case ValueType_Integer.Type():
 		//	initialValue.Value = &ParameterValue_Integer{Integer: 0}
 		case ValueType_Floating.Type():
@@ -477,11 +485,11 @@ func (m *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //Devic
 	return deviceIndex
 }
 
-func (m *IbeamParameterRegistry) GetIdMap() map[string]uint32 {
-	idMap := make(map[string]uint32)
+func (m *IbeamParameterRegistry) GetIDMap() map[string]ParameterDetail {
+	idMap := make(map[string]ParameterDetail)
 	m.muDetail.RLock()
 	for _, parameter := range m.ParameterDetail[0] {
-		idMap[parameter.Name] = parameter.Id.Parameter
+		idMap[parameter.Name] = *parameter
 	}
 	m.muDetail.RUnlock()
 	return idMap
@@ -509,10 +517,21 @@ func (m *IbeamParameterManager) Start() {
 						log.Errorf("Received invalid instance id %v for parameter %v", value.InstanceID, parameterIndex+1)
 						continue
 					}
+					parameterBuffer := state[deviceIndex][parameterIndex][value.InstanceID-1]
 					if value.Value == nil {
+						//Maybe it is a trigger button
+						/*
+							log.Debugf("Got No Value, but maybe it is a Trigger Button:")
+							value.Value = &ParameterValue_Cmd{
+								Cmd: Command_Trigger,
+							}
+							m.out <- Parameter{
+								Id:    parameter.Id,
+								Error: 0,
+								Value: []*ParameterValue{value},
+							}*/
 						continue
 					}
-					parameterBuffer := state[deviceIndex][parameterIndex][value.InstanceID-1]
 					switch v := value.Value.(type) {
 					case *ParameterValue_Cmd:
 						log.Debugf("Got Set CMD: %v", v)
@@ -523,6 +542,11 @@ func (m *IbeamParameterManager) Start() {
 						}
 					case *ParameterValue_Binary:
 						log.Debugf("Got Set Binary: %v", v)
+						if v != parameterBuffer.currentValue.Value {
+							parameterBuffer.isAssumedState = true
+						}
+						parameterBuffer.targetValue.Value = v
+						parameterBuffer.tryCount = 0
 					case *ParameterValue_Floating:
 						log.Debugf("Got Set Float: %v", v)
 						modelIndex := m.parameterRegistry.getModelIndex(deviceIndex)
@@ -544,9 +568,6 @@ func (m *IbeamParameterManager) Start() {
 								Value: []*ParameterValue{},
 							}
 							continue
-						}
-						if v != parameterBuffer.currentValue.Value {
-							parameterBuffer.isAssumedState = true
 						}
 						parameterBuffer.targetValue.Value = v
 						parameterBuffer.tryCount = 0
@@ -573,9 +594,7 @@ func (m *IbeamParameterManager) Start() {
 							}
 							continue
 						}
-						if v != parameterBuffer.currentValue.Value {
-							parameterBuffer.isAssumedState = true
-						}
+
 						parameterBuffer.targetValue.Value = v
 						parameterBuffer.tryCount = 0
 
@@ -602,9 +621,7 @@ func (m *IbeamParameterManager) Start() {
 							}
 							continue
 						}
-						if v != parameterBuffer.currentValue.Value {
-							parameterBuffer.isAssumedState = true
-						}
+
 						parameterBuffer.targetValue.Value = v
 						parameterBuffer.tryCount = 0
 
@@ -634,9 +651,9 @@ func (m *IbeamParameterManager) Start() {
 					parameterBuffer := state[deviceIndex][parameterIndex][value.InstanceID-1]
 					if value.Value != nil {
 						if time.Until(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
-							parameterBuffer.targetValue = *value
+							parameterBuffer.targetValue.Value = value.Value
 						}
-						parameterBuffer.currentValue = *value
+						parameterBuffer.currentValue.Value = value.Value
 						parameterBuffer.isAssumedState = parameterBuffer.currentValue.Value != parameterBuffer.targetValue.Value
 					} else {
 						parameterBuffer.available = value.Available
@@ -670,11 +687,19 @@ func (m *IbeamParameterManager) Start() {
 							}
 
 							parameterBuffer := state[did][parameterDetail.Id.Parameter-1][iid]
+
 							switch parameterDetail.ControlStyle {
 							case ControlStyle_Normal:
-								if parameterDetail.FeedbackStyle == FeedbackStyle_NoFeedback ||
-									parameterBuffer.currentValue.Value == parameterBuffer.targetValue.Value ||
-									time.Until(parameterBuffer.lastUpdate).Milliseconds() < int64(parameterDetail.ControlDelayMs) {
+								if parameterBuffer.currentValue.Value == parameterBuffer.targetValue.Value {
+									log.Infof("Failed to set Parameter %v, cause current and target are same", parameterDetail.Id.Parameter)
+									continue
+								}
+								if time.Until(parameterBuffer.lastUpdate).Milliseconds()*(-1) < int64(parameterDetail.ControlDelayMs) {
+									log.Infof("Failed to set Parameter %v, cause ControlDelay time | Last Update: %v, Time in ms since this: %v, ControlDelayMs: %v", parameterDetail.Id.Parameter, parameterBuffer.lastUpdate, time.Until(parameterBuffer.lastUpdate).Milliseconds(), parameterDetail.ControlDelayMs)
+									continue
+								}
+								if parameterDetail.FeedbackStyle == FeedbackStyle_NoFeedback {
+									log.Infof("Failed to set Parameter %v, cause not necessary", parameterDetail.Id.Parameter)
 									continue
 								}
 								if parameterDetail.RetryCount != 0 {
@@ -683,6 +708,7 @@ func (m *IbeamParameterManager) Start() {
 										log.Errorf("Failed to set parameter %v in %v tries on device %v", parameterDetail.Id.Parameter, parameterDetail.RetryCount, did+1)
 										parameterBuffer.targetValue = parameterBuffer.currentValue
 										parameterBuffer.isAssumedState = false
+
 										m.serverClientsStream <- Parameter{
 											Value: []*ParameterValue{parameterBuffer.getParameterValue()},
 											Id: &DeviceParameterID{
@@ -779,7 +805,8 @@ func (m *IbeamParameterManager) Start() {
 									log.Errorf("No DeviceParameterID")
 									continue
 								}
-								param := Parameter{
+
+								m.out <- Parameter{
 									Id: &DeviceParameterID{
 										Device:    uint32(did + 1),
 										Parameter: parameterDetail.Id.Parameter,
@@ -787,8 +814,6 @@ func (m *IbeamParameterManager) Start() {
 									Error: 0,
 									Value: cmdValue,
 								}
-
-								m.out <- param
 
 							case ControlStyle_NoControl, ControlStyle_Incremental, ControlStyle_Oneshot:
 								// DO Nothing
