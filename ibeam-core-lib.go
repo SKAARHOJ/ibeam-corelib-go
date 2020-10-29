@@ -331,7 +331,7 @@ func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInf
 
 	watcher := make(chan ibeam_core.Parameter)
 
-	coreInfo.IbeamVersion = File_ibeam_core_proto.Options().ProtoReflect().Get(E_IbeamVersion.TypeDescriptor()).String()
+	coreInfo.IbeamVersion = ibeam_core.File_ibeam_core_proto.Options().ProtoReflect().Get(ibeam_core.E_IbeamVersion.TypeDescriptor()).String()
 
 	registry = &IbeamParameterRegistry{
 		coreInfo:        coreInfo,
@@ -511,7 +511,7 @@ func (m *IbeamParameterManager) StartWithServer(server IbeamServer, endPoint str
 		log.Fatalf("failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
-	RegisterIbeamCoreServer(grpcServer, &server)
+	ibeam_core.RegisterIbeamCoreServer(grpcServer, &server)
 	grpcServer.Serve(lis)
 }
 

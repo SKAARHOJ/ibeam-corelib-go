@@ -1,11 +1,15 @@
-package ibeam_core // _lib
+package ibeam_core_lib
 
-import "fmt"
+import (
+	"fmt"
 
-func GenerateOptionList(options []string) (optionList *OptionList) {
-	optionList = &OptionList{}
+	ibeam_core "github.com/SKAARHOJ/ibeam-core-go/ibeam-core"
+)
+
+func GenerateOptionList(options []string) (optionList *ibeam_core.OptionList) {
+	optionList = &ibeam_core.OptionList{}
 	for index, option := range options {
-		optionList.Options = append(optionList.Options, &ParameterOption{
+		optionList.Options = append(optionList.Options, &ibeam_core.ParameterOption{
 			Id:   uint32(index),
 			Name: option,
 		})
@@ -13,7 +17,7 @@ func GenerateOptionList(options []string) (optionList *OptionList) {
 	return optionList
 }
 
-func GetNameOfParameter(parameterID uint32, pds map[string]ParameterDetail) (string, error) {
+func GetNameOfParameter(parameterID uint32, pds map[string]ibeam_core.ParameterDetail) (string, error) {
 	for _, pd := range pds {
 		if pd.Id.Parameter == parameterID {
 			return pd.Name, nil
