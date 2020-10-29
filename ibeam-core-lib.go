@@ -15,6 +15,11 @@ func init() {
 	log.ConfigureDefaultLogger()
 }
 
+type (
+	//DeviceInfo ibeam_core.DeviceInfo
+	CoreInfo ibeam_core.CoreInfo
+)
+
 type IbeamParameterRegistry struct {
 	muInfo          sync.RWMutex
 	muDetail        sync.RWMutex
@@ -176,7 +181,7 @@ func (s *IbeamServer) Get(_ context.Context, dpIDs *ibeam_core.DeviceParameterID
 				}
 				iv := s.parameterRegistry.getInstanceValues(dpID)
 				if iv != nil {
-					rParameters.Parameters = append(rParameters.Parameters, &Parameter{
+					rParameters.Parameters = append(rParameters.Parameters, &ibeam_core.Parameter{
 						Id:    &dpID,
 						Error: 0,
 						Value: iv,
@@ -193,15 +198,15 @@ func (s *IbeamServer) Get(_ context.Context, dpIDs *ibeam_core.DeviceParameterID
 			}
 			iv := s.parameterRegistry.getInstanceValues(*dpID)
 			if err != nil || len(iv) == 0 {
-				rParameters.Parameters = append(rParameters.Parameters, &Parameter{
+				rParameters.Parameters = append(rParameters.Parameters, &ibeam_core.Parameter{
 					Id:    dpID,
-					Error: ParameterError_UnknownError,
+					Error: ibeam_core.ParameterError_UnknownError,
 					Value: nil,
 				})
 			} else {
-				rParameters.Parameters = append(rParameters.Parameters, &Parameter{
+				rParameters.Parameters = append(rParameters.Parameters, &ibeam_core.Parameter{
 					Id:    dpID,
-					Error: ParameterError_NoError,
+					Error: ibeam_core.ParameterError_NoError,
 					Value: iv,
 				})
 			}
@@ -314,7 +319,7 @@ func containsDeviceParameter(dpID *ibeam_core.DeviceParameterID, dpIDs *ibeam_co
 	return false
 }
 
-func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInfo) (server IbeamServer, manager *IbeamParameterManager, registry *IbeamParameterRegistry, set chan Parameter, getFromGRCP chan ibeam_core.Parameter) {
+func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInfo) (server IbeamServer, manager *IbeamParameterManager, registry *IbeamParameterRegistry, set chan ibeam_core.Parameter, getFromGRCP chan ibeam_core.Parameter) {
 
 	clientsSetter := make(chan ibeam_core.Parameter, 100)
 	getFromGRCP = make(chan ibeam_core.Parameter, 100)
@@ -534,64 +539,64 @@ func (m *IbeamParameterManager) Start() {
 						continue
 					}
 					switch v := value.Value.(type) {
-					case *ParameterValue_Cmd:
+					case *ibeam_core.ParameterValue_Cmd:
 						log.Debugf("Got Set CMD: %v", v)
-						m.out <- Parameter{
+						m.out <- ibeam_core.Parameter{
 							Id:    parameter.Id,
 							Error: 0,
-							Value: []*ParameterValue{value},
+							Value: []*ibeam_core.ParameterValue{value},
 						}
-					case *ParameterValue_Binary:
+					case *ibeam_core.ParameterValue_Binary:
 						log.Debugf("Got Set Binary: %v", v)
 						if v != parameterBuffer.currentValue.Value {
 							parameterBuffer.isAssumedState = true
 						}
 						parameterBuffer.targetValue.Value = v
 						parameterBuffer.tryCount = 0
-					case *ParameterValue_Floating:
+					case *ibeam_core.ParameterValue_Floating:
 						log.Debugf("Got Set Float: %v", v)
 						modelIndex := m.parameterRegistry.getModelIndex(deviceIndex)
 						parameterConfig := m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex]
 						if v.Floating > parameterConfig.Maximum {
 							log.Debugf("Max violation for parameter %v", parameterIndex+1)
-							m.serverClientsStream <- Parameter{
+							m.serverClientsStream <- ibeam_core.Parameter{
 								Id:    parameter.Id,
-								Error: ParameterError_MaxViolation,
-								Value: []*ParameterValue{},
+								Error: ibeam_core.ParameterError_MaxViolation,
+								Value: []*ibeam_core.ParameterValue{},
 							}
 							continue
 						}
 						if v.Floating < parameterConfig.Minimum {
 							log.Debugf("Min violation for parameter %v", parameterIndex+1)
-							m.serverClientsStream <- Parameter{
+							m.serverClientsStream <- ibeam_core.Parameter{
 								Id:    parameter.Id,
-								Error: ParameterError_MinViolation,
-								Value: []*ParameterValue{},
+								Error: ibeam_core.ParameterError_MinViolation,
+								Value: []*ibeam_core.ParameterValue{},
 							}
 							continue
 						}
 						parameterBuffer.targetValue.Value = v
 						parameterBuffer.tryCount = 0
 
-					case *ParameterValue_Integer:
+					case *ibeam_core.ParameterValue_Integer:
 						log.Debugf("Got Set Integer: %v", v)
 						modelIndex := m.parameterRegistry.getModelIndex(deviceIndex)
 						parameterConfig := m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex]
 						if v.Integer > int32(parameterConfig.Maximum) {
 							log.Debugf("Max violation for parameter %v", parameterIndex+1)
-							m.serverClientsStream <- Parameter{
+							m.serverClientsStream <- ibeam_core.Parameter{
 								Id:    parameter.Id,
-								Error: ParameterError_MaxViolation,
-								Value: []*ParameterValue{},
+								Error: ibeam_core.ParameterError_MaxViolation,
+								Value: []*ibeam_core.ParameterValue{},
 							}
 							continue
 						}
 						if v.Integer < int32(parameterConfig.Minimum) {
 							log.Debugf("Min violation for parameter %v", parameterIndex+1)
-							m.serverClientsStream <- Parameter{
+							m.serverClientsStream <- ibeam_core.Parameter{
 								Id:    parameter.Id,
-								Error: ParameterError_MinViolation,
-								Value: []*ParameterValue{},
+								Error: ibeam_core.ParameterError_MinViolation,
+								Value: []*ibeam_core.ParameterValue{},
 							}
 							continue
 						}
@@ -599,12 +604,12 @@ func (m *IbeamParameterManager) Start() {
 						parameterBuffer.targetValue.Value = v
 						parameterBuffer.tryCount = 0
 
-					case *ParameterValue_OptionList:
+					case *ibeam_core.ParameterValue_OptionList:
 						log.Debugf("Got Set Option List: %v", v)
 
-					case *ParameterValue_Str:
+					case *ibeam_core.ParameterValue_Str:
 						log.Debugf("Got Set String: %v", v)
-					case *ParameterValue_CurrentOption:
+					case *ibeam_core.ParameterValue_CurrentOption:
 						log.Debugf("Got Set Current Option: %v", v)
 
 						modelIndex := m.parameterRegistry.getModelIndex(deviceIndex)
@@ -615,10 +620,10 @@ func (m *IbeamParameterManager) Start() {
 						}
 						if v.CurrentOption > uint32(len(parameterConfig.OptionList.Options)) {
 							log.Errorf("Invalid operation index for parameter %v", parameterIndex+1)
-							m.serverClientsStream <- Parameter{
+							m.serverClientsStream <- ibeam_core.Parameter{
 								Id:    parameter.Id,
-								Error: ParameterError_UnknownID,
-								Value: []*ParameterValue{},
+								Error: ibeam_core.ParameterError_UnknownID,
+								Value: []*ibeam_core.ParameterValue{},
 							}
 							continue
 						}
@@ -763,24 +768,24 @@ func (m *IbeamParameterManager) Start() {
 								var cmdAction action
 
 								switch value := parameterBuffer.currentValue.Value.(type) {
-								case *ParameterValue_Integer:
-									if targetValue, ok := parameterBuffer.targetValue.Value.(*ParameterValue_Integer); ok {
+								case *ibeam_core.ParameterValue_Integer:
+									if targetValue, ok := parameterBuffer.targetValue.Value.(*ibeam_core.ParameterValue_Integer); ok {
 										if value.Integer < targetValue.Integer {
 											cmdAction = Increment
 										} else if value.Integer > targetValue.Integer {
 											cmdAction = Decrement
 										}
 									}
-								case *ParameterValue_Floating:
-									if targetValue, ok := parameterBuffer.targetValue.Value.(*ParameterValue_Floating); ok {
+								case *ibeam_core.ParameterValue_Floating:
+									if targetValue, ok := parameterBuffer.targetValue.Value.(*ibeam_core.ParameterValue_Floating); ok {
 										if value.Floating < targetValue.Floating {
 											cmdAction = Increment
 										} else if value.Floating > targetValue.Floating {
 											cmdAction = Decrement
 										}
 									}
-								case *ParameterValue_CurrentOption:
-									if targetValue, ok := parameterBuffer.targetValue.Value.(*ParameterValue_CurrentOption); ok {
+								case *ibeam_core.ParameterValue_CurrentOption:
+									if targetValue, ok := parameterBuffer.targetValue.Value.(*ibeam_core.ParameterValue_CurrentOption); ok {
 										if value.CurrentOption < targetValue.CurrentOption {
 											cmdAction = Increment
 										} else if value.CurrentOption > targetValue.CurrentOption {
