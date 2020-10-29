@@ -324,10 +324,10 @@ func containsDeviceParameter(dpID *ibeam_core.DeviceParameterID, dpIDs *ibeam_co
 }
 
 // CreateServer Sets up the ibeam server, parameter manager and parameter registry
-func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInfo) (server IbeamServer, manager *IbeamParameterManager, registry *IbeamParameterRegistry, set chan ibeam_core.Parameter, getFromGRCP chan ibeam_core.Parameter) {
+func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInfo) (server IbeamServer, manager *IbeamParameterManager, registry *IbeamParameterRegistry, set chan ibeam_core.Parameter, getFromGRPC chan ibeam_core.Parameter) {
 
 	clientsSetter := make(chan ibeam_core.Parameter, 100)
-	getFromGRCP = make(chan ibeam_core.Parameter, 100)
+	getFromGRPC = make(chan ibeam_core.Parameter, 100)
 	set = make(chan ibeam_core.Parameter, 100)
 
 	fistParameter := ibeam_core.Parameter{}
@@ -357,7 +357,7 @@ func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInf
 
 	manager = &IbeamParameterManager{
 		parameterRegistry:   registry,
-		out:                 getFromGRCP,
+		out:                 getFromGRPC,
 		in:                  set,
 		clientsSetterStream: clientsSetter,
 		serverClientsStream: watcher,
@@ -509,7 +509,7 @@ func (r *IbeamParameterRegistry) GetIDMap() map[string]*ibeam_core.ParameterDeta
 	return idMap
 }
 
-// StartWithServer Starts the ibeam parameter routine and the GRPC serevr in one call. This is blocking and should be called at the end of main
+// StartWithServer Starts the ibeam parameter routine and the GRPC server in one call. This is blocking and should be called at the end of main
 func (m *IbeamParameterManager) StartWithServer(server IbeamServer, endPoint string) {
 	// Start parameter management routine
 	m.Start() // TODO: we could use a waitgroup or something here ? cross goroutine error handling is kinda missing
