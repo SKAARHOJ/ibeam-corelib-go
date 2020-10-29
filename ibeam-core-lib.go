@@ -330,6 +330,8 @@ func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInf
 
 	watcher := make(chan ibeam_core.Parameter)
 
+	coreInfo.IbeamVersion = File_ibeam_core_proto.Options().ProtoReflect().Get(E_IbeamVersion.TypeDescriptor()).String()
+
 	registry = &IbeamParameterRegistry{
 		coreInfo:        coreInfo,
 		DeviceInfos:     []*ibeam_core.DeviceInfo{},
