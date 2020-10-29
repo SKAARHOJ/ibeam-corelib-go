@@ -316,6 +316,7 @@ func containsDeviceParameter(dpID *ibeam_core.DeviceParameterID, dpIDs *ibeam_co
 	return false
 }
 
+// CreateServer Sets up the ibeam server, parameter manager and parameter registry
 func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInfo) (server IbeamServer, manager *IbeamParameterManager, registry *IbeamParameterRegistry, set chan ibeam_core.Parameter, getFromGRCP chan ibeam_core.Parameter) {
 
 	clientsSetter := make(chan ibeam_core.Parameter, 100)
