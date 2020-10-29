@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"sync"
 	"time"
 
 	ibeam_core "github.com/SKAARHOJ/ibeam-core-go/ibeam-core"
 	log "github.com/s00500/env_logger"
+	"google.golang.org/grpc"
 )
 
 func init() {
@@ -314,6 +316,7 @@ func containsDeviceParameter(dpID *ibeam_core.DeviceParameterID, dpIDs *ibeam_co
 	return false
 }
 
+// CreateServer Sets up the ibeam server, parameter manager and parameter registry
 func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInfo) (server IbeamServer, manager *IbeamParameterManager, registry *IbeamParameterRegistry, set chan ibeam_core.Parameter, getFromGRCP chan ibeam_core.Parameter) {
 
 	clientsSetter := make(chan ibeam_core.Parameter, 100)
@@ -327,6 +330,8 @@ func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInf
 	}
 
 	watcher := make(chan ibeam_core.Parameter)
+
+	coreInfo.IbeamVersion = File_ibeam_core_proto.Options().ProtoReflect().Get(E_IbeamVersion.TypeDescriptor()).String()
 
 	registry = &IbeamParameterRegistry{
 		coreInfo:        coreInfo,
@@ -496,9 +501,22 @@ func (m *IbeamParameterRegistry) GetIDMap() map[string]ibeam_core.ParameterDetai
 	return idMap
 }
 
+// StartWithServer Starts the ibeam parameter routine and the GRPC serevr in one call. This is blocking and should be called at the end of main
+func (m *IbeamParameterManager) StartWithServer(server IbeamServer, endPoint string) {
+	// Start parameter management routine
+	m.Start() // TODO: we could use a waitgroup or something here ? cross goroutine error handling is kinda missing
+
+	lis, err := net.Listen("tcp", endPoint) // TODO: make listen: unix also possible!
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	grpcServer := grpc.NewServer()
+	RegisterIbeamCoreServer(grpcServer, &server)
+	grpcServer.Serve(lis)
+}
+
 // Add desc
 func (m *IbeamParameterManager) Start() {
-
 	go func() {
 		for {
 			select {
