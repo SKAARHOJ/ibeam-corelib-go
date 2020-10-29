@@ -15,11 +15,6 @@ func init() {
 	log.ConfigureDefaultLogger()
 }
 
-type (
-	//DeviceInfo ibeam_core.DeviceInfo
-	CoreInfo ibeam_core.CoreInfo
-)
-
 type IbeamParameterRegistry struct {
 	muInfo          sync.RWMutex
 	muDetail        sync.RWMutex
