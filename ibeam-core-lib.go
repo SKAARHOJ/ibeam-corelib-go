@@ -17,6 +17,7 @@ func init() {
 	log.ConfigureDefaultLogger()
 }
 
+// IbeamParameterRegistry ...
 type IbeamParameterRegistry struct {
 	muInfo          sync.RWMutex
 	muDetail        sync.RWMutex
@@ -28,6 +29,7 @@ type IbeamParameterRegistry struct {
 	parameterValue  [][][]*IBeamParameterValueBuffer //Parameter State: device,parameter,instance
 }
 
+// IbeamServer ...
 type IbeamServer struct {
 	parameterRegistry        *IbeamParameterRegistry
 	clientsSetterStream      chan ibeam_core.Parameter
@@ -35,6 +37,7 @@ type IbeamServer struct {
 	serverClientsDistributor map[chan ibeam_core.Parameter]bool
 }
 
+// IbeamParameterManager ...
 type IbeamParameterManager struct {
 	parameterRegistry   *IbeamParameterRegistry
 	out                 chan ibeam_core.Parameter
@@ -43,6 +46,8 @@ type IbeamParameterManager struct {
 	serverClientsStream chan ibeam_core.Parameter
 }
 
+// IBeamParameterValueBuffer is used for updating a ParameterValue.
+// It holds a current and a target Value.
 type IBeamParameterValueBuffer struct {
 	instanceID     uint32
 	available      bool
@@ -108,26 +113,27 @@ func (r *IbeamParameterRegistry) getModelIndex(deviceID int) uint32 {
 	return r.DeviceInfos[deviceID].ModelID //Todo was -1 before
 }
 
+// GetCoreInfo ...
 func (s *IbeamServer) GetCoreInfo(_ context.Context, _ *ibeam_core.Empty) (*ibeam_core.CoreInfo, error) {
 	return &s.parameterRegistry.coreInfo, nil
 }
 
-// No id -> get everything
+// GetDeviceInfo ...
 func (s *IbeamServer) GetDeviceInfo(_ context.Context, dIDs *ibeam_core.DeviceIDs) (*ibeam_core.DeviceInfos, error) {
 	log.Debugf("Client asks for DeviceInfo with ids %v", dIDs.Ids)
 	if len(dIDs.Ids) == 0 {
 		return &ibeam_core.DeviceInfos{DeviceInfos: s.parameterRegistry.DeviceInfos}, nil
-	} else {
-		var rDeviceInfos ibeam_core.DeviceInfos
-
-		for _, ID := range dIDs.Ids {
-			if device := getDeviceWithID(s, ID); device != nil {
-				rDeviceInfos.DeviceInfos = append(rDeviceInfos.DeviceInfos, device)
-			}
-			// If we have no Device with such a ID, skip
-		}
-		return &rDeviceInfos, nil
 	}
+	var rDeviceInfos ibeam_core.DeviceInfos
+
+	for _, ID := range dIDs.Ids {
+		if device := getDeviceWithID(s, ID); device != nil {
+			rDeviceInfos.DeviceInfos = append(rDeviceInfos.DeviceInfos, device)
+		}
+		// If we have no Device with such a ID, skip
+	}
+	return &rDeviceInfos, nil
+
 }
 
 func getDeviceWithID(s *IbeamServer, dID uint32) *ibeam_core.DeviceInfo {
@@ -139,21 +145,20 @@ func getDeviceWithID(s *IbeamServer, dID uint32) *ibeam_core.DeviceInfo {
 	return nil
 }
 
+// GetModelInfo ...
 func (s *IbeamServer) GetModelInfo(_ context.Context, mIDs *ibeam_core.ModelIDs) (*ibeam_core.ModelInfos, error) {
-
 	if len(mIDs.Ids) == 0 {
 		return &ibeam_core.ModelInfos{ModelInfos: s.parameterRegistry.ModelInfos}, nil
-	} else {
-		var rModelInfos ibeam_core.ModelInfos
-
-		for _, ID := range mIDs.Ids {
-			if model := getModelWithID(s, ID); model != nil {
-				rModelInfos.ModelInfos = append(rModelInfos.ModelInfos, model)
-			}
-			// If we have no Model with such an ID, skip
-		}
-		return &rModelInfos, nil
 	}
+	var rModelInfos ibeam_core.ModelInfos
+
+	for _, ID := range mIDs.Ids {
+		if model := getModelWithID(s, ID); model != nil {
+			rModelInfos.ModelInfos = append(rModelInfos.ModelInfos, model)
+		}
+		// If we have no Model with such an ID, skip
+	}
+	return &rModelInfos, nil
 }
 
 func getModelWithID(s *IbeamServer, mID uint32) *ibeam_core.ModelInfo {
@@ -165,7 +170,7 @@ func getModelWithID(s *IbeamServer, mID uint32) *ibeam_core.ModelInfo {
 	return nil
 }
 
-// No id -> get everything, as ParamID has 2 dimensions this rule should work
+// Get No id -> get everything, as ParamID has 2 dimensions this rule should work
 // in both
 func (s *IbeamServer) Get(_ context.Context, dpIDs *ibeam_core.DeviceParameterIDs) (rParameters *ibeam_core.Parameters, err error) {
 	rParameters = &ibeam_core.Parameters{}
@@ -212,6 +217,7 @@ func (s *IbeamServer) Get(_ context.Context, dpIDs *ibeam_core.DeviceParameterID
 	return
 }
 
+// GetParameterDetails ...
 func (s *IbeamServer) GetParameterDetails(c context.Context, mpIDs *ibeam_core.ModelParameterIDs) (*ibeam_core.ParameterDetails, error) {
 	log.Debugf("Got a GetParameterDetails from ") //TODO lookup how to get IP
 	rParameterDetails := &ibeam_core.ParameterDetails{}
@@ -225,9 +231,9 @@ func (s *IbeamServer) GetParameterDetails(c context.Context, mpIDs *ibeam_core.M
 			if err != nil {
 				log.Errorf(err.Error())
 				return nil, err
-			} else {
-				rParameterDetails.Details = append(rParameterDetails.Details, d)
 			}
+			rParameterDetails.Details = append(rParameterDetails.Details, d)
+
 		}
 	}
 	return rParameterDetails, nil
@@ -238,7 +244,7 @@ func (s *IbeamServer) getParameterDetail(mpID *ibeam_core.ModelParameterID) (*ib
 		return nil, errors.New("Failed to get instance values " + mpID.String())
 	}
 	if len(s.parameterRegistry.ParameterDetail) < int(mpID.Model) {
-		return nil, errors.New(fmt.Sprintf("ParamerDetail does not have Model with id %v", mpID.Model))
+		return nil, fmt.Errorf("ParamerDetail does not have Model with id %v", mpID.Model)
 	}
 	for _, parameterDetail := range s.parameterRegistry.ParameterDetail[mpID.Model-1] {
 		if parameterDetail.Id.Model == mpID.Model && parameterDetail.Id.Parameter == mpID.Parameter {
@@ -248,6 +254,7 @@ func (s *IbeamServer) getParameterDetail(mpID *ibeam_core.ModelParameterID) (*ib
 	return nil, errors.New("Cannot find ParameterDetail with given ModelParameterID")
 }
 
+// Set ...
 func (s *IbeamServer) Set(_ context.Context, ps *ibeam_core.Parameters) (*ibeam_core.Empty, error) {
 	for _, parameter := range ps.Parameters {
 		s.clientsSetterStream <- *parameter
@@ -255,8 +262,8 @@ func (s *IbeamServer) Set(_ context.Context, ps *ibeam_core.Parameters) (*ibeam_
 	return &ibeam_core.Empty{}, nil
 }
 
+// Subscribe On subscribe all current values should be sent back!
 // No id -> subscribe to everything
-// On subscribe all current values should be sent back!
 func (s *IbeamServer) Subscribe(dpIDs *ibeam_core.DeviceParameterIDs, stream ibeam_core.IbeamCore_SubscribeServer) error {
 	log.Info("New Client subscribed")
 	// Fist send all parameters
@@ -375,63 +382,63 @@ func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInf
 	return
 }
 
-// Add desc
-func (m *IbeamParameterRegistry) RegisterParameter(detail *ibeam_core.ParameterDetail) uint32 {
+// RegisterParameter ...
+func (r *IbeamParameterRegistry) RegisterParameter(detail *ibeam_core.ParameterDetail) uint32 {
 	mid := uint32(1)
 	if detail.Id != nil {
 		if detail.Id.Model != 0 {
 			mid = detail.Id.Model
 		}
 	}
-	m.muDetail.RLock()
-	if uint32(len(m.ParameterDetail)) <= (mid - 1) {
+	r.muDetail.RLock()
+	if uint32(len(r.ParameterDetail)) <= (mid - 1) {
 		log.Panic("Could not register parameter for nonexistent model ", mid)
 		return 0
 	}
 
-	modelconfig := &m.ParameterDetail[mid-1]
+	modelconfig := &r.ParameterDetail[mid-1]
 	paramIndex := uint32(len(*modelconfig) + 1)
-	m.muDetail.RUnlock()
+	r.muDetail.RUnlock()
 	detail.Id = &ibeam_core.ModelParameterID{
 		Parameter: paramIndex,
 		Model:     mid,
 	}
-	m.muDetail.Lock()
+	r.muDetail.Lock()
 	*modelconfig = append(*modelconfig, detail)
-	m.muDetail.Unlock()
+	r.muDetail.Unlock()
 	log.Debugf("ParameterDetail '%v' registered with ID: %v for Model %v", detail.Name, detail.Id.Parameter, detail.Id.Model)
 	return paramIndex
 }
 
-// Add desc
-func (m *IbeamParameterRegistry) RegisterModel(model *ibeam_core.ModelInfo) uint32 {
-	m.muDetail.RLock()
-	model.Id = uint32(len(m.ParameterDetail) + 1)
-	m.muDetail.RUnlock()
-	m.muInfo.Lock()
-	m.ModelInfos = append(m.ModelInfos, model)
-	m.muInfo.Unlock()
-	m.muDetail.Lock()
-	m.ParameterDetail = append(m.ParameterDetail, []*ibeam_core.ParameterDetail{})
-	m.muDetail.Unlock()
+// RegisterModel ...
+func (r *IbeamParameterRegistry) RegisterModel(model *ibeam_core.ModelInfo) uint32 {
+	r.muDetail.RLock()
+	model.Id = uint32(len(r.ParameterDetail) + 1)
+	r.muDetail.RUnlock()
+	r.muInfo.Lock()
+	r.ModelInfos = append(r.ModelInfos, model)
+	r.muInfo.Unlock()
+	r.muDetail.Lock()
+	r.ParameterDetail = append(r.ParameterDetail, []*ibeam_core.ParameterDetail{})
+	r.muDetail.Unlock()
 	log.Debugf("Model '%v' registered with ID: %v ", model.Name, model.Id)
 	return model.Id
 }
 
-// Add desc
-func (m *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //DeviceInfo) {
+// RegisterDevice ...
+func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //DeviceInfo) {
 	mid := uint32(1)
 	if modelID != 0 {
 		mid = modelID
 	}
-	m.muDetail.RLock()
-	if uint32(len(m.ParameterDetail)) <= (mid - 1) {
+	r.muDetail.RLock()
+	if uint32(len(r.ParameterDetail)) <= (mid - 1) {
 		log.Panicf("Could not register device for nonexistent model with id: %v", mid)
 		return 0
 	}
 
-	modelConfig := m.ParameterDetail[mid-1]
-	m.muDetail.RUnlock()
+	modelConfig := r.ParameterDetail[mid-1]
+	r.muDetail.RUnlock()
 
 	// create device info
 	// take all params from model and generate a value buffer array for all instances
@@ -469,35 +476,36 @@ func (m *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //Devic
 			})
 		}
 
-		for i := uint32(0); i < m.coreInfo.MaxDevices; i++ {
+		for i := uint32(0); i < r.coreInfo.MaxDevices; i++ {
 			*parameterValuesBuffer = append(*parameterValuesBuffer, valueInstances)
 		}
 	}
 
-	m.muInfo.RLock()
-	deviceIndex := uint32(len(m.DeviceInfos) + 1)
-	m.muInfo.RUnlock()
-	m.muInfo.Lock()
-	m.DeviceInfos = append(m.DeviceInfos, &ibeam_core.DeviceInfo{
+	r.muInfo.RLock()
+	deviceIndex := uint32(len(r.DeviceInfos) + 1)
+	r.muInfo.RUnlock()
+	r.muInfo.Lock()
+	r.DeviceInfos = append(r.DeviceInfos, &ibeam_core.DeviceInfo{
 		DeviceID: deviceIndex,
 		ModelID:  modelID,
 	})
-	m.muInfo.Unlock()
-	m.muValue.Lock()
-	m.parameterValue = append(m.parameterValue, *parameterValuesBuffer)
-	m.muValue.Unlock()
+	r.muInfo.Unlock()
+	r.muValue.Lock()
+	r.parameterValue = append(r.parameterValue, *parameterValuesBuffer)
+	r.muValue.Unlock()
 
-	log.Debugf("Device '%v' registered with model: %v (%v)", deviceIndex, mid, m.ModelInfos[mid-1].Name)
+	log.Debugf("Device '%v' registered with model: %v (%v)", deviceIndex, mid, r.ModelInfos[mid-1].Name)
 	return deviceIndex
 }
 
-func (m *IbeamParameterRegistry) GetIDMap() map[string]ibeam_core.ParameterDetail {
-	idMap := make(map[string]ibeam_core.ParameterDetail)
-	m.muDetail.RLock()
-	for _, parameter := range m.ParameterDetail[0] {
-		idMap[parameter.Name] = *parameter
+// GetIDMap ...
+func (r *IbeamParameterRegistry) GetIDMap() map[string]*ibeam_core.ParameterDetail {
+	idMap := make(map[string]*ibeam_core.ParameterDetail)
+	r.muDetail.RLock()
+	for _, parameter := range r.ParameterDetail[0] {
+		idMap[parameter.Name] = parameter
 	}
-	m.muDetail.RUnlock()
+	r.muDetail.RUnlock()
 	return idMap
 }
 
@@ -515,7 +523,7 @@ func (m *IbeamParameterManager) StartWithServer(server IbeamServer, endPoint str
 	grpcServer.Serve(lis)
 }
 
-// Add desc
+// Start ...
 func (m *IbeamParameterManager) Start() {
 	go func() {
 		for {
@@ -684,7 +692,7 @@ func (m *IbeamParameterManager) Start() {
 					continue
 				}
 
-				if values := m.parameterRegistry.getInstanceValues(*parameter.Id); values != nil {
+				if values := m.parameterRegistry.getInstanceValues(*parameter.GetId()); values != nil {
 					m.serverClientsStream <- ibeam_core.Parameter{Value: values, Id: parameter.Id, Error: 0}
 				}
 
@@ -773,8 +781,11 @@ func (m *IbeamParameterManager) Start() {
 								}
 								type action string
 								const (
-									Increment   action = "Increment"
-									Decrement   action = "Decrement"
+									// Increment ...
+									Increment action = "Increment"
+									// Decrement ...
+									Decrement action = "Decrement"
+									// NoOperation ...
 									NoOperation action = "NoOperation"
 								)
 
