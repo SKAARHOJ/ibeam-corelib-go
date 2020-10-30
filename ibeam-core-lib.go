@@ -672,9 +672,7 @@ func (m *IbeamParameterManager) Start() {
 					}
 					parameterBuffer := state[deviceIndex][parameterIndex][value.InstanceID-1]
 					if value.Value != nil {
-						if time.Until(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
-							parameterBuffer.targetValue.Value = value.Value
-						}
+						didSet := false // flag to to handle custom cases
 						// If Type of Parameter is Opt, find the right Opt
 						switch parameterConfig.ValueType {
 						case ibeam_core.ValueType_Opt:
@@ -686,19 +684,34 @@ func (m *IbeamParameterManager) Start() {
 									// TODO get new option list maybe
 									continue
 								}
-								parameterBuffer.targetValue = ibeam_core.ParameterValue{
+
+								newValue := ibeam_core.ParameterValue{
 									Value: &ibeam_core.ParameterValue_CurrentOption{
 										CurrentOption: id,
 									},
 								}
-							case *ibeam_core.ParameterValue_CurrentOption:
-								parameterBuffer.targetValue.Value = v
+								if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
+									parameterBuffer.targetValue = newValue
+								}
+
+								parameterBuffer.currentValue = newValue
+
+								didSet = true
 							case *ibeam_core.ParameterValue_OptionList:
 								if !parameterConfig.OptionListIsDynamic {
 									log.Errorf("Parameter with ID %v has no Dynamic OptionList", parameter.Id.Parameter)
 									continue
 								}
-								parameterBuffer.targetValue.Value = v
+								m.parameterRegistry.muDetail.Lock()
+								m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex].OptionList = v.OptionList
+								m.parameterRegistry.muDetail.Unlock()
+								/*
+								   // TODO: Send out option list here
+								   								if values := m.parameterRegistry.getInstanceValues(*parameter.GetId()); values != nil {
+								   									m.serverClientsStream <- ibeam_core.Parameter{Value: values, Id: parameter.Id, Error: 0}
+								   								}
+								*/
+								continue
 							default:
 								log.Errorf("Valuetype of Parameter is Opt and so we should get a String or Opt, but got %T", value)
 								continue
@@ -728,7 +741,13 @@ func (m *IbeamParameterManager) Start() {
 							continue
 						}
 
-						parameterBuffer.currentValue.Value = value.Value
+						if !didSet {
+							if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
+								parameterBuffer.targetValue.Value = value.Value
+							}
+							parameterBuffer.currentValue.Value = value.Value
+						}
+
 						parameterBuffer.isAssumedState = parameterBuffer.currentValue.Value != parameterBuffer.targetValue.Value
 					} else {
 						parameterBuffer.available = value.Available
