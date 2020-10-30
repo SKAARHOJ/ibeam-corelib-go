@@ -6,7 +6,7 @@ import (
 	ibeam_core "github.com/SKAARHOJ/ibeam-core-go/ibeam-core"
 )
 
-// GenerateOptionList ...
+// GenerateOptionList returns a new OptionList with ascending IDs
 func GenerateOptionList(options ...string) (optionList *ibeam_core.OptionList) {
 	optionList = &ibeam_core.OptionList{}
 	for index, option := range options {
