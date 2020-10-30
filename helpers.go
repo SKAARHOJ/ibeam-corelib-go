@@ -7,7 +7,7 @@ import (
 )
 
 // GenerateOptionList ...
-func GenerateOptionList(options []string) (optionList *ibeam_core.OptionList) {
+func GenerateOptionList(options ...string) (optionList *ibeam_core.OptionList) {
 	optionList = &ibeam_core.OptionList{}
 	for index, option := range options {
 		optionList.Options = append(optionList.Options, &ibeam_core.ParameterOption{
