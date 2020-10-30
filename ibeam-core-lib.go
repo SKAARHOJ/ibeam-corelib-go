@@ -17,7 +17,8 @@ func init() {
 	log.ConfigureDefaultLogger()
 }
 
-// IbeamParameterRegistry ...
+// IbeamParameterRegistry is the storrage of the core.
+// It saves all Infos about the Core, Device and Info and stores the Details and current Values of the Parameter.
 type IbeamParameterRegistry struct {
 	muInfo          sync.RWMutex
 	muDetail        sync.RWMutex
@@ -29,7 +30,7 @@ type IbeamParameterRegistry struct {
 	parameterValue  [][][]*IBeamParameterValueBuffer //Parameter State: device,parameter,instance
 }
 
-// IbeamServer ...
+// IbeamServer implements the IbeamCoreServer interface of the generated protofile library.
 type IbeamServer struct {
 	parameterRegistry        *IbeamParameterRegistry
 	clientsSetterStream      chan ibeam_core.Parameter
@@ -37,7 +38,7 @@ type IbeamServer struct {
 	serverClientsDistributor map[chan ibeam_core.Parameter]bool
 }
 
-// IbeamParameterManager ...
+// IbeamParameterManager manages parameter changes.
 type IbeamParameterManager struct {
 	parameterRegistry   *IbeamParameterRegistry
 	out                 chan ibeam_core.Parameter
@@ -113,19 +114,19 @@ func (r *IbeamParameterRegistry) getModelIndex(deviceID int) uint32 {
 	return r.DeviceInfos[deviceID].ModelID //Todo was -1 before
 }
 
-// GetCoreInfo ...
+// GetCoreInfo returns the CoreInfo of the Ibeam-Core
 func (s *IbeamServer) GetCoreInfo(_ context.Context, _ *ibeam_core.Empty) (*ibeam_core.CoreInfo, error) {
 	return &s.parameterRegistry.coreInfo, nil
 }
 
-// GetDeviceInfo ...
+// GetDeviceInfo returns the DeviceInfos for given DeviceIDs.
+// If no IDs are given, all DeviceInfos will be returned.
 func (s *IbeamServer) GetDeviceInfo(_ context.Context, dIDs *ibeam_core.DeviceIDs) (*ibeam_core.DeviceInfos, error) {
 	log.Debugf("Client asks for DeviceInfo with ids %v", dIDs.Ids)
 	if len(dIDs.Ids) == 0 {
 		return &ibeam_core.DeviceInfos{DeviceInfos: s.parameterRegistry.DeviceInfos}, nil
 	}
 	var rDeviceInfos ibeam_core.DeviceInfos
-
 	for _, ID := range dIDs.Ids {
 		if device := getDeviceWithID(s, ID); device != nil {
 			rDeviceInfos.DeviceInfos = append(rDeviceInfos.DeviceInfos, device)
@@ -145,13 +146,13 @@ func getDeviceWithID(s *IbeamServer, dID uint32) *ibeam_core.DeviceInfo {
 	return nil
 }
 
-// GetModelInfo ...
+// GetModelInfo returns the ModelInfos for given ModelIDs.
+// If no IDs are given, all ModelInfos will be returned.
 func (s *IbeamServer) GetModelInfo(_ context.Context, mIDs *ibeam_core.ModelIDs) (*ibeam_core.ModelInfos, error) {
 	if len(mIDs.Ids) == 0 {
 		return &ibeam_core.ModelInfos{ModelInfos: s.parameterRegistry.ModelInfos}, nil
 	}
 	var rModelInfos ibeam_core.ModelInfos
-
 	for _, ID := range mIDs.Ids {
 		if model := getModelWithID(s, ID); model != nil {
 			rModelInfos.ModelInfos = append(rModelInfos.ModelInfos, model)
@@ -170,13 +171,13 @@ func getModelWithID(s *IbeamServer, mID uint32) *ibeam_core.ModelInfo {
 	return nil
 }
 
-// Get No id -> get everything, as ParamID has 2 dimensions this rule should work
-// in both
+// Get returns the Parameters with their current state for given DeviceParameterIDs.
+// If no IDs are given, all Parameters will be returned.
 func (s *IbeamServer) Get(_ context.Context, dpIDs *ibeam_core.DeviceParameterIDs) (rParameters *ibeam_core.Parameters, err error) {
 	rParameters = &ibeam_core.Parameters{}
 	if len(dpIDs.Ids) == 0 {
-		for pid, pState := range s.parameterRegistry.parameterValue {
-			for did := range pState {
+		for did, pState := range s.parameterRegistry.parameterValue {
+			for pid := range pState {
 				dpID := ibeam_core.DeviceParameterID{
 					Parameter: uint32(pid) + 1,
 					Device:    uint32(did) + 1,
@@ -217,7 +218,8 @@ func (s *IbeamServer) Get(_ context.Context, dpIDs *ibeam_core.DeviceParameterID
 	return
 }
 
-// GetParameterDetails ...
+// GetParameterDetails returns the Details for given ModelParameterIDs.
+// If no IDs are given, the Details from all Parameters will be returned.
 func (s *IbeamServer) GetParameterDetails(c context.Context, mpIDs *ibeam_core.ModelParameterIDs) (*ibeam_core.ParameterDetails, error) {
 	log.Debugf("Got a GetParameterDetails from ") //TODO lookup how to get IP
 	rParameterDetails := &ibeam_core.ParameterDetails{}
@@ -254,7 +256,7 @@ func (s *IbeamServer) getParameterDetail(mpID *ibeam_core.ModelParameterID) (*ib
 	return nil, errors.New("Cannot find ParameterDetail with given ModelParameterID")
 }
 
-// Set ...
+// Set will change the Value for the given Parameter.
 func (s *IbeamServer) Set(_ context.Context, ps *ibeam_core.Parameters) (*ibeam_core.Empty, error) {
 	for _, parameter := range ps.Parameters {
 		s.clientsSetterStream <- *parameter
@@ -262,8 +264,9 @@ func (s *IbeamServer) Set(_ context.Context, ps *ibeam_core.Parameters) (*ibeam_
 	return &ibeam_core.Empty{}, nil
 }
 
-// Subscribe On subscribe all current values should be sent back!
-// No id -> subscribe to everything
+// Subscribe starts a ServerStream and send updates if a Parameter changes.
+// On subscribe all current values should be sent back.
+// If no IDs are given, subscribe to every Parameter.
 func (s *IbeamServer) Subscribe(dpIDs *ibeam_core.DeviceParameterIDs, stream ibeam_core.IbeamCore_SubscribeServer) error {
 	log.Info("New Client subscribed")
 	// Fist send all parameters
@@ -283,36 +286,28 @@ func (s *IbeamServer) Subscribe(dpIDs *ibeam_core.DeviceParameterIDs, stream ibe
 
 	ping := time.NewTicker(time.Second)
 
-	go func() {
-		for {
-			select {
-
-			// TODO check if Stream is closed
-			case <-ping.C:
-				err := stream.Context().Err()
-				if err != nil {
-					log.Info("lost client")
-					s.serverClientsDistributor[distributor] = false
-					log.Warn("Connection to client for subscription lost")
-					break
-				}
-
-				break
-
-			case parameter := <-distributor:
-				if parameter.Id == nil || parameter.Id.Device == 0 || parameter.Id.Parameter == 0 {
-					continue
-				}
-				// Check if Device is Subscribed
-				if len(dpIDs.Ids) != 0 && !containsDeviceParameter(parameter.Id, dpIDs) {
-					continue
-				}
-				log.Debugf("Send Parameter with ID '%v' to client from ServerClientsStream", parameter.Id)
-				stream.Send(&parameter)
+	for {
+		select {
+		case <-ping.C:
+			err := stream.Context().Err()
+			if err != nil {
+				log.Info("lost client")
+				s.serverClientsDistributor[distributor] = false
+				log.Warn("Connection to client for subscription lost")
+				return nil
 			}
+		case parameter := <-distributor:
+			if parameter.Id == nil || parameter.Id.Device == 0 || parameter.Id.Parameter == 0 {
+				continue
+			}
+			// Check if Device is Subscribed
+			if len(dpIDs.Ids) != 0 && !containsDeviceParameter(parameter.Id, dpIDs) {
+				continue
+			}
+			log.Debugf("Send Parameter with ID '%v' to client from ServerClientsStream", parameter.Id)
+			stream.Send(&parameter)
 		}
-	}()
-	return nil
+	}
 }
 func containsDeviceParameter(dpID *ibeam_core.DeviceParameterID, dpIDs *ibeam_core.DeviceParameterIDs) bool {
 	for _, ids := range dpIDs.Ids {
@@ -323,12 +318,12 @@ func containsDeviceParameter(dpID *ibeam_core.DeviceParameterID, dpIDs *ibeam_co
 	return false
 }
 
-// CreateServer Sets up the ibeam server, parameter manager and parameter registry
-func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInfo) (server IbeamServer, manager *IbeamParameterManager, registry *IbeamParameterRegistry, set chan ibeam_core.Parameter, getFromGRPC chan ibeam_core.Parameter) {
+// CreateServer sets up the ibeam server, parameter manager and parameter registry
+func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInfo) (server IbeamServer, manager *IbeamParameterManager, registry *IbeamParameterRegistry, setToGRPC chan ibeam_core.Parameter, getFromGRPC chan ibeam_core.Parameter) {
 
 	clientsSetter := make(chan ibeam_core.Parameter, 100)
 	getFromGRPC = make(chan ibeam_core.Parameter, 100)
-	set = make(chan ibeam_core.Parameter, 100)
+	setToGRPC = make(chan ibeam_core.Parameter, 100)
 
 	fistParameter := ibeam_core.Parameter{}
 	fistParameter.Id = &ibeam_core.DeviceParameterID{
@@ -358,7 +353,7 @@ func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInf
 	manager = &IbeamParameterManager{
 		parameterRegistry:   registry,
 		out:                 getFromGRPC,
-		in:                  set,
+		in:                  setToGRPC,
 		clientsSetterStream: clientsSetter,
 		serverClientsStream: watcher,
 	}
@@ -382,7 +377,7 @@ func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInf
 	return
 }
 
-// RegisterParameter ...
+// RegisterParameter registers a Parameter and his Details in the Registry.
 func (r *IbeamParameterRegistry) RegisterParameter(detail *ibeam_core.ParameterDetail) uint32 {
 	mid := uint32(1)
 	if detail.Id != nil {
@@ -410,7 +405,15 @@ func (r *IbeamParameterRegistry) RegisterParameter(detail *ibeam_core.ParameterD
 	return paramIndex
 }
 
-// RegisterModel ...
+// RegisterParameters registers multiple Parameter and their Details in the Registry
+func (r *IbeamParameterRegistry) RegisterParameters(details ibeam_core.ParameterDetails) (ids []uint32) {
+	for _, detail := range details.Details {
+		ids = append(ids, r.RegisterParameter(detail))
+	}
+	return
+}
+
+// RegisterModel registers a new Model in the Registry with given ModelInfo
 func (r *IbeamParameterRegistry) RegisterModel(model *ibeam_core.ModelInfo) uint32 {
 	r.muDetail.RLock()
 	model.Id = uint32(len(r.ParameterDetail) + 1)
@@ -425,7 +428,7 @@ func (r *IbeamParameterRegistry) RegisterModel(model *ibeam_core.ModelInfo) uint
 	return model.Id
 }
 
-// RegisterDevice ...
+// RegisterDevice registers a new Device in the Registry with given ModelID
 func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //DeviceInfo) {
 	mid := uint32(1)
 	if modelID != 0 {
@@ -498,12 +501,12 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //Devic
 	return deviceIndex
 }
 
-// GetIDMap ...
-func (r *IbeamParameterRegistry) GetIDMap() map[string]*ibeam_core.ParameterDetail {
-	idMap := make(map[string]*ibeam_core.ParameterDetail)
+// GetIDMap returns a Map witch maps the Name of all Parameters with their ID
+func (r *IbeamParameterRegistry) GetIDMap() map[string]ibeam_core.ModelParameterID {
+	idMap := make(map[string]ibeam_core.ModelParameterID)
 	r.muDetail.RLock()
 	for _, parameter := range r.ParameterDetail[0] {
-		idMap[parameter.Name] = parameter
+		idMap[parameter.Name] = *parameter.Id
 	}
 	r.muDetail.RUnlock()
 	return idMap
@@ -523,7 +526,7 @@ func (m *IbeamParameterManager) StartWithServer(server IbeamServer, endPoint str
 	grpcServer.Serve(lis)
 }
 
-// Start ...
+// Start the communication between client and server.
 func (m *IbeamParameterManager) Start() {
 	go func() {
 		for {
@@ -680,6 +683,59 @@ func (m *IbeamParameterManager) Start() {
 						if time.Until(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
 							parameterBuffer.targetValue.Value = value.Value
 						}
+						// If Type of Parameter is Opt, find the right Opt
+						switch parameterConfig.ValueType {
+						case ibeam_core.ValueType_Opt:
+							switch v := value.Value.(type) {
+							case *ibeam_core.ParameterValue_Str:
+								id, err := getIDFromOptionListByElementName(*parameterConfig.OptionList, v.Str)
+								if err != nil {
+									log.Error(err)
+									// TODO get new option list maybe
+									continue
+								}
+								parameterBuffer.targetValue = ibeam_core.ParameterValue{
+									Value: &ibeam_core.ParameterValue_CurrentOption{
+										CurrentOption: id,
+									},
+								}
+							case *ibeam_core.ParameterValue_CurrentOption:
+								parameterBuffer.targetValue.Value = v
+							case *ibeam_core.ParameterValue_OptionList:
+								if !parameterConfig.OptionListIsDynamic {
+									log.Errorf("Parameter with ID %v has no Dynamic OptionList", parameter.Id.Parameter)
+									continue
+								}
+								parameterBuffer.targetValue.Value = v
+							default:
+								log.Errorf("Valuetype of Parameter is Opt and so we should get a String or Opt, but got %T", value)
+								continue
+							}
+						case ibeam_core.ValueType_Binary:
+							if _, ok := value.Value.(*ibeam_core.ParameterValue_Binary); !ok {
+								log.Errorf("Parameter with ID %v is Type Binary but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
+								continue
+							}
+						case ibeam_core.ValueType_Floating:
+							if _, ok := value.Value.(*ibeam_core.ParameterValue_Floating); !ok {
+								log.Errorf("Parameter with ID %v is Type Float but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
+								continue
+							}
+						case ibeam_core.ValueType_Integer:
+							if _, ok := value.Value.(*ibeam_core.ParameterValue_Integer); !ok {
+								log.Errorf("Parameter with ID %v is Type Integer but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
+								continue
+							}
+						case ibeam_core.ValueType_String:
+							if _, ok := value.Value.(*ibeam_core.ParameterValue_Str); !ok {
+								log.Errorf("Parameter with ID %v is Type String but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
+								continue
+							}
+						case ibeam_core.ValueType_NoValue:
+							log.Errorf("Parameter with ID %v has No Value but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
+							continue
+						}
+
 						parameterBuffer.currentValue.Value = value.Value
 						parameterBuffer.isAssumedState = parameterBuffer.currentValue.Value != parameterBuffer.targetValue.Value
 					} else {
@@ -718,7 +774,7 @@ func (m *IbeamParameterManager) Start() {
 							switch parameterDetail.ControlStyle {
 							case ibeam_core.ControlStyle_Normal:
 								if parameterBuffer.currentValue.Value == parameterBuffer.targetValue.Value {
-									log.Infof("Failed to set Parameter %v, cause current and target are same", parameterDetail.Id.Parameter)
+									log.Debugf("Failed to set Parameter %v, cause current and target are same", parameterDetail.Id.Parameter)
 									continue
 								}
 								if time.Until(parameterBuffer.lastUpdate).Milliseconds()*(-1) < int64(parameterDetail.ControlDelayMs) {
@@ -726,7 +782,7 @@ func (m *IbeamParameterManager) Start() {
 									continue
 								}
 								if parameterDetail.FeedbackStyle == ibeam_core.FeedbackStyle_NoFeedback {
-									log.Infof("Failed to set Parameter %v, cause not necessary", parameterDetail.Id.Parameter)
+									log.Debugf("Failed to set Parameter %v, cause not necessary", parameterDetail.Id.Parameter)
 									continue
 								}
 								if parameterDetail.RetryCount != 0 {
@@ -753,6 +809,16 @@ func (m *IbeamParameterManager) Start() {
 								if parameterDetail.Id == nil {
 									log.Error("No Parameter provided")
 									continue
+								}
+
+								// If we Have a current Option, get the Value for the option from the Option List
+								if value, ok := parameterBuffer.targetValue.Value.(*ibeam_core.ParameterValue_CurrentOption); ok {
+									name, err := getElementNameFromOptionListByID(*parameterDetail.OptionList, *value)
+									if err != nil {
+										log.Error(err)
+										continue
+									}
+									parameterBuffer.targetValue.Value = &ibeam_core.ParameterValue_Str{Str: name}
 								}
 
 								m.out <- ibeam_core.Parameter{
@@ -844,7 +910,6 @@ func (m *IbeamParameterManager) Start() {
 									Error: 0,
 									Value: cmdValue,
 								}
-
 							case ibeam_core.ControlStyle_NoControl, ibeam_core.ControlStyle_Incremental, ibeam_core.ControlStyle_Oneshot:
 								// DO Nothing
 							default:
@@ -854,7 +919,6 @@ func (m *IbeamParameterManager) Start() {
 						}
 					}
 				}
-
 			}
 		}
 	}()
