@@ -33,6 +33,10 @@ github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZN
 github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=
 github.com/s00500/env_logger v0.0.0-20201027122048-78f3c304ca69 h1:O2/PDF9A1bVBf+jYIuqk+OkMK6svoJ57hZdaQx/KjMA=
 github.com/s00500/env_logger v0.0.0-20201027122048-78f3c304ca69/go.mod h1:2Nphoc9Y5oH4HKpuuUdQ+Xsu53RMjqBS+81kwyXl28c=
+github.com/s00500/env_logger v0.0.0-20201030123409-0ffce34d5f83 h1:MIivvLcKLvJ6BinHhCdBnkjnXKLMCgloFSpMZF3IYa4=
+github.com/s00500/env_logger v0.0.0-20201030123409-0ffce34d5f83/go.mod h1:2Nphoc9Y5oH4HKpuuUdQ+Xsu53RMjqBS+81kwyXl28c=
+github.com/s00500/env_logger v0.0.0-20201030141623-73fb0c346d41 h1:Sww+mGaPh1DiyqFyNKtJM4Pq0SSAwS5sX+QVTLTHsbo=
+github.com/s00500/env_logger v0.0.0-20201030141623-73fb0c346d41/go.mod h1:2Nphoc9Y5oH4HKpuuUdQ+Xsu53RMjqBS+81kwyXl28c=
 github.com/sirupsen/logrus v1.6.0 h1:UBcNElsrwanuuMsnGSlYmtmgbb23qDR5dG+6X6Oo89I=
 github.com/sirupsen/logrus v1.6.0/go.mod h1:7uNnSEd1DgxDLC74fIahvMZmmYsHGZGEOFrfsX/uA88=
 github.com/sirupsen/logrus v1.7.0 h1:ShrD1U9pZB12TX0cVy0DtePoCH97K8EtX+mg7ZARUtM=
