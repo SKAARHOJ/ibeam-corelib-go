@@ -96,7 +96,7 @@ func (r *IbeamParameterRegistry) getInstanceValues(dpID ibeam_core.DeviceParamet
 
 	r.muValue.RLock()
 	if dpID.Device == 0 || dpID.Parameter == 0 || len(r.parameterValue) <= deviceIndex || len(r.parameterValue[deviceIndex]) <= parameterIndex {
-		log.Errorf("Could not get instance Values for DeviceParameterID: %v", dpID)
+		log.Error("Could not get instance values for DeviceParameterID: Device:", dpID.Device, " and param: ", dpID.Parameter)
 		r.muValue.RUnlock()
 		return nil
 	}
@@ -176,8 +176,8 @@ func getModelWithID(s *IbeamServer, mID uint32) *ibeam_core.ModelInfo {
 func (s *IbeamServer) Get(_ context.Context, dpIDs *ibeam_core.DeviceParameterIDs) (rParameters *ibeam_core.Parameters, err error) {
 	rParameters = &ibeam_core.Parameters{}
 	if len(dpIDs.Ids) == 0 {
-		for did, pState := range s.parameterRegistry.parameterValue {
-			for pid := range pState {
+		for did, dState := range s.parameterRegistry.parameterValue {
+			for pid := range dState {
 				dpID := ibeam_core.DeviceParameterID{
 					Parameter: uint32(pid) + 1,
 					Device:    uint32(did) + 1,
@@ -285,13 +285,12 @@ func (s *IbeamServer) Subscribe(dpIDs *ibeam_core.DeviceParameterIDs, stream ibe
 	log.Debugf("Added distributor number %v", len(s.serverClientsDistributor))
 
 	ping := time.NewTicker(time.Second)
-
 	for {
 		select {
+		// TODO check if Stream is closed
 		case <-ping.C:
 			err := stream.Context().Err()
 			if err != nil {
-				log.Info("lost client")
 				s.serverClientsDistributor[distributor] = false
 				log.Warn("Connection to client for subscription lost")
 				return nil
@@ -308,6 +307,7 @@ func (s *IbeamServer) Subscribe(dpIDs *ibeam_core.DeviceParameterIDs, stream ibe
 			stream.Send(&parameter)
 		}
 	}
+	return nil
 }
 func containsDeviceParameter(dpID *ibeam_core.DeviceParameterID, dpIDs *ibeam_core.DeviceParameterIDs) bool {
 	for _, ids := range dpIDs.Ids {
@@ -418,12 +418,15 @@ func (r *IbeamParameterRegistry) RegisterModel(model *ibeam_core.ModelInfo) uint
 	r.muDetail.RLock()
 	model.Id = uint32(len(r.ParameterDetail) + 1)
 	r.muDetail.RUnlock()
+
 	r.muInfo.Lock()
 	r.ModelInfos = append(r.ModelInfos, model)
 	r.muInfo.Unlock()
+
 	r.muDetail.Lock()
 	r.ParameterDetail = append(r.ParameterDetail, []*ibeam_core.ParameterDetail{})
 	r.muDetail.Unlock()
+
 	log.Debugf("Model '%v' registered with ID: %v ", model.Name, model.Id)
 	return model.Id
 }
@@ -450,21 +453,20 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //Devic
 	parameterValuesBuffer := &[][]*IBeamParameterValueBuffer{}
 	for _, parameterDetail := range modelConfig {
 		valueInstances := []*IBeamParameterValueBuffer{}
+
+		// Integer is default
 		initialValue := ibeam_core.ParameterValue{Value: &ibeam_core.ParameterValue_Integer{Integer: 0}}
 
-		switch parameterDetail.ValueType.Type() {
-		case ibeam_core.ValueType_NoValue.Type():
+		switch parameterDetail.ValueType {
+		case ibeam_core.ValueType_NoValue:
 			initialValue.Value = &ibeam_core.ParameterValue_Cmd{Cmd: ibeam_core.Command_Trigger}
-			// This is redundant:
-		//case ibeam_core.ValueType_Integer.Type():
-		//	initialValue.Value = &ibeam_core.ParameterValue_Integer{Integer: 0}
-		case ibeam_core.ValueType_Floating.Type():
+		case ibeam_core.ValueType_Floating:
 			initialValue.Value = &ibeam_core.ParameterValue_Floating{Floating: 0.0}
-		case ibeam_core.ValueType_Opt.Type():
+		case ibeam_core.ValueType_Opt:
 			initialValue.Value = &ibeam_core.ParameterValue_CurrentOption{CurrentOption: 0}
-		case ibeam_core.ValueType_String.Type():
+		case ibeam_core.ValueType_String:
 			initialValue.Value = &ibeam_core.ParameterValue_Str{Str: ""}
-		case ibeam_core.ValueType_Binary.Type():
+		case ibeam_core.ValueType_Binary:
 			initialValue.Value = &ibeam_core.ParameterValue_Binary{Binary: false}
 		}
 
@@ -549,17 +551,6 @@ func (m *IbeamParameterManager) Start() {
 					}
 					parameterBuffer := state[deviceIndex][parameterIndex][value.InstanceID-1]
 					if value.Value == nil {
-						//Maybe it is a trigger button
-						/*
-							log.Debugf("Got No Value, but maybe it is a Trigger Button:")
-							value.Value = &ibeam_core.ParameterValue_Cmd{
-								Cmd: Command_Trigger,
-							}
-							m.out <- Parameter{
-								Id:    parameter.Id,
-								Error: 0,
-								Value: []*ParameterValue{value},
-							}*/
 						continue
 					}
 					switch v := value.Value.(type) {
@@ -774,15 +765,12 @@ func (m *IbeamParameterManager) Start() {
 							switch parameterDetail.ControlStyle {
 							case ibeam_core.ControlStyle_Normal:
 								if parameterBuffer.currentValue.Value == parameterBuffer.targetValue.Value {
-									log.Debugf("Failed to set Parameter %v, cause current and target are same", parameterDetail.Id.Parameter)
 									continue
 								}
 								if time.Until(parameterBuffer.lastUpdate).Milliseconds()*(-1) < int64(parameterDetail.ControlDelayMs) {
-									log.Infof("Failed to set Parameter %v, cause ControlDelay time | Last Update: %v, Time in ms since this: %v, ControlDelayMs: %v", parameterDetail.Id.Parameter, parameterBuffer.lastUpdate, time.Until(parameterBuffer.lastUpdate).Milliseconds(), parameterDetail.ControlDelayMs)
 									continue
 								}
 								if parameterDetail.FeedbackStyle == ibeam_core.FeedbackStyle_NoFeedback {
-									log.Debugf("Failed to set Parameter %v, cause not necessary", parameterDetail.Id.Parameter)
 									continue
 								}
 								if parameterDetail.RetryCount != 0 {
