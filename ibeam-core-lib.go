@@ -456,7 +456,7 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //Devic
 		case ibeam_core.ValueType_String:
 			initialValue.Value = &ibeam_core.ParameterValue_Str{Str: ""}
 		case ibeam_core.ValueType_Binary:
-			initialValue.Value = &ibeam_core.ParameterValue_Binary{Binary: true}
+			initialValue.Value = &ibeam_core.ParameterValue_Binary{Binary: false}
 		}
 
 		for i := uint32(0); i < parameterDetail.Instances; i++ {
