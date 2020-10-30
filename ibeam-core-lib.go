@@ -45,6 +45,7 @@ type IbeamParameterManager struct {
 	in                  chan ibeam_core.Parameter
 	clientsSetterStream chan ibeam_core.Parameter
 	serverClientsStream chan ibeam_core.Parameter
+	server              *IbeamServer
 }
 
 // IBeamParameterValueBuffer is used for updating a ParameterValue.
@@ -319,8 +320,7 @@ func containsDeviceParameter(dpID *ibeam_core.DeviceParameterID, dpIDs *ibeam_co
 }
 
 // CreateServer sets up the ibeam server, parameter manager and parameter registry
-func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInfo) (server IbeamServer, manager *IbeamParameterManager, registry *IbeamParameterRegistry, setToGRPC chan ibeam_core.Parameter, getFromGRPC chan ibeam_core.Parameter) {
-
+func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInfo) (manager *IbeamParameterManager, registry *IbeamParameterRegistry, setToGRPC chan ibeam_core.Parameter, getFromGRPC chan ibeam_core.Parameter) {
 	clientsSetter := make(chan ibeam_core.Parameter, 100)
 	getFromGRPC = make(chan ibeam_core.Parameter, 100)
 	setToGRPC = make(chan ibeam_core.Parameter, 100)
@@ -343,7 +343,7 @@ func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInf
 		parameterValue:  [][][]*IBeamParameterValueBuffer{},
 	}
 
-	server = IbeamServer{
+	server := IbeamServer{
 		parameterRegistry:        registry,
 		clientsSetterStream:      clientsSetter,
 		serverClientsStream:      watcher,
@@ -356,6 +356,7 @@ func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInf
 		in:                  setToGRPC,
 		clientsSetterStream: clientsSetter,
 		serverClientsStream: watcher,
+		server:              &server,
 	}
 
 	go func() {
@@ -515,7 +516,7 @@ func (r *IbeamParameterRegistry) GetIDMap() map[string]ibeam_core.ModelParameter
 }
 
 // StartWithServer Starts the ibeam parameter routine and the GRPC server in one call. This is blocking and should be called at the end of main
-func (m *IbeamParameterManager) StartWithServer(server IbeamServer, endPoint string) {
+func (m *IbeamParameterManager) StartWithServer(endPoint string) {
 	// Start parameter management routine
 	m.Start() // TODO: we could use a waitgroup or something here ? cross goroutine error handling is kinda missing
 
@@ -524,7 +525,7 @@ func (m *IbeamParameterManager) StartWithServer(server IbeamServer, endPoint str
 		log.Fatalf("failed to listen: %v", err)
 	}
 	grpcServer := grpc.NewServer()
-	ibeam_core.RegisterIbeamCoreServer(grpcServer, &server)
+	ibeam_core.RegisterIbeamCoreServer(grpcServer, m.server)
 	grpcServer.Serve(lis)
 }
 
