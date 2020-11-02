@@ -112,7 +112,7 @@ func (r *IbeamParameterRegistry) getModelIndex(deviceID int) uint32 {
 	if len(r.DeviceInfos) <= deviceID {
 		log.Panicf("Could not get model for device with id %v", deviceID)
 	}
-	return r.DeviceInfos[deviceID].ModelID //Todo was -1 before
+	return r.DeviceInfos[deviceID].ModelID - 1
 }
 
 // GetCoreInfo returns the CoreInfo of the Ibeam-Core
@@ -493,7 +493,7 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //Devic
 	r.muInfo.Lock()
 	r.DeviceInfos = append(r.DeviceInfos, &ibeam_core.DeviceInfo{
 		DeviceID: deviceIndex,
-		ModelID:  modelID,
+		ModelID:  mid,
 	})
 	r.muInfo.Unlock()
 	r.muValue.Lock()
@@ -693,7 +693,6 @@ func (m *IbeamParameterManager) Start() {
 								if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
 									parameterBuffer.targetValue = newValue
 								}
-
 								parameterBuffer.currentValue = newValue
 
 								didSet = true
@@ -705,15 +704,13 @@ func (m *IbeamParameterManager) Start() {
 								m.parameterRegistry.muDetail.Lock()
 								m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex].OptionList = v.OptionList
 								m.parameterRegistry.muDetail.Unlock()
-								/*
-								   // TODO: Send out option list here
-								   								if values := m.parameterRegistry.getInstanceValues(*parameter.GetId()); values != nil {
-								   									m.serverClientsStream <- ibeam_core.Parameter{Value: values, Id: parameter.Id, Error: 0}
-								   								}
-								*/
+
+								m.serverClientsStream <- ibeam_core.Parameter{Value: []*ibeam_core.ParameterValue{value}, Id: parameter.Id, Error: 0}
 								continue
+							case *ibeam_core.ParameterValue_CurrentOption:
+								// Handled below
 							default:
-								log.Errorf("Valuetype of Parameter is Opt and so we should get a String or Opt, but got %T", value)
+								log.Errorf("Valuetype of Parameter is Opt and so we should get a String or Opt or currentOpt, but got %T", value)
 								continue
 							}
 						case ibeam_core.ValueType_Binary:
