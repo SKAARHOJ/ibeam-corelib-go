@@ -824,7 +824,6 @@ func (m *IbeamParameterManager) Start() {
 							if parameterDetail.Id == nil {
 								continue
 							}
-							log.Info("Indices ", did, int(parameterDetail.Id.Parameter), iid)
 							parameterBuffer := state[did][int(parameterDetail.Id.Parameter)][iid]
 
 							switch parameterDetail.ControlStyle {
