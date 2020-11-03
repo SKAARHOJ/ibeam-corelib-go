@@ -79,6 +79,7 @@ func (b *IBeamParameterValueBuffer) incrementParameterValue() *ibeam_core.Parame
 		},
 	}
 }
+
 func (b *IBeamParameterValueBuffer) decrementParameterValue() *ibeam_core.ParameterValue {
 	return &ibeam_core.ParameterValue{
 		InstanceID:     b.instanceID,
@@ -224,9 +225,17 @@ func (s *IbeamServer) Get(_ context.Context, dpIDs *ibeam_core.DeviceParameterID
 func (s *IbeamServer) GetParameterDetails(c context.Context, mpIDs *ibeam_core.ModelParameterIDs) (*ibeam_core.ParameterDetails, error) {
 	log.Debugf("Got a GetParameterDetails from ") //TODO lookup how to get IP
 	rParameterDetails := &ibeam_core.ParameterDetails{}
+	s.parameterRegistry.muInfo.RLock()
+	defer s.parameterRegistry.muInfo.RUnlock()
+
 	if len(mpIDs.Ids) == 0 {
 		for _, modelDetails := range s.parameterRegistry.ParameterDetail {
 			rParameterDetails.Details = append(rParameterDetails.Details, modelDetails...)
+		}
+	} else if len(mpIDs.Ids) == 1 {
+		// Return all parameters for model
+		if len(s.parameterRegistry.ParameterDetail) >= int(mpIDs.Ids[0].Model) {
+			rParameterDetails.Details = append(rParameterDetails.Details, s.parameterRegistry.ParameterDetail[mpIDs.Ids[0].Model-1]...)
 		}
 	} else {
 		for _, mpID := range mpIDs.Ids {
@@ -407,7 +416,7 @@ func (r *IbeamParameterRegistry) RegisterParameter(detail *ibeam_core.ParameterD
 }
 
 // RegisterParameters registers multiple Parameter and their Details in the Registry
-func (r *IbeamParameterRegistry) RegisterParameters(details ibeam_core.ParameterDetails) (ids []uint32) {
+func (r *IbeamParameterRegistry) RegisterParameters(details *ibeam_core.ParameterDetails) (ids []uint32) {
 	for _, detail := range details.Details {
 		ids = append(ids, r.RegisterParameter(detail))
 	}
@@ -678,7 +687,7 @@ func (m *IbeamParameterManager) Start() {
 						case ibeam_core.ValueType_Opt:
 							switch v := value.Value.(type) {
 							case *ibeam_core.ParameterValue_Str:
-								id, err := getIDFromOptionListByElementName(*parameterConfig.OptionList, v.Str)
+								id, err := getIDFromOptionListByElementName(parameterConfig.OptionList, v.Str)
 								if err != nil {
 									log.Error(err)
 									// TODO get new option list maybe
@@ -818,7 +827,7 @@ func (m *IbeamParameterManager) Start() {
 
 								// If we Have a current Option, get the Value for the option from the Option List
 								if value, ok := parameterBuffer.targetValue.Value.(*ibeam_core.ParameterValue_CurrentOption); ok {
-									name, err := getElementNameFromOptionListByID(*parameterDetail.OptionList, *value)
+									name, err := getElementNameFromOptionListByID(parameterDetail.OptionList, *value)
 									if err != nil {
 										log.Error(err)
 										continue

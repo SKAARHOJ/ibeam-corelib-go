@@ -28,7 +28,7 @@ func GetNameOfParameter(parameterID uint32, pds map[string]ibeam_core.ModelParam
 	return "", fmt.Errorf("Could not find Parameter with id %v", parameterID)
 }
 
-func getElementNameFromOptionListByID(list ibeam_core.OptionList, id ibeam_core.ParameterValue_CurrentOption) (string, error) {
+func getElementNameFromOptionListByID(list *ibeam_core.OptionList, id ibeam_core.ParameterValue_CurrentOption) (string, error) {
 	for _, option := range list.Options {
 		if option.Id == id.CurrentOption {
 			return option.Name, nil
@@ -37,7 +37,7 @@ func getElementNameFromOptionListByID(list ibeam_core.OptionList, id ibeam_core.
 	return "", fmt.Errorf("No Name found in OptionList '%v' with ID %v", list, id)
 }
 
-func getIDFromOptionListByElementName(list ibeam_core.OptionList, name string) (uint32, error) {
+func getIDFromOptionListByElementName(list *ibeam_core.OptionList, name string) (uint32, error) {
 	for _, option := range list.Options {
 		if option.Name == name {
 			return option.Id, nil
