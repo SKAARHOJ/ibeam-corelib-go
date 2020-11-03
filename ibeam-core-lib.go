@@ -187,7 +187,7 @@ func (s *IbeamServer) Get(_ context.Context, dpIDs *ibeam_core.DeviceParameterID
 		for did, dState := range s.parameterRegistry.parameterValue {
 			for pid := range dState {
 				dpID := ibeam_core.DeviceParameterID{
-					Parameter: uint32(pid) + 1,
+					Parameter: uint32(pid),
 					Device:    uint32(did) + 1,
 				}
 				iv := s.parameterRegistry.getInstanceValues(dpID)
@@ -240,12 +240,14 @@ func (s *IbeamServer) GetParameterDetails(c context.Context, mpIDs *ibeam_core.M
 				rParameterDetails.Details = append(rParameterDetails.Details, modelDetail)
 			}
 		}
-	} else if len(mpIDs.Ids) == 1 {
+	} else if len(mpIDs.Ids) == 1 && int(mpIDs.Ids[0].Parameter) == 0 {
 		// Return all parameters for model
-		if len(s.parameterRegistry.ParameterDetail) >= int(mpIDs.Ids[0].Model) {
+		if int(mpIDs.Ids[0].Model) != 0 && len(s.parameterRegistry.ParameterDetail) >= int(mpIDs.Ids[0].Model) {
 			for _, modelDetail := range s.parameterRegistry.ParameterDetail[mpIDs.Ids[0].Model-1] {
 				rParameterDetails.Details = append(rParameterDetails.Details, modelDetail)
 			}
+		} else {
+			log.Error("Invalid model ID specified")
 		}
 	} else {
 		for _, mpID := range mpIDs.Ids {
@@ -544,15 +546,20 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //Devic
 	return deviceIndex
 }
 
-// GetIDMap returns a Map witch maps the Name of all Parameters with their ID
-func (r *IbeamParameterRegistry) GetIDMap() map[string]ibeam_core.ModelParameterID {
-	idMap := make(map[string]ibeam_core.ModelParameterID)
+// GetIDMaps returns a Map witch maps the Name of all Parameters with their ID for each model
+func (r *IbeamParameterRegistry) GetIDMaps() []map[string]ibeam_core.ModelParameterID {
+	idMaps := make([]map[string]ibeam_core.ModelParameterID, 0)
 	r.muDetail.RLock()
-	for _, parameter := range r.ParameterDetail[0] {
-		idMap[parameter.Name] = *parameter.Id
+
+	for mIndex := range r.ModelInfos {
+		idMap := make(map[string]ibeam_core.ModelParameterID)
+		for _, parameter := range r.ParameterDetail[mIndex] {
+			idMap[parameter.Name] = *parameter.Id
+		}
+		idMaps = append(idMaps, idMap)
 	}
 	r.muDetail.RUnlock()
-	return idMap
+	return idMaps
 }
 
 // StartWithServer Starts the ibeam parameter routine and the GRPC server in one call. This is blocking and should be called at the end of main
@@ -834,10 +841,8 @@ func (m *IbeamParameterManager) Start() {
 								if time.Until(parameterBuffer.lastUpdate).Milliseconds()*(-1) < int64(parameterDetail.ControlDelayMs) {
 									continue
 								}
-								if parameterDetail.FeedbackStyle == ibeam_core.FeedbackStyle_NoFeedback {
-									continue
-								}
-								if parameterDetail.RetryCount != 0 {
+
+								if parameterDetail.RetryCount != 0 && parameterDetail.FeedbackStyle != ibeam_core.FeedbackStyle_NoFeedback {
 									parameterBuffer.tryCount++
 									if parameterBuffer.tryCount > parameterDetail.RetryCount {
 										log.Errorf("Failed to set parameter %v in %v tries on device %v", parameterDetail.Id.Parameter, parameterDetail.RetryCount, did+1)
@@ -863,14 +868,21 @@ func (m *IbeamParameterManager) Start() {
 									continue
 								}
 
+								if parameterDetail.FeedbackStyle == ibeam_core.FeedbackStyle_NoFeedback {
+									parameterBuffer.currentValue = parameterBuffer.targetValue
+									parameterBuffer.isAssumedState = false
+								}
+
 								// If we Have a current Option, get the Value for the option from the Option List
-								if value, ok := parameterBuffer.targetValue.Value.(*ibeam_core.ParameterValue_CurrentOption); ok {
-									name, err := getElementNameFromOptionListByID(parameterDetail.OptionList, *value)
-									if err != nil {
-										log.Error(err)
-										continue
+								if parameterDetail.ValueType == ibeam_core.ValueType_Opt {
+									if value, ok := parameterBuffer.targetValue.Value.(*ibeam_core.ParameterValue_CurrentOption); ok {
+										name, err := getElementNameFromOptionListByID(parameterDetail.OptionList, *value)
+										if err != nil {
+											log.Error(err)
+											continue
+										}
+										parameterBuffer.targetValue.Value = &ibeam_core.ParameterValue_Str{Str: name}
 									}
-									parameterBuffer.targetValue.Value = &ibeam_core.ParameterValue_Str{Str: name}
 								}
 
 								m.out <- ibeam_core.Parameter{
@@ -880,6 +892,17 @@ func (m *IbeamParameterManager) Start() {
 										Parameter: parameterDetail.Id.Parameter,
 									},
 									Error: 0,
+								}
+
+								if parameterDetail.FeedbackStyle == ibeam_core.FeedbackStyle_DelayedFeedback || parameterDetail.FeedbackStyle == ibeam_core.FeedbackStyle_NoFeedback {
+									// send out assumed value immediatly
+									m.serverClientsStream <- ibeam_core.Parameter{
+										Value: []*ibeam_core.ParameterValue{parameterBuffer.getParameterValue()},
+										Id: &ibeam_core.DeviceParameterID{
+											Device:    uint32(did + 1),
+											Parameter: parameterDetail.Id.Parameter,
+										},
+									}
 								}
 
 							case ibeam_core.ControlStyle_ControlledIncremental:
