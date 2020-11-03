@@ -26,8 +26,8 @@ type IbeamParameterRegistry struct {
 	coreInfo        ibeam_core.CoreInfo
 	DeviceInfos     []*ibeam_core.DeviceInfo
 	ModelInfos      []*ibeam_core.ModelInfo
-	ParameterDetail [][]*ibeam_core.ParameterDetail  //Parameter Value: model, parameter
-	parameterValue  [][][]*IBeamParameterValueBuffer //Parameter State: device,parameter,instance
+	ParameterDetail []map[int]*ibeam_core.ParameterDetail  //Parameter Value: model, parameter
+	parameterValue  []map[int][]*IBeamParameterValueBuffer //Parameter State: device,parameter,instance
 }
 
 // IbeamServer implements the IbeamCoreServer interface of the generated protofile library.
@@ -94,10 +94,16 @@ func (b *IBeamParameterValueBuffer) decrementParameterValue() *ibeam_core.Parame
 // device,parameter,instance
 func (r *IbeamParameterRegistry) getInstanceValues(dpID ibeam_core.DeviceParameterID) (values []*ibeam_core.ParameterValue) {
 	deviceIndex := int(dpID.Device) - 1
-	parameterIndex := int(dpID.Parameter) - 1
+	parameterIndex := int(dpID.Parameter)
 
 	r.muValue.RLock()
-	if dpID.Device == 0 || dpID.Parameter == 0 || len(r.parameterValue) <= deviceIndex || len(r.parameterValue[deviceIndex]) <= parameterIndex {
+	if dpID.Device == 0 || dpID.Parameter == 0 || len(r.parameterValue) <= deviceIndex {
+		log.Error("Could not get instance values for DeviceParameterID: Device:", dpID.Device, " and param: ", dpID.Parameter)
+		r.muValue.RUnlock()
+		return nil
+	}
+
+	if _, ok := r.parameterValue[deviceIndex][parameterIndex]; !ok {
 		log.Error("Could not get instance values for DeviceParameterID: Device:", dpID.Device, " and param: ", dpID.Parameter)
 		r.muValue.RUnlock()
 		return nil
@@ -230,12 +236,16 @@ func (s *IbeamServer) GetParameterDetails(c context.Context, mpIDs *ibeam_core.M
 
 	if len(mpIDs.Ids) == 0 {
 		for _, modelDetails := range s.parameterRegistry.ParameterDetail {
-			rParameterDetails.Details = append(rParameterDetails.Details, modelDetails...)
+			for _, modelDetail := range modelDetails {
+				rParameterDetails.Details = append(rParameterDetails.Details, modelDetail)
+			}
 		}
 	} else if len(mpIDs.Ids) == 1 {
 		// Return all parameters for model
 		if len(s.parameterRegistry.ParameterDetail) >= int(mpIDs.Ids[0].Model) {
-			rParameterDetails.Details = append(rParameterDetails.Details, s.parameterRegistry.ParameterDetail[mpIDs.Ids[0].Model-1]...)
+			for _, modelDetail := range s.parameterRegistry.ParameterDetail[mpIDs.Ids[0].Model-1] {
+				rParameterDetails.Details = append(rParameterDetails.Details, modelDetail)
+			}
 		}
 	} else {
 		for _, mpID := range mpIDs.Ids {
@@ -348,8 +358,8 @@ func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInf
 		coreInfo:        coreInfo,
 		DeviceInfos:     []*ibeam_core.DeviceInfo{},
 		ModelInfos:      []*ibeam_core.ModelInfo{},
-		ParameterDetail: [][]*ibeam_core.ParameterDetail{},
-		parameterValue:  [][][]*IBeamParameterValueBuffer{},
+		ParameterDetail: []map[int]*ibeam_core.ParameterDetail{},
+		parameterValue:  []map[int][]*IBeamParameterValueBuffer{},
 	}
 
 	server := IbeamServer{
@@ -401,16 +411,39 @@ func (r *IbeamParameterRegistry) RegisterParameter(detail *ibeam_core.ParameterD
 		return 0
 	}
 
-	modelconfig := &r.ParameterDetail[mid-1]
-	paramIndex := uint32(len(*modelconfig) + 1)
-	r.muDetail.RUnlock()
-	detail.Id = &ibeam_core.ModelParameterID{
-		Parameter: paramIndex,
-		Model:     mid,
+	paramIndex := detail.Id.Parameter
+	if mid == 1 {
+		// append to all models, need to ckeck for ids
+		defaultModelConfig := &r.ParameterDetail[0]
+		if paramIndex == 0 {
+			paramIndex = uint32(len(*defaultModelConfig) + 1)
+		}
+		r.muDetail.RUnlock()
+		detail.Id = &ibeam_core.ModelParameterID{
+			Parameter: paramIndex,
+			Model:     mid,
+		}
+		r.muDetail.Lock()
+		for _, modelconfig := range r.ParameterDetail {
+			(modelconfig)[int(paramIndex)] = detail
+		}
+		r.muDetail.Unlock()
+
+	} else {
+		modelconfig := &r.ParameterDetail[mid-1]
+		if paramIndex == 0 {
+			paramIndex = uint32(len(*modelconfig) + 1)
+		}
+		r.muDetail.RUnlock()
+		detail.Id = &ibeam_core.ModelParameterID{
+			Parameter: paramIndex,
+			Model:     mid,
+		}
+		r.muDetail.Lock()
+		(*modelconfig)[int(paramIndex)] = detail
+		r.muDetail.Unlock()
 	}
-	r.muDetail.Lock()
-	*modelconfig = append(*modelconfig, detail)
-	r.muDetail.Unlock()
+
 	log.Debugf("ParameterDetail '%v' registered with ID: %v for Model %v", detail.Name, detail.Id.Parameter, detail.Id.Model)
 	return paramIndex
 }
@@ -434,7 +467,7 @@ func (r *IbeamParameterRegistry) RegisterModel(model *ibeam_core.ModelInfo) uint
 	r.muInfo.Unlock()
 
 	r.muDetail.Lock()
-	r.ParameterDetail = append(r.ParameterDetail, []*ibeam_core.ParameterDetail{})
+	r.ParameterDetail = append(r.ParameterDetail, map[int]*ibeam_core.ParameterDetail{})
 	r.muDetail.Unlock()
 
 	log.Debugf("Model '%v' registered with ID: %v ", model.Name, model.Id)
@@ -460,7 +493,7 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //Devic
 	// take all params from model and generate a value buffer array for all instances
 	// add value buffers to the state array
 
-	parameterValuesBuffer := &[][]*IBeamParameterValueBuffer{}
+	parameterValuesBuffer := &map[int][]*IBeamParameterValueBuffer{}
 	for _, parameterDetail := range modelConfig {
 		valueInstances := []*IBeamParameterValueBuffer{}
 
@@ -491,9 +524,7 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //Devic
 			})
 		}
 
-		for i := uint32(0); i < r.coreInfo.MaxDevices; i++ {
-			*parameterValuesBuffer = append(*parameterValuesBuffer, valueInstances)
-		}
+		(*parameterValuesBuffer)[int(parameterDetail.Id.Parameter)] = valueInstances
 	}
 
 	r.muInfo.RLock()
@@ -548,18 +579,22 @@ func (m *IbeamParameterManager) Start() {
 				//parameter := <-m.clientsSetterStream
 				state := m.parameterRegistry.parameterValue
 				deviceIndex := int(parameter.Id.Device) - 1
-				parameterIndex := int(parameter.Id.Parameter) - 1
+				parameterID := int(parameter.Id.Parameter)
 
 				for _, value := range parameter.Value {
-					if len(state) <= deviceIndex || len(state[deviceIndex]) <= parameterIndex {
-						log.Errorf("Client tried to set invalid device index %v for parameter %v", deviceIndex, parameterIndex+1)
+					if len(state) <= deviceIndex {
+						log.Errorf("Client tried to set invalid device index %v for parameter %v", deviceIndex, parameterID)
 						continue
 					}
-					if value.InstanceID == 0 || len(state[deviceIndex][parameterIndex]) < int(value.InstanceID) {
-						log.Errorf("Received invalid instance id %v for parameter %v", value.InstanceID, parameterIndex+1)
+					if _, ok := state[deviceIndex][parameterID]; !ok {
+						log.Errorf("Client tried to set invalid device index %v for parameter %v", deviceIndex, parameterID)
 						continue
 					}
-					parameterBuffer := state[deviceIndex][parameterIndex][value.InstanceID-1]
+					if value.InstanceID == 0 || len(state[deviceIndex][parameterID]) < int(value.InstanceID) {
+						log.Errorf("Received invalid instance id %v for parameter %v", value.InstanceID, parameterID)
+						continue
+					}
+					parameterBuffer := state[deviceIndex][parameterID][value.InstanceID-1]
 					if value.Value == nil {
 						continue
 					}
@@ -581,9 +616,9 @@ func (m *IbeamParameterManager) Start() {
 					case *ibeam_core.ParameterValue_Floating:
 						log.Debugf("Got Set Float: %v", v)
 						modelIndex := m.parameterRegistry.getModelIndex(deviceIndex)
-						parameterConfig := m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex]
+						parameterConfig := m.parameterRegistry.ParameterDetail[modelIndex][parameterID]
 						if v.Floating > parameterConfig.Maximum {
-							log.Debugf("Max violation for parameter %v", parameterIndex+1)
+							log.Debugf("Max violation for parameter %v", parameterID)
 							m.serverClientsStream <- ibeam_core.Parameter{
 								Id:    parameter.Id,
 								Error: ibeam_core.ParameterError_MaxViolation,
@@ -592,7 +627,7 @@ func (m *IbeamParameterManager) Start() {
 							continue
 						}
 						if v.Floating < parameterConfig.Minimum {
-							log.Debugf("Min violation for parameter %v", parameterIndex+1)
+							log.Debugf("Min violation for parameter %v", parameterID)
 							m.serverClientsStream <- ibeam_core.Parameter{
 								Id:    parameter.Id,
 								Error: ibeam_core.ParameterError_MinViolation,
@@ -606,9 +641,9 @@ func (m *IbeamParameterManager) Start() {
 					case *ibeam_core.ParameterValue_Integer:
 						log.Debugf("Got Set Integer: %v", v)
 						modelIndex := m.parameterRegistry.getModelIndex(deviceIndex)
-						parameterConfig := m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex]
+						parameterConfig := m.parameterRegistry.ParameterDetail[modelIndex][parameterID]
 						if v.Integer > int32(parameterConfig.Maximum) {
-							log.Debugf("Max violation for parameter %v", parameterIndex+1)
+							log.Debugf("Max violation for parameter %v", parameterID)
 							m.serverClientsStream <- ibeam_core.Parameter{
 								Id:    parameter.Id,
 								Error: ibeam_core.ParameterError_MaxViolation,
@@ -617,7 +652,7 @@ func (m *IbeamParameterManager) Start() {
 							continue
 						}
 						if v.Integer < int32(parameterConfig.Minimum) {
-							log.Debugf("Min violation for parameter %v", parameterIndex+1)
+							log.Debugf("Min violation for parameter %v", parameterID)
 							m.serverClientsStream <- ibeam_core.Parameter{
 								Id:    parameter.Id,
 								Error: ibeam_core.ParameterError_MinViolation,
@@ -638,13 +673,13 @@ func (m *IbeamParameterManager) Start() {
 						log.Debugf("Got Set Current Option: %v", v)
 
 						modelIndex := m.parameterRegistry.getModelIndex(deviceIndex)
-						parameterConfig := m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex]
+						parameterConfig := m.parameterRegistry.ParameterDetail[modelIndex][parameterID]
 						if parameterConfig.OptionList == nil {
 							log.Errorf("No option List found for Parameter %v", v)
 							continue
 						}
 						if v.CurrentOption > uint32(len(parameterConfig.OptionList.Options)) {
-							log.Errorf("Invalid operation index for parameter %v", parameterIndex+1)
+							log.Errorf("Invalid operation index for parameter %v", parameterID)
 							m.serverClientsStream <- ibeam_core.Parameter{
 								Id:    parameter.Id,
 								Error: ibeam_core.ParameterError_UnknownID,
@@ -666,20 +701,24 @@ func (m *IbeamParameterManager) Start() {
 				}
 				state := m.parameterRegistry.parameterValue
 				deviceIndex := int(parameter.Id.Device) - 1
-				parameterIndex := int(parameter.Id.Parameter) - 1
+				parameterID := int(parameter.Id.Parameter)
 				modelIndex := int(m.parameterRegistry.getModelIndex(deviceIndex))
-				parameterConfig := *m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex]
+				parameterConfig := *m.parameterRegistry.ParameterDetail[modelIndex][parameterID]
 				shouldSend := false
 				for _, value := range parameter.Value {
-					if len(state) <= deviceIndex || len(state[deviceIndex]) <= parameterIndex {
-						log.Errorf("Client tried to set invalid device %v for parameter %v", deviceIndex+1, parameterIndex+1)
+					if len(state) <= deviceIndex {
+						log.Errorf("Client tried to set invalid device %v for parameter %v", deviceIndex+1, parameterID)
 						continue
 					}
-					if len(state[deviceIndex][parameterIndex]) <= int(value.InstanceID-1) {
-						log.Errorf("Received invalid instance id %v for parameter %v", value.InstanceID, parameterIndex)
+					if _, ok := state[deviceIndex][parameterID]; !ok {
+						log.Errorf("Client tried to set invalid device %v for parameter %v", deviceIndex+1, parameterID)
 						continue
 					}
-					parameterBuffer := state[deviceIndex][parameterIndex][value.InstanceID-1]
+					if len(state[deviceIndex][parameterID]) <= int(value.InstanceID-1) {
+						log.Errorf("Received invalid instance id %v for parameter %v", value.InstanceID, parameterID)
+						continue
+					}
+					parameterBuffer := state[deviceIndex][parameterID][value.InstanceID-1]
 					if value.Value != nil {
 						didSet := false // flag to to handle custom cases
 						// If Type of Parameter is Opt, find the right Opt
@@ -711,7 +750,7 @@ func (m *IbeamParameterManager) Start() {
 									continue
 								}
 								m.parameterRegistry.muDetail.Lock()
-								m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex].OptionList = v.OptionList
+								m.parameterRegistry.ParameterDetail[modelIndex][parameterID].OptionList = v.OptionList
 								m.parameterRegistry.muDetail.Unlock()
 
 								m.serverClientsStream <- ibeam_core.Parameter{Value: []*ibeam_core.ParameterValue{value}, Id: parameter.Id, Error: 0}
@@ -773,8 +812,8 @@ func (m *IbeamParameterManager) Start() {
 
 			// Main Loop
 			state := m.parameterRegistry.parameterValue
-			for _, device := range m.parameterRegistry.ParameterDetail {
-				for _, parameterDetail := range device {
+			for _, deviceInfo := range m.parameterRegistry.DeviceInfos {
+				for _, parameterDetail := range m.parameterRegistry.ParameterDetail[deviceInfo.ModelID-1] {
 					if ibeam_core.ControlStyle_Undefined == parameterDetail.ControlStyle {
 						continue
 					}
@@ -785,8 +824,8 @@ func (m *IbeamParameterManager) Start() {
 							if parameterDetail.Id == nil {
 								continue
 							}
-
-							parameterBuffer := state[did][parameterDetail.Id.Parameter-1][iid]
+							log.Info("Indices ", did, int(parameterDetail.Id.Parameter), iid)
+							parameterBuffer := state[did][int(parameterDetail.Id.Parameter)][iid]
 
 							switch parameterDetail.ControlStyle {
 							case ibeam_core.ControlStyle_Normal:
