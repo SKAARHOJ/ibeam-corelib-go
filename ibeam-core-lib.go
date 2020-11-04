@@ -201,6 +201,33 @@ func (s *IbeamServer) Get(_ context.Context, dpIDs *ibeam_core.DeviceParameterID
 			}
 		}
 		rParameters.Parameters = append(rParameters.Parameters)
+	} else if len(dpIDs.Ids) == 1 && dpIDs.Ids[0].Parameter == 0 && dpIDs.Ids[0].Device != 0 {
+		did := dpIDs.Ids[0].Device - 1
+		if len(s.parameterRegistry.parameterValue) <= int(did) {
+			rParameters.Parameters = append(rParameters.Parameters, &ibeam_core.Parameter{
+				Id:    dpIDs.Ids[0],
+				Error: ibeam_core.ParameterError_UnknownID,
+				Value: nil,
+			})
+			return
+		}
+
+		for pid := range s.parameterRegistry.parameterValue[did] {
+			dpID := ibeam_core.DeviceParameterID{
+				Parameter: uint32(pid),
+				Device:    uint32(did) + 1,
+			}
+			iv := s.parameterRegistry.getInstanceValues(dpID)
+			if iv != nil {
+				rParameters.Parameters = append(rParameters.Parameters, &ibeam_core.Parameter{
+					Id:    &dpID,
+					Error: 0,
+					Value: iv,
+				})
+			}
+
+		}
+		rParameters.Parameters = append(rParameters.Parameters)
 	} else {
 		for _, dpID := range dpIDs.Ids {
 			if dpID.Device == 0 || dpID.Parameter == 0 {
