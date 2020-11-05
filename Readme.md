@@ -2,7 +2,7 @@
 
 ## Generate ibeam-core.pb.go file
 
-Call `protoc -I ibeam-core-proto/ ibeam-core-proto/ibeam-core.proto --go_out=plugins=grpc:ibeam_core`
+Call `protoc -I ibeam-core-proto/ ibeam-core-proto/ibeam-core.proto --go_out=plugins=grpc:ibeam-core`
 
 If you get some Path error try:
 ```

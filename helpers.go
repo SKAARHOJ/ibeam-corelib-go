@@ -19,8 +19,8 @@ func GenerateOptionList(options ...string) (optionList *ibeam_core.OptionList) {
 }
 
 // GetNameOfParameter returns the Name of a Parameter with a given ParameterID in a given ParameterDetail Map
-func GetNameOfParameter(modelID, parameterID uint32, pds []map[string]ibeam_core.ModelParameterID) (string, error) {
-	if len(pds) > int(modelID) {
+func GetNameOfParameter(parameterID, modelID uint32, pds []map[string]ibeam_core.ModelParameterID) (string, error) {
+	if len(pds) <= int(modelID) {
 		return "", fmt.Errorf("Could not find Parameter for Model with id %d", modelID)
 	}
 
