@@ -58,6 +58,7 @@ type IBeamParameterValueBuffer struct {
 	tryCount       uint32
 	currentValue   ibeam_core.ParameterValue
 	targetValue    ibeam_core.ParameterValue
+	metaValues     []ibeam_core.ParameterMetaValue
 }
 
 func (b *IBeamParameterValueBuffer) getParameterValue() *ibeam_core.ParameterValue {
@@ -66,6 +67,7 @@ func (b *IBeamParameterValueBuffer) getParameterValue() *ibeam_core.ParameterVal
 		Available:      b.available,
 		IsAssumedState: b.isAssumedState,
 		Value:          b.targetValue.Value,
+		MetaValues:     b.currentValue.MetaValues,
 	}
 }
 
@@ -77,6 +79,7 @@ func (b *IBeamParameterValueBuffer) incrementParameterValue() *ibeam_core.Parame
 		Value: &ibeam_core.ParameterValue_Cmd{
 			Cmd: ibeam_core.Command_Increment,
 		},
+		MetaValues: b.currentValue.MetaValues,
 	}
 }
 
@@ -88,6 +91,7 @@ func (b *IBeamParameterValueBuffer) decrementParameterValue() *ibeam_core.Parame
 		Value: &ibeam_core.ParameterValue_Cmd{
 			Cmd: ibeam_core.Command_Decrement,
 		},
+		MetaValues: b.currentValue.MetaValues,
 	}
 }
 
