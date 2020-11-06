@@ -18,6 +18,15 @@ func GenerateOptionList(options ...string) (optionList *ibeam_core.OptionList) {
 	return optionList
 }
 
+// GenerateParameterMetaList helper returns a new list of ParameterMetaDescriptions for use in register parameter
+func GenerateParameterMetaList(metaDescs ...*ibeam_core.ParameterMetaDescription) []*ibeam_core.ParameterMetaDescription {
+	metaList := make([]*ibeam_core.ParameterMetaDescription, 0)
+	for _, metaDesc := range metaDescs {
+		metaList = append(metaList, metaDesc)
+	}
+	return metaList
+}
+
 // GetNameOfParameter returns the Name of a Parameter with a given ParameterID in a given ParameterDetail Map
 func GetNameOfParameter(parameterID, modelID uint32, pds []map[string]ibeam_core.ModelParameterID) (string, error) {
 	if len(pds) <= int(modelID) {
