@@ -27,14 +27,24 @@ func GenerateParameterMetaList(metaDescs ...*ibeam_core.ParameterMetaDescription
 	return metaList
 }
 
-// GetNameOfParameter returns the Name of a Parameter with a given ParameterID in a given ParameterDetail Map
-func GetNameOfParameter(parameterID, modelID uint32, pds []map[string]ibeam_core.ModelParameterID) (string, error) {
-	if len(pds) <= int(modelID) {
+// GetNameOfParameterOfModel returns the Name of a Parameter with a given id in a given ParameterDetail Map
+func GetNameOfParameterOfModel(parameterID, modelID uint32, paramIDs []map[string]uint32) (string, error) {
+	if len(paramIDs) <= int(modelID) {
 		return "", fmt.Errorf("Could not find Parameter for Model with id %d", modelID)
 	}
 
-	for name, pd := range pds[modelID] {
-		if pd.Parameter == parameterID {
+	for name, pd := range paramIDs[modelID] {
+		if pd == parameterID {
+			return name, nil
+		}
+	}
+	return "", fmt.Errorf("Could not find Parameter with id %v", parameterID)
+}
+
+// GetNameOfParameter returns the Name of a Parameter with a given id in a given ParameterDetail Map
+func GetNameOfParameter(parameterID uint32, paramIDs map[string]uint32) (string, error) {
+	for name, pd := range paramIDs {
+		if pd == parameterID {
 			return name, nil
 		}
 	}

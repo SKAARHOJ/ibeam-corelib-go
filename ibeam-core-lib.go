@@ -578,14 +578,14 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) uint32 { //Devic
 }
 
 // GetIDMaps returns a Map witch maps the Name of all Parameters with their ID for each model
-func (r *IbeamParameterRegistry) GetIDMaps() []map[string]ibeam_core.ModelParameterID {
-	idMaps := make([]map[string]ibeam_core.ModelParameterID, 0)
+func (r *IbeamParameterRegistry) GetIDMaps() []map[string]uint32 {
+	idMaps := make([]map[string]uint32, 0)
 	r.muDetail.RLock()
 
 	for mIndex := range r.ModelInfos {
-		idMap := make(map[string]ibeam_core.ModelParameterID)
+		idMap := make(map[string]uint32)
 		for _, parameter := range r.ParameterDetail[mIndex] {
-			idMap[parameter.Name] = *parameter.Id
+			idMap[parameter.Name] = parameter.Id.Parameter
 		}
 		idMaps = append(idMaps, idMap)
 	}
@@ -614,7 +614,6 @@ func (m *IbeamParameterManager) Start() {
 			select {
 			case parameter := <-m.clientsSetterStream:
 				// Client set loop, inputs set requests from grpc to manager
-				//parameter := <-m.clientsSetterStream
 				state := m.parameterRegistry.parameterValue
 				deviceIndex := int(parameter.Id.Device) - 1
 				parameterID := int(parameter.Id.Parameter)
