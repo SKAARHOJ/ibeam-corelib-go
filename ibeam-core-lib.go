@@ -615,20 +615,46 @@ func (m *IbeamParameterManager) Start() {
 			case parameter := <-m.clientsSetterStream:
 				// Client set loop, inputs set requests from grpc to manager
 				state := m.parameterRegistry.parameterValue
+
+				if parameter.Id == nil {
+					log.Errorf("Client tried to set parameter without id")
+					m.serverClientsStream <- ibeam_core.Parameter{
+						Id:    parameter.Id,
+						Error: ibeam_core.ParameterError_UnknownID,
+						Value: []*ibeam_core.ParameterValue{},
+					}
+					continue
+				}
+
 				deviceIndex := int(parameter.Id.Device) - 1
 				parameterID := int(parameter.Id.Parameter)
 
 				for _, value := range parameter.Value {
-					if len(state) <= deviceIndex {
-						log.Errorf("Client tried to set invalid device index %v for parameter %v", deviceIndex, parameterID)
+					if deviceIndex == -1 || len(state) <= deviceIndex {
+						log.Errorf("Client tried to set invalid device index %d for parameter %d", parameter.Id.Device, parameterID)
+						m.serverClientsStream <- ibeam_core.Parameter{
+							Id:    parameter.Id,
+							Error: ibeam_core.ParameterError_UnknownID,
+							Value: []*ibeam_core.ParameterValue{},
+						}
 						continue
 					}
 					if _, ok := state[deviceIndex][parameterID]; !ok {
-						log.Errorf("Client tried to set invalid device index %v for parameter %v", deviceIndex, parameterID)
+						log.Errorf("Client tried to set invalid device index %d for parameter %d", deviceIndex, parameterID)
+						m.serverClientsStream <- ibeam_core.Parameter{
+							Id:    parameter.Id,
+							Error: ibeam_core.ParameterError_UnknownID,
+							Value: []*ibeam_core.ParameterValue{},
+						}
 						continue
 					}
 					if value.InstanceID == 0 || len(state[deviceIndex][parameterID]) < int(value.InstanceID) {
-						log.Errorf("Received invalid instance id %v for parameter %v", value.InstanceID, parameterID)
+						log.Errorf("Received invalid instance id %d for parameter %d", value.InstanceID, parameterID)
+						m.serverClientsStream <- ibeam_core.Parameter{
+							Id:    parameter.Id,
+							Error: ibeam_core.ParameterError_UnknownID,
+							Value: []*ibeam_core.ParameterValue{},
+						}
 						continue
 					}
 					parameterBuffer := state[deviceIndex][parameterID][value.InstanceID-1]
