@@ -13,10 +13,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-func init() {
-	log.ConfigureDefaultLogger()
-}
-
 // IbeamParameterRegistry is the storrage of the core.
 // It saves all Infos about the Core, Device and Info and stores the Details and current Values of the Parameter.
 type IbeamParameterRegistry struct {
@@ -353,7 +349,12 @@ func (s *IbeamServer) Subscribe(dpIDs *ibeam_core.DeviceParameterIDs, stream ibe
 				continue
 			}
 			// Check if Device is Subscribed
-			if len(dpIDs.Ids) != 0 && !containsDeviceParameter(parameter.Id, dpIDs) {
+			if len(dpIDs.Ids) == 1 && dpIDs.Ids[0].Device != parameter.Id.Device {
+				continue
+			}
+
+			// Check for parameter filtering
+			if len(dpIDs.Ids) > 1 && !containsDeviceParameter(parameter.Id, dpIDs) {
 				continue
 			}
 			log.Debugf("Send Parameter with ID '%v' to client from ServerClientsStream", parameter.Id)
