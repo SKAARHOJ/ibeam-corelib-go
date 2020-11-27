@@ -1,4 +1,4 @@
-module github.com/SKAARHOJ/ibeam-core-go
+module github.com/SKAARHOJ/ibeam-corelib-go
 
 go 1.15
 

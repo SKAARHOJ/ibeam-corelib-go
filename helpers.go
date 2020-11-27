@@ -3,7 +3,7 @@ package ibeam_core_lib
 import (
 	"fmt"
 
-	ibeam_core "github.com/SKAARHOJ/ibeam-core-go/ibeam-core"
+	ibeam_core "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
 )
 
 // GenerateOptionList returns a new OptionList with ascending IDs

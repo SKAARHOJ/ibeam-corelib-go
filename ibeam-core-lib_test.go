@@ -4,7 +4,7 @@ import (
 	"math/rand"
 	"testing"
 
-	ibeam_core "github.com/SKAARHOJ/ibeam-core-go/ibeam-core"
+	ibeam_core "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
 )
 
 func Test_containsDeviceParameter(t *testing.T) {
