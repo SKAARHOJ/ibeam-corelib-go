@@ -891,7 +891,7 @@ func (m *IbeamParameterManager) Start() {
 					log.Debugf("Set new TargetValue '%v', for Parameter %v (%v)", newParameterValue.Value, parameterID, parameterConfig.Name)
 
 					parameterBuffer.isAssumedState = newParameterValue.Value != parameterBuffer.currentValue.Value
-					parameterBuffer.targetValue.Value = newParameterValue.Value
+					parameterBuffer.targetValue = *newParameterValue
 					parameterBuffer.tryCount = 0
 				}
 
@@ -999,9 +999,9 @@ func (m *IbeamParameterManager) Start() {
 
 						if !didSet {
 							if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
-								parameterBuffer.targetValue.Value = newParameterValue.Value
+								parameterBuffer.targetValue = *newParameterValue
 							}
-							parameterBuffer.currentValue.Value = newParameterValue.Value
+							parameterBuffer.currentValue = *newParameterValue
 						}
 
 						parameterBuffer.isAssumedState = parameterBuffer.currentValue.Value != parameterBuffer.targetValue.Value
@@ -1040,7 +1040,20 @@ func (m *IbeamParameterManager) Start() {
 				// ********************************************************************
 
 				// Is the Value the Same like stored?
-				if parameterBuffer.currentValue.Value == parameterBuffer.targetValue.Value {
+
+				// TODO ask how to
+				newMetaValues := false
+				/*
+					for _, targetMetaValue := range parameterBuffer.targetValue.MetaValues {
+						for _, currentMetaValue := range parameterBuffer.currentValue.MetaValues {
+							if targetMetaValue. == currentMetaValue {
+
+							}
+						}
+					}*/
+
+				if parameterBuffer.currentValue.Value == parameterBuffer.targetValue.Value ||
+					newMetaValues {
 					//log.Errorf("Failed to set parameter %v '%v' for device %v, CurrentValue '%v' and TargetValue '%v' are the same", parameterConfig.Id.Parameter, parameterConfig.Name, deviceID+1, parameterBuffer.currentValue.Value, parameterBuffer.targetValue.Value)
 					continue
 				}
