@@ -590,17 +590,17 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 			dimensions := make(map[int]*IbeamParameterDimension, 0)
 
 			for count := 0; count < int(dimensionConfig[0]); count++ {
-
-				valueWithID := new(IbeamParameterDimension)
-				valueWithID.value = new(IBeamParameterValueBuffer)
+				valueWithID := IbeamParameterDimension{}
+				valueWithID.value = &IBeamParameterValueBuffer{}
 				*valueWithID.value = *initialValueDimension.value
+				valueWithID.value.dimensionID = make([]uint32, len(initialValueDimension.value.dimensionID))
+				copy(valueWithID.value.dimensionID, initialValueDimension.value.dimensionID)
 				valueWithID.value.dimensionID = append(valueWithID.value.dimensionID, uint32(count+1))
 
 				if len(dimensionConfig) == 1 {
-
-					dimensions[count] = valueWithID
+					dimensions[count] = &valueWithID
 				} else {
-					subDim := generateDimensions(dimensionConfig[1:], *valueWithID)
+					subDim := generateDimensions(dimensionConfig[1:], valueWithID)
 					dimensions[count] = subDim
 				}
 			}
