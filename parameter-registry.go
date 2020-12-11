@@ -34,13 +34,11 @@ func (r *IbeamParameterRegistry) getInstanceValues(dpID pb.DeviceParameterID) (v
 
 	if dpID.Device == 0 || dpID.Parameter == 0 || len(r.parameterValue) <= deviceIndex {
 		log.Error("Could not get instance values for DeviceParameterID: Device:", dpID.Device, " and param: ", dpID.Parameter)
-		r.muValue.RUnlock()
 		return nil
 	}
 
 	if _, ok := r.parameterValue[deviceIndex][parameterIndex]; !ok {
 		log.Error("Could not get instance values for DeviceParameterID: Device:", dpID.Device, " and param: ", dpID.Parameter)
-		r.muValue.RUnlock()
 		return nil
 	}
 
