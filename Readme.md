@@ -2,7 +2,7 @@
 
 ## Generate ibeam-core.pb.go file
 
-Call `protoc -I ibeam-core-proto/ ibeam-core-proto/ibeam-core.proto --go_out=plugins=grpc:ibeam-core`
+Call `./genProto.sh` to regenerate the .pb files
 
 If you get some Path error try:
 ```
