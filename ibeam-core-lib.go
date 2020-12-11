@@ -376,23 +376,23 @@ func (s *IbeamServer) Subscribe(dpIDs *ibeam_core.DeviceParameterIDs, stream ibe
 				continue
 			}
 			// Check if Device is Subscribed
-			if len(dpIDs.Ids) == 1 && dpIDs.Ids[0].Device != parameter.Id.Device {
+			if len(dpIDs.Ids) == 1 && dpIDs.Ids[0].Parameter == 0 && dpIDs.Ids[0].Device != parameter.Id.Device {
 				continue
 			}
 
 			// Check for parameter filtering
-			if len(dpIDs.Ids) > 1 && !containsDeviceParameter(parameter.Id, dpIDs) {
+			if len(dpIDs.Ids) >= 1 && !containsDeviceParameter(parameter.Id, dpIDs) {
 				continue
 			}
 			log.Debugf("Send Parameter with ID '%v' to client from ServerClientsStream", parameter.Id)
 			stream.Send(&parameter)
 		}
 	}
-	return nil
 }
+
 func containsDeviceParameter(dpID *ibeam_core.DeviceParameterID, dpIDs *ibeam_core.DeviceParameterIDs) bool {
 	for _, ids := range dpIDs.Ids {
-		if ids == dpID {
+		if ids.Device == dpID.Device && ids.Parameter == dpID.Parameter {
 			return true
 		}
 	}
@@ -400,10 +400,10 @@ func containsDeviceParameter(dpID *ibeam_core.DeviceParameterID, dpIDs *ibeam_co
 }
 
 // CreateServer sets up the ibeam server, parameter manager and parameter registry
-func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInfo) (manager *IbeamParameterManager, registry *IbeamParameterRegistry, setToGRPC chan ibeam_core.Parameter, getFromGRPC chan ibeam_core.Parameter) {
+func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInfo) (manager *IbeamParameterManager, registry *IbeamParameterRegistry, settoManager chan ibeam_core.Parameter, getfromManager chan ibeam_core.Parameter) {
 	clientsSetter := make(chan ibeam_core.Parameter, 100)
-	getFromGRPC = make(chan ibeam_core.Parameter, 100)
-	setToGRPC = make(chan ibeam_core.Parameter, 100)
+	getfromManager = make(chan ibeam_core.Parameter, 100)
+	settoManager = make(chan ibeam_core.Parameter, 100)
 
 	fistParameter := ibeam_core.Parameter{}
 	fistParameter.Id = &ibeam_core.DeviceParameterID{
@@ -432,8 +432,8 @@ func CreateServer(coreInfo ibeam_core.CoreInfo, defaultModel ibeam_core.ModelInf
 
 	manager = &IbeamParameterManager{
 		parameterRegistry:   registry,
-		out:                 getFromGRPC,
-		in:                  setToGRPC,
+		out:                 getfromManager,
+		in:                  settoManager,
 		clientsSetterStream: clientsSetter,
 		serverClientsStream: watcher,
 		server:              &server,
