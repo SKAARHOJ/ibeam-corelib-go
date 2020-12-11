@@ -21,7 +21,7 @@ type IBeamParameterValueBuffer struct {
 
 func (b *IBeamParameterValueBuffer) getParameterValue() *pb.ParameterValue {
 	return &pb.ParameterValue{
-		DimensionID:    b.targetValue.DimensionID,
+		DimensionID:    b.dimensionID,
 		Available:      b.available,
 		IsAssumedState: b.isAssumedState,
 		Value:          b.targetValue.Value,
@@ -31,7 +31,7 @@ func (b *IBeamParameterValueBuffer) getParameterValue() *pb.ParameterValue {
 
 func (b *IBeamParameterValueBuffer) incrementParameterValue() *pb.ParameterValue {
 	return &pb.ParameterValue{
-		DimensionID:    b.targetValue.DimensionID,
+		DimensionID:    b.dimensionID,
 		Available:      b.available,
 		IsAssumedState: b.isAssumedState,
 		Value: &pb.ParameterValue_IncDecSteps{
@@ -43,7 +43,7 @@ func (b *IBeamParameterValueBuffer) incrementParameterValue() *pb.ParameterValue
 
 func (b *IBeamParameterValueBuffer) decrementParameterValue() *pb.ParameterValue {
 	return &pb.ParameterValue{
-		DimensionID:    b.targetValue.DimensionID,
+		DimensionID:    b.dimensionID,
 		Available:      b.available,
 		IsAssumedState: b.isAssumedState,
 		Value: &pb.ParameterValue_IncDecSteps{

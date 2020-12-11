@@ -129,7 +129,7 @@ func (s *IbeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 				return
 			}
 			iv := s.parameterRegistry.getInstanceValues(*dpID)
-			if err != nil || len(iv) == 0 {
+			if len(iv) == 0 {
 				rParameters.Parameters = append(rParameters.Parameters, &pb.Parameter{
 					Id:    dpID,
 					Error: pb.ParameterError_UnknownError,
