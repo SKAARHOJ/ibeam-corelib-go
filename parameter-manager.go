@@ -115,7 +115,7 @@ func (m *IbeamParameterManager) Start() {
 
 				// Handle every Value in that was given for the Parameter
 				for _, newParameterValue := range parameter.Value {
-					for _, dimensionID := range newParameterValue.DimensionID {
+					for _, dimension := range newParameterValue.DimensionID {
 						// Check if the NewValue has a Value
 						if newParameterValue.Value == nil {
 							// TODO: should this be allowed or will we send an error back?
@@ -269,22 +269,26 @@ func (m *IbeamParameterManager) Start() {
 
 						// Safe the momentary saved Value of the Parameter in the state
 						parameterDimension := state[deviceIndex][parameterIndex][dimensionID-1]
-						parameterBuffer, err := parameterDimension.Value()
+						parameterBuffer, err := parameterDimension.multiIndex(newParameterValue.DimensionID).Value()
 						if err != nil {
+							log.Errorf("Trying to get stuff")
 							parameterSubdimensions, err := parameterDimension.Subdimensions()
 							if err != nil {
 								log.Errorf("Parameter %v has no Value and no SubDimension", parameterID)
+								continue
 							}
 							for _, parameterSubdimension := range parameterSubdimensions {
 								parameterSubdimension.Value()
-								// TODO
+
 							}
 						}
 
 						log.Debugf("Set new TargetValue '%v', for Parameter %v (%v)", newParameterValue.Value, parameterID, parameterConfig.Name)
 
+						log.Infof("New val: %v, Buffer: %v ", newParameterValue, parameterBuffer)
 						parameterBuffer.isAssumedState = newParameterValue.Value != parameterBuffer.currentValue.Value
 						parameterBuffer.targetValue = *newParameterValue
+
 						parameterBuffer.tryCount = 0
 					}
 				}
@@ -300,10 +304,11 @@ func (m *IbeamParameterManager) Start() {
 					for _, dimensionID := range newParameterValue.DimensionID {
 
 						// Check if Dimension is Valid
-						if len(state[deviceIndex][parameterIndex]) < int(dimensionID) {
-							log.Errorf("Received invalid dimension id %v for parameter %v", dimensionID, parameterID)
-							continue
-						}
+						/*
+							if len(state[deviceIndex][parameterIndex]) < int(dimensionID) {
+								log.Errorf("Received invalid dimension id %v for parameter %v", dimensionID, parameterID)
+								continue
+							}*/
 
 						parameterDimension := state[deviceIndex][parameterIndex][dimensionID-1]
 						parameterBuffer, err := parameterDimension.Value()
