@@ -1,6 +1,9 @@
 package ibeam_corelib
 
-import "errors"
+import (
+	"errors"
+	"log"
+)
 
 type IbeamParameterDimension struct {
 	subDimensions map[int]*IbeamParameterDimension
@@ -28,4 +31,27 @@ func (pd *IbeamParameterDimension) Subdimensions() (map[int]*IbeamParameterDimen
 		return pd.subDimensions, nil
 	}
 	return nil, errors.New("Dimension has no subdimension")
+}
+
+func (pd *IbeamParameterDimension) multiIndex(dimensionID []uint32) *IbeamParameterDimension {
+	valuePointer := pd
+	for i, id := range dimensionID {
+		if i == len(dimensionID)-1 {
+			return valuePointer.index(id - 1)
+		}
+		valuePointer = valuePointer.index(id - 1)
+	}
+	log.Panic("DimensionID too short")
+	return nil
+}
+
+func (pd *IbeamParameterDimension) index(index uint32) *IbeamParameterDimension {
+	if pd.isValue() {
+		log.Panic("Called Index on Value")
+	}
+	if len(pd.subDimensions) <= int(index) {
+		log.Panicf("Parameter Dimension Index out of range: wanted: %v length: %v", index, len(pd.subDimensions))
+	}
+	return pd.subDimensions[int(index)]
+
 }
