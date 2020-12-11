@@ -44,30 +44,42 @@ func (r *IbeamParameterRegistry) getInstanceValues(dpID pb.DeviceParameterID) (v
 		return nil
 	}
 
-	var getValues func([]*IbeamParameterDimension)
-	getValues = func(dimensions []*IbeamParameterDimension) {
-		for _, value := range dimensions {
-			if value.isValue() {
-				values = append(values, value.value.getParameterValue())
-			} else {
-				for _, dimension := range dimensions {
-					for _, subDimension := range dimension.subDimensions {
-						getValues([]*IbeamParameterDimension{subDimension})
-					}
-				}
+	var getValues func(dimensions *IbeamParameterDimension)
+	getValues = func(dimension *IbeamParameterDimension) {
+		if dimension.isValue() {
+			values = append(values, dimension.value.getParameterValue())
+		} else {
+			for _, dimension := range dimension.subDimensions {
+				getValues(dimension)
 			}
 		}
 	}
 
-	getValues(r.parameterValue[deviceIndex][parameterIndex])
+	for _, dimension := range r.parameterValue[deviceIndex][parameterIndex] {
+		getValues(dimension)
+	}
 
 	/*
-		for _, value := range r.parameterValue[deviceIndex][parameterIndex] {
-			for _, dimension := range value {
 
+		var getValues func(*[]*IbeamParameterDimension) []*pb.ParameterValue
+		getValues = func(dimensions *[]*IbeamParameterDimension) []*pb.ParameterValue {
+
+			if value.isValue() {
+				values = append(values, value.value.getParameterValue())
+			} else {
+				for _, dimension := range *dimensions {
+					for _, subDimension := range dimension.subDimensions {
+						getValues(&[]*IbeamParameterDimension{subDimension})
+					}
+				}
 			}
-			values = append(values, value.value.getParameterValue())
 		}
+			for _, value := range r.parameterValue[deviceIndex][parameterIndex] {
+				for _, dimension := range value {
+
+				}
+				values = append(values, value.value.getParameterValue())
+			}
 	*/
 	return
 }
