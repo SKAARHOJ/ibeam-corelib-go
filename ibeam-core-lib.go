@@ -97,8 +97,8 @@ func (b *IBeamParameterValueBuffer) incrementParameterValue() *ibeam_core.Parame
 		DimensionID:    b.targetValue.DimensionID,
 		Available:      b.available,
 		IsAssumedState: b.isAssumedState,
-		Value: &ibeam_core.ParameterValue_Cmd{
-			Cmd: ibeam_core.Command_Increment,
+		Value: &ibeam_core.ParameterValue_IncDecSteps{
+			IncDecSteps: 1,
 		},
 		MetaValues: b.currentValue.MetaValues,
 	}
@@ -109,8 +109,8 @@ func (b *IBeamParameterValueBuffer) decrementParameterValue() *ibeam_core.Parame
 		DimensionID:    b.targetValue.DimensionID,
 		Available:      b.available,
 		IsAssumedState: b.isAssumedState,
-		Value: &ibeam_core.ParameterValue_Cmd{
-			Cmd: ibeam_core.Command_Decrement,
+		Value: &ibeam_core.ParameterValue_IncDecSteps{
+			IncDecSteps: -1,
 		},
 		MetaValues: b.currentValue.MetaValues,
 	}
@@ -554,7 +554,7 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 	// take all params from model and generate a value buffer array for all instances
 	// add value buffers to the state array
 
-	parameterDimensions := &map[int][]*IbeamParameterDimension{}
+	parameterDimensions := map[int][]*IbeamParameterDimension{}
 	for _, parameterDetail := range modelConfig {
 		parameterID := parameterDetail.Id.Parameter
 		valueDimensions := []*IbeamParameterDimension{}
@@ -579,24 +579,56 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 			log.Println("It is not recommended to use more than 3 dimensions, if needed please contact the maintainer")
 		}
 
-		var dimensionConfig []uint32
+		var generateDimensions func([]uint32, IbeamParameterDimension) *IbeamParameterDimension
+
+		generateDimensions = func(dimensionConfig []uint32, initialValueDimension IbeamParameterDimension) *IbeamParameterDimension {
+			if len(dimensionConfig) == 0 {
+				initialValueDimension.value.dimensionID = []uint32{1}
+				return &initialValueDimension
+			}
+
+			dimensions := make(map[int]*IbeamParameterDimension, 0)
+
+			for count := 0; count < int(dimensionConfig[0]); count++ {
+
+				valueWithID := new(IbeamParameterDimension)
+				valueWithID.value = new(IBeamParameterValueBuffer)
+				*valueWithID.value = *initialValueDimension.value
+				valueWithID.value.dimensionID = append(valueWithID.value.dimensionID, uint32(count+1))
+
+				if len(dimensionConfig) == 1 {
+
+					dimensions[count] = valueWithID
+				} else {
+					subDim := generateDimensions(dimensionConfig[1:], *valueWithID)
+					dimensions[count] = subDim
+				}
+			}
+			//fmt.Println(dimensions[1].value.dimensionID)
+			return &IbeamParameterDimension{
+				subDimensions: dimensions,
+			}
+		}
+
+		dimensionConfig := []uint32{}
+		initialValueDimension := IbeamParameterDimension{
+			value: &IBeamParameterValueBuffer{
+				dimensionID:    make([]uint32, 0),
+				available:      true,
+				isAssumedState: true,
+				lastUpdate:     time.Now(),
+				currentValue:   initialValue,
+				targetValue:    initialValue,
+			},
+		}
 
 		for _, dimension := range parameterDetail.Dimensions {
 			dimensionConfig = append(dimensionConfig, dimension.Count)
 		}
 
-		initialValueDimension := IBeamParameterValueBuffer{
-			dimensionID:    make([]uint32, 0),
-			available:      true,
-			isAssumedState: true,
-			lastUpdate:     time.Now(),
-			currentValue:   initialValue,
-			targetValue:    initialValue,
-		}
-
 		valueDimensions = append(valueDimensions, generateDimensions(dimensionConfig, initialValueDimension))
 
-		(*parameterDimensions)[int(parameterID)] = valueDimensions
+		parameterDimensions[int(parameterID)] = valueDimensions
 	}
 
 	r.muInfo.RLock()
@@ -609,27 +641,11 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 	})
 	r.muInfo.Unlock()
 	r.muValue.Lock()
-	r.parameterValue = append(r.parameterValue, *parameterDimensions)
+	r.parameterValue = append(r.parameterValue, parameterDimensions)
 	r.muValue.Unlock()
 
 	log.Debugf("Device '%v' registered with model: %v (%v)", deviceIndex, modelID, r.ModelInfos[modelID-1].Name)
 	return
-}
-
-func generateDimensions(dimensionConfig []uint32, initialValueDimension IBeamParameterValueBuffer) *IbeamParameterDimension {
-	var dimensions *IbeamParameterDimension
-
-	for i := 0; i < int(dimensionConfig[0]); i++ {
-		valueWithID := initialValueDimension
-		valueWithID.dimensionID = append(valueWithID.dimensionID, uint32(i+1))
-		if len(dimensionConfig) == 1 {
-			// insert Value
-			dimensions.value = &valueWithID
-			continue
-		}
-		dimensions.subDimensions[i] = generateDimensions(dimensionConfig[1:], valueWithID)
-	}
-	return dimensions
 }
 
 // GetIDMaps returns a Map witch maps the Name of all Parameters with their ID for each model
