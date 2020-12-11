@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	ibeam_core "github.com/SKAARHOJ/ibeam-core-go/ibeam-core"
+	ibeam_core "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
 	log "github.com/s00500/env_logger"
 	"google.golang.org/grpc"
 )

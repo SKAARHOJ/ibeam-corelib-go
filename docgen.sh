@@ -1,6 +1,6 @@
 #!/bin/sh
 
-GO_MODULE=github.com/SKAARHOJ/ibeam-core-go
+GO_MODULE=github.com/SKAARHOJ/ibeam-corelib-go
 
 function normalize_url {
     # Normalize provided URL. Removing double slashes
