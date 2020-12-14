@@ -38,9 +38,6 @@ func (s *IbeamServer) GetDeviceInfo(_ context.Context, deviceIDs *pb.DeviceIDs) 
 	for _, deviceID := range deviceIDs.Ids {
 		if len(s.parameterRegistry.DeviceInfos) >= int(deviceID) && deviceID > 0 {
 			rDeviceInfos.DeviceInfos = append(rDeviceInfos.DeviceInfos, s.parameterRegistry.DeviceInfos[deviceID-1])
-		} else {
-			// TODO:Decide if we should  send an error and no ID or something different
-			// return nil, fmt.Errorf("No device with ID %v", deviceID)
 		}
 		// If we have no Device with such a ID, skip
 	}

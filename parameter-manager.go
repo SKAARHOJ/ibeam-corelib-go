@@ -33,7 +33,7 @@ func (m *IbeamParameterManager) StartWithServer(endPoint string) {
 	grpcServer.Serve(lis)
 }
 
-func (m *IbeamParameterManager) checkValidParameter(parameter pb.Parameter) *pb.Parameter {
+func (m *IbeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb.Parameter {
 	// Check if given Parameter has an DeviceParameterID
 	if parameter.Id == nil {
 		// Client sees what he has send
@@ -90,14 +90,31 @@ func (m *IbeamParameterManager) Start() {
 			// ***************
 			//  ClientToManagerLoop, inputs change request from GRPC SET to  to manager
 			// ***************
-
-			m.clientToManagerLoop()
+		clientToManagerLoop:
+			for {
+				var parameter pb.Parameter
+				select {
+				case parameter = <-m.clientsSetterStream:
+					m.ingestTargetParameter(&parameter)
+				default:
+					break clientToManagerLoop
+				}
+			}
 
 			// ***************
 			//    Param Ingest loop, inputs changes from a device (f.e. a camera) to manager
 			// ***************
 
-			m.deviceToManagerLoop()
+		deviceToManagerLoop:
+			for {
+				var parameter pb.Parameter
+				select {
+				case parameter = <-m.in:
+					m.ingestCurrentParameter(&parameter)
+				default:
+					break deviceToManagerLoop
+				}
+			}
 
 			// ***************
 			//    Main Parameter Loop, evaluates all parameter value buffers and sends out necessary changes
@@ -108,46 +125,154 @@ func (m *IbeamParameterManager) Start() {
 	}()
 }
 
-func (m *IbeamParameterManager) clientToManagerLoop() {
-	for {
-		var parameter pb.Parameter
-		select {
-		case parameter = <-m.clientsSetterStream:
-		default:
-			return // no more parameters left, continue with rest fo logic
-		}
+func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
+	if errorParam := m.checkValidParameter(parameter); errorParam != nil {
+		m.serverClientsStream <- *errorParam
+		return
+	}
 
-		if errorParam := m.checkValidParameter(parameter); errorParam != nil {
-			m.serverClientsStream <- *errorParam
+	// Get Index and ID for Device and Parameter and the actual state of all parameters
+	parameterID := parameter.Id.Parameter
+	parameterIndex := int(parameterID)
+	deviceID := parameter.Id.Device
+	deviceIndex := int(deviceID - 1)
+	modelIndex := m.parameterRegistry.getModelIndex(deviceID)
+
+	// Get State and the Configuration (Details) of the Parameter
+	m.parameterRegistry.muValue.RLock()
+	defer m.parameterRegistry.muValue.RUnlock()
+	state := m.parameterRegistry.parameterValue
+
+	m.parameterRegistry.muDetail.RLock()
+	defer m.parameterRegistry.muDetail.RUnlock()
+	parameterConfig := m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex]
+
+	// Handle every Value in that was given for the Parameter
+	for _, newParameterValue := range parameter.Value {
+		// Check if the NewValue has a Value
+		if newParameterValue.Value == nil {
+			log.Errorf("Received no value for parameter %d on device %d", parameterID, parameter.Id.Device)
+			m.serverClientsStream <- pb.Parameter{
+				Id:    parameter.Id,
+				Error: pb.ParameterError_HasNoValue,
+				Value: []*pb.ParameterValue{},
+			}
 			continue
 		}
 
-		// Get Index and ID for Device and Parameter and the actual state of all parameters
-		parameterID := parameter.Id.Parameter
-		parameterIndex := int(parameterID)
-		deviceID := parameter.Id.Device
-		deviceIndex := int(deviceID - 1)
-		modelIndex := m.parameterRegistry.getModelIndex(deviceID)
+		// Check if dimension of the value is valid
+		if !state[deviceIndex][parameterIndex].MultiIndexHasValue(newParameterValue.DimensionID) {
+			log.Errorf("Received invalid Dimension %d for parameter %d on device %d", newParameterValue.DimensionID, parameterID, parameter.Id.Device)
+			m.serverClientsStream <- pb.Parameter{
+				Id:    parameter.Id,
+				Error: pb.ParameterError_UnknownID,
+				Value: []*pb.ParameterValue{},
+			}
+			continue
+		}
 
-		// Get State and the Configuration (Details) of the Parameter
-		m.parameterRegistry.muValue.RLock()
-		defer m.parameterRegistry.muValue.RUnlock()
-		state := m.parameterRegistry.parameterValue
-		m.parameterRegistry.muDetail.RLock()
-		defer m.parameterRegistry.muDetail.RUnlock()
-		parameterConfig := m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex]
+		// Check if Value is valid and has the right Type
+		switch newValue := newParameterValue.Value.(type) {
+		case *pb.ParameterValue_Integer:
 
-		// Handle every Value in that was given for the Parameter
-		for _, newParameterValue := range parameter.Value {
-			// Check if the NewValue has a Value
-			if newParameterValue.Value == nil {
-				// TODO: should this be allowed or will we send an error back?
+			if parameterConfig.ValueType != pb.ValueType_Integer {
+				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
+				m.serverClientsStream <- pb.Parameter{
+					Id:    parameter.Id,
+					Error: pb.ParameterError_InvalidType,
+					Value: []*pb.ParameterValue{},
+				}
 				continue
 			}
 
-			// Check if dimension of the value is valid
-			if !state[deviceIndex][parameterIndex].MultiIndexHasValue(newParameterValue.DimensionID) {
-				log.Errorf("Received invalid Dimension %d for parameter %d on device %d", newParameterValue.DimensionID, parameterID, parameter.Id.Device)
+			if newValue.Integer > int32(parameterConfig.Maximum) {
+				log.Errorf("Max violation for parameter %v", parameterID)
+				m.serverClientsStream <- pb.Parameter{
+					Id:    parameter.Id,
+					Error: pb.ParameterError_MaxViolation,
+					Value: []*pb.ParameterValue{},
+				}
+				continue
+			}
+			if newValue.Integer < int32(parameterConfig.Minimum) {
+				log.Errorf("Min violation for parameter %v", parameterID)
+				m.serverClientsStream <- pb.Parameter{
+					Id:    parameter.Id,
+					Error: pb.ParameterError_MinViolation,
+					Value: []*pb.ParameterValue{},
+				}
+				continue
+			}
+		case *pb.ParameterValue_IncDecSteps:
+			if parameterConfig.ValueType != pb.ValueType_Integer {
+				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
+				m.serverClientsStream <- pb.Parameter{
+					Id:    parameter.Id,
+					Error: pb.ParameterError_InvalidType,
+					Value: []*pb.ParameterValue{},
+				}
+				continue
+			}
+
+			if newValue.IncDecSteps > parameterConfig.IncDecStepsUpperRange || newValue.IncDecSteps < parameterConfig.IncDecStepsLowerRange {
+				log.Errorf("In- or Decrementation Step %v is outside of the range [%v,%v] of the parameter %v", newValue.IncDecSteps, parameterConfig.IncDecStepsLowerRange, parameterConfig.IncDecStepsUpperRange, parameterID)
+				m.serverClientsStream <- pb.Parameter{
+					Id:    parameter.Id,
+					Error: pb.ParameterError_RangeViolation,
+					Value: []*pb.ParameterValue{},
+				}
+				continue
+			}
+		case *pb.ParameterValue_Floating:
+			if parameterConfig.ValueType != pb.ValueType_Floating {
+				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
+				m.serverClientsStream <- pb.Parameter{
+					Id:    parameter.Id,
+					Error: pb.ParameterError_InvalidType,
+					Value: []*pb.ParameterValue{},
+				}
+				continue
+			}
+
+			if newValue.Floating > parameterConfig.Maximum {
+				log.Errorf("Max violation for parameter %v", parameterID)
+				m.serverClientsStream <- pb.Parameter{
+					Id:    parameter.Id,
+					Error: pb.ParameterError_MaxViolation,
+					Value: []*pb.ParameterValue{},
+				}
+				continue
+			}
+			if newValue.Floating < parameterConfig.Minimum {
+				log.Errorf("Min violation for parameter %v", parameterID)
+				m.serverClientsStream <- pb.Parameter{
+					Id:    parameter.Id,
+					Error: pb.ParameterError_MinViolation,
+					Value: []*pb.ParameterValue{},
+				}
+				continue
+			}
+		case *pb.ParameterValue_Str:
+			if parameterConfig.ValueType != pb.ValueType_String {
+				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
+				m.serverClientsStream <- pb.Parameter{
+					Id:    parameter.Id,
+					Error: pb.ParameterError_InvalidType,
+					Value: []*pb.ParameterValue{},
+				}
+				continue
+			}
+
+			// String does not need extra check
+
+		case *pb.ParameterValue_CurrentOption:
+
+			if parameterConfig.OptionList == nil {
+				log.Errorf("No option List found for Parameter %v", newValue)
+				continue
+			}
+			if newValue.CurrentOption > uint32(len(parameterConfig.OptionList.Options)) {
+				log.Errorf("Invalid operation index for parameter %v", parameterID)
 				m.serverClientsStream <- pb.Parameter{
 					Id:    parameter.Id,
 					Error: pb.ParameterError_UnknownID,
@@ -155,313 +280,204 @@ func (m *IbeamParameterManager) clientToManagerLoop() {
 				}
 				continue
 			}
+		case *pb.ParameterValue_Cmd:
+			// Command can be send directly to the output
+			m.out <- pb.Parameter{
+				Id:    parameter.Id,
+				Error: 0,
+				Value: []*pb.ParameterValue{newParameterValue},
+			}
+		case *pb.ParameterValue_Binary:
 
-			// Check if Value is valid and has the right Type
-			switch newValue := newParameterValue.Value.(type) {
-			case *pb.ParameterValue_Integer:
-
-				if parameterConfig.ValueType != pb.ValueType_Integer {
-					log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
-					m.serverClientsStream <- pb.Parameter{
-						Id:    parameter.Id,
-						Error: pb.ParameterError_InvalidType,
-						Value: []*pb.ParameterValue{},
-					}
-					continue
-				}
-
-				if newValue.Integer > int32(parameterConfig.Maximum) {
-					log.Errorf("Max violation for parameter %v", parameterID)
-					m.serverClientsStream <- pb.Parameter{
-						Id:    parameter.Id,
-						Error: pb.ParameterError_MaxViolation,
-						Value: []*pb.ParameterValue{},
-					}
-					continue
-				}
-				if newValue.Integer < int32(parameterConfig.Minimum) {
-					log.Errorf("Min violation for parameter %v", parameterID)
-					m.serverClientsStream <- pb.Parameter{
-						Id:    parameter.Id,
-						Error: pb.ParameterError_MinViolation,
-						Value: []*pb.ParameterValue{},
-					}
-					continue
-				}
-			case *pb.ParameterValue_IncDecSteps:
-				if parameterConfig.ValueType != pb.ValueType_Integer {
-					log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
-					m.serverClientsStream <- pb.Parameter{
-						Id:    parameter.Id,
-						Error: pb.ParameterError_InvalidType,
-						Value: []*pb.ParameterValue{},
-					}
-					continue
-				}
-
-				if newValue.IncDecSteps > parameterConfig.IncDecStepsUpperRange || newValue.IncDecSteps < parameterConfig.IncDecStepsLowerRange {
-					log.Errorf("In- or Decrementation Step %v is outside of the range [%v,%v] of the parameter %v", newValue.IncDecSteps, parameterConfig.IncDecStepsLowerRange, parameterConfig.IncDecStepsUpperRange, parameterID)
-					m.serverClientsStream <- pb.Parameter{
-						Id:    parameter.Id,
-						Error: pb.ParameterError_RangeViolation,
-						Value: []*pb.ParameterValue{},
-					}
-					continue
-				}
-			case *pb.ParameterValue_Floating:
-				if parameterConfig.ValueType != pb.ValueType_Floating {
-					log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
-					m.serverClientsStream <- pb.Parameter{
-						Id:    parameter.Id,
-						Error: pb.ParameterError_InvalidType,
-						Value: []*pb.ParameterValue{},
-					}
-					continue
-				}
-
-				if newValue.Floating > parameterConfig.Maximum {
-					log.Errorf("Max violation for parameter %v", parameterID)
-					m.serverClientsStream <- pb.Parameter{
-						Id:    parameter.Id,
-						Error: pb.ParameterError_MaxViolation,
-						Value: []*pb.ParameterValue{},
-					}
-					continue
-				}
-				if newValue.Floating < parameterConfig.Minimum {
-					log.Errorf("Min violation for parameter %v", parameterID)
-					m.serverClientsStream <- pb.Parameter{
-						Id:    parameter.Id,
-						Error: pb.ParameterError_MinViolation,
-						Value: []*pb.ParameterValue{},
-					}
-					continue
-				}
-			case *pb.ParameterValue_Str:
-				if parameterConfig.ValueType != pb.ValueType_String {
-					log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
-					m.serverClientsStream <- pb.Parameter{
-						Id:    parameter.Id,
-						Error: pb.ParameterError_InvalidType,
-						Value: []*pb.ParameterValue{},
-					}
-					continue
-				}
-
-				// String does not need extra check
-
-			case *pb.ParameterValue_CurrentOption:
-
-				if parameterConfig.OptionList == nil {
-					log.Errorf("No option List found for Parameter %v", newValue)
-					continue
-				}
-				if newValue.CurrentOption > uint32(len(parameterConfig.OptionList.Options)) {
-					log.Errorf("Invalid operation index for parameter %v", parameterID)
-					m.serverClientsStream <- pb.Parameter{
-						Id:    parameter.Id,
-						Error: pb.ParameterError_UnknownID,
-						Value: []*pb.ParameterValue{},
-					}
-					continue
-				}
-			case *pb.ParameterValue_Cmd:
-				// Command can be send directly to the output
-				m.out <- pb.Parameter{
+			if parameterConfig.ValueType != pb.ValueType_Binary {
+				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
+				m.serverClientsStream <- pb.Parameter{
 					Id:    parameter.Id,
-					Error: 0,
-					Value: []*pb.ParameterValue{newParameterValue},
+					Error: pb.ParameterError_InvalidType,
+					Value: []*pb.ParameterValue{},
 				}
-			case *pb.ParameterValue_Binary:
-
-				if parameterConfig.ValueType != pb.ValueType_Binary {
-					log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
-					m.serverClientsStream <- pb.Parameter{
-						Id:    parameter.Id,
-						Error: pb.ParameterError_InvalidType,
-						Value: []*pb.ParameterValue{},
-					}
-					continue
-				}
-
-				log.Debugf("Got Set Binary: %v", newValue)
-			case *pb.ParameterValue_OptionList:
-				log.Debugf("Got Set Option List: %v", newValue)
-				//TODO: check if Option list is valid (unique ids etc.)
+				continue
 			}
 
-			// Safe the momentary saved Value of the Parameter in the state
-			parameterDimension := state[deviceIndex][parameterIndex]
-			parameterBuffer, err := parameterDimension.MultiIndex(newParameterValue.DimensionID).Value()
-			if err != nil {
-				log.Errorf("Trying to get stuff")
-				parameterSubdimensions, err := parameterDimension.Subdimensions()
-				if err != nil {
-					log.Errorf("Parameter %v has no Value and no SubDimension", parameterID)
-					continue
-				}
-				for _, parameterSubdimension := range parameterSubdimensions {
-					parameterSubdimension.Value()
-
-				}
-			}
-
-			log.Debugf("Set new TargetValue '%v', for Parameter %v (%v)", newParameterValue.Value, parameterID, parameterConfig.Name)
-			parameterBuffer.isAssumedState = newParameterValue.Value != parameterBuffer.currentValue.Value
-			parameterBuffer.targetValue = *newParameterValue
-
-			parameterBuffer.tryCount = 0
-
+			log.Debugf("Got Set Binary: %v", newValue)
+		case *pb.ParameterValue_OptionList:
+			log.Debugf("Got Set Option List: %v", newValue)
+			//TODO: check if Option list is valid (unique ids etc.)
 		}
+
+		// Safe the momentary saved Value of the Parameter in the state
+		parameterDimension := state[deviceIndex][parameterIndex]
+		parameterBuffer, err := parameterDimension.MultiIndex(newParameterValue.DimensionID).Value()
+		if err != nil {
+			log.Errorf("Trying to get stuff")
+			parameterSubdimensions, err := parameterDimension.Subdimensions()
+			if err != nil {
+				log.Errorf("Parameter %v has no Value and no SubDimension", parameterID)
+				continue
+			}
+			for _, parameterSubdimension := range parameterSubdimensions {
+				parameterSubdimension.Value()
+
+			}
+		}
+
+		log.Debugf("Set new TargetValue '%v', for Parameter %v (%v)", newParameterValue.Value, parameterID, parameterConfig.Name)
+		parameterBuffer.isAssumedState = newParameterValue.Value != parameterBuffer.currentValue.Value
+		parameterBuffer.targetValue = *newParameterValue
+
+		parameterBuffer.tryCount = 0
+
 	}
+
 }
 
-func (m *IbeamParameterManager) deviceToManagerLoop() {
-	for {
-		var parameter pb.Parameter
-		select {
-		case parameter = <-m.in:
-		default:
-			return // no parameters left
+func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) {
+	if err := m.checkValidParameter(parameter); err != nil {
+		log.Error(err)
+		return
+	}
+
+	// Get Index and ID for Device and Parameter and the actual state of all parameters
+	parameterID := parameter.Id.Parameter
+	parameterIndex := int(parameterID)
+	deviceID := parameter.Id.Device
+	deviceIndex := int(deviceID - 1)
+	modelIndex := m.parameterRegistry.getModelIndex(deviceID)
+
+	// Get State and the Configuration (Details) of the Parameter
+	m.parameterRegistry.muValue.RLock()
+	defer m.parameterRegistry.muValue.RUnlock()
+	state := m.parameterRegistry.parameterValue
+	m.parameterRegistry.muDetail.RLock()
+	defer m.parameterRegistry.muDetail.RUnlock()
+	parameterConfig := m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex]
+
+	shouldSend := false
+	for _, newParameterValue := range parameter.Value {
+		if newParameterValue == nil {
+			log.Warnf("Received nil value for parameter %d from device %d", parameterID, deviceID)
+			continue
 		}
-		if err := m.checkValidParameter(parameter); err != nil {
+		// Check if Dimension is Valid
+		if !state[deviceIndex][parameterIndex].MultiIndexHasValue(newParameterValue.DimensionID) {
+			log.Errorf("Received invalid dimension id  %v for parameter %d from device %d", newParameterValue.DimensionID, parameterID, deviceID)
+			continue
+		}
+
+		parameterDimension := state[deviceIndex][parameterIndex].MultiIndex(newParameterValue.DimensionID)
+		parameterBuffer, err := parameterDimension.Value()
+		if err != nil {
 			log.Error(err)
 			continue
 		}
 
-		// Get Index and ID for Device and Parameter and the actual state of all parameters
-		parameterID := parameter.Id.Parameter
-		parameterIndex := int(parameterID)
-		deviceID := parameter.Id.Device
-		deviceIndex := int(deviceID - 1)
-		modelIndex := m.parameterRegistry.getModelIndex(deviceID)
+		if newParameterValue.Value != nil {
+			didSet := false // flag to to handle custom cases
 
-		// Get State and the Configuration (Details) of the Parameter
-		m.parameterRegistry.muValue.RLock()
-		defer m.parameterRegistry.muValue.RUnlock()
-		state := m.parameterRegistry.parameterValue
-		m.parameterRegistry.muDetail.RLock()
-		defer m.parameterRegistry.muDetail.RUnlock()
-		parameterConfig := m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex]
+			// Check Type of Parameter
+			switch parameterConfig.ValueType {
+			case pb.ValueType_Opt:
 
-		shouldSend := false
-		for _, newParameterValue := range parameter.Value {
-			// Check if Dimension is Valid
-			if !state[deviceIndex][parameterIndex].MultiIndexHasValue(newParameterValue.DimensionID) {
-				log.Errorf("Received invalid dimension id  %v for parameter %v from device", newParameterValue.DimensionID, parameterID)
-				continue
-			}
-
-			parameterDimension := state[deviceIndex][parameterIndex].MultiIndex(newParameterValue.DimensionID)
-			parameterBuffer, err := parameterDimension.Value()
-			if err != nil {
-				log.Error(err)
-				continue
-			}
-
-			if newParameterValue.Value != nil {
-				didSet := false // flag to to handle custom cases
-
-				// Check Type of Parameter
-				switch parameterConfig.ValueType {
-				case pb.ValueType_Opt:
-
-					// If Type of Parameter is Opt, find the right Opt
-					switch v := newParameterValue.Value.(type) {
-					case *pb.ParameterValue_Str:
-						id, err := getIDFromOptionListByElementName(parameterConfig.OptionList, v.Str)
-						if err != nil {
-							log.Error(err)
-							// TODO:get new option list maybe
-							continue
-						}
-
-						newValue := pb.ParameterValue{
-							Value: &pb.ParameterValue_CurrentOption{
-								CurrentOption: id,
-							},
-						}
-						if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
-							parameterBuffer.targetValue = newValue
-						}
-						parameterBuffer.currentValue = newValue
-
-						didSet = true
-
-					case *pb.ParameterValue_OptionList:
-						if !parameterConfig.OptionListIsDynamic {
-							log.Errorf("Parameter with ID %v has no Dynamic OptionList", parameter.Id.Parameter)
-							continue
-						}
-						m.parameterRegistry.muDetail.Lock()
-						m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex].OptionList = v.OptionList
-						m.parameterRegistry.muDetail.Unlock()
-
-						m.serverClientsStream <- pb.Parameter{
-							Value: []*pb.ParameterValue{newParameterValue},
-							Id:    parameter.Id,
-							Error: pb.ParameterError_NoError,
-						}
-						continue
-					case *pb.ParameterValue_CurrentOption:
-						// Handled below
-					default:
-						log.Errorf("Valuetype of Parameter is Opt and so we should get a String or Opt or currentOpt, but got %T", newParameterValue)
+				// If Type of Parameter is Opt, find the right Opt
+				switch v := newParameterValue.Value.(type) {
+				case *pb.ParameterValue_Str:
+					id, err := getIDFromOptionListByElementName(parameterConfig.OptionList, v.Str)
+					if err != nil {
+						log.Error(err)
+						// TODO:get new option list maybe
 						continue
 					}
-				case pb.ValueType_Binary:
-					if _, ok := newParameterValue.Value.(*pb.ParameterValue_Binary); !ok {
-						log.Errorf("Parameter with ID %v is Type Binary but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
+
+					newValue := pb.ParameterValue{
+						Value: &pb.ParameterValue_CurrentOption{
+							CurrentOption: id,
+						},
+					}
+					if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
+						parameterBuffer.targetValue = newValue
+					}
+					parameterBuffer.currentValue = newValue
+
+					didSet = true
+
+				case *pb.ParameterValue_OptionList:
+					if !parameterConfig.OptionListIsDynamic {
+						log.Errorf("Parameter with ID %v has no Dynamic OptionList", parameter.Id.Parameter)
 						continue
 					}
-				case pb.ValueType_Floating:
-					if _, ok := newParameterValue.Value.(*pb.ParameterValue_Floating); !ok {
-						log.Errorf("Parameter with ID %v is Type Float but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
-						continue
+					m.parameterRegistry.muDetail.Lock()
+					m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex].OptionList = v.OptionList
+					m.parameterRegistry.muDetail.Unlock()
+
+					m.serverClientsStream <- pb.Parameter{
+						Value: []*pb.ParameterValue{newParameterValue},
+						Id:    parameter.Id,
+						Error: pb.ParameterError_NoError,
 					}
-				case pb.ValueType_Integer:
-					if _, ok := newParameterValue.Value.(*pb.ParameterValue_Integer); !ok {
-						log.Errorf("Parameter with ID %v is Type Integer but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
-						continue
-					}
-				case pb.ValueType_String:
-					if _, ok := newParameterValue.Value.(*pb.ParameterValue_Str); !ok {
-						log.Errorf("Parameter with ID %v is Type String but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
-						continue
-					}
-				case pb.ValueType_NoValue:
-					log.Errorf("Parameter with ID %v has No Value but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
+					continue
+				case *pb.ParameterValue_CurrentOption:
+					// Handled below
+				default:
+					log.Errorf("Valuetype of Parameter is Opt and so we should get a String or Opt or currentOpt, but got %T", newParameterValue)
 					continue
 				}
-
-				if !didSet {
-					if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
-						parameterBuffer.targetValue = *newParameterValue
-					}
-					parameterBuffer.currentValue = *newParameterValue
+			case pb.ValueType_Binary:
+				if _, ok := newParameterValue.Value.(*pb.ParameterValue_Binary); !ok {
+					log.Errorf("Parameter with ID %v is Type Binary but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
+					continue
 				}
-
-				parameterBuffer.isAssumedState = parameterBuffer.currentValue.Value != parameterBuffer.targetValue.Value
-			} else {
-				parameterBuffer.available = newParameterValue.Available
+			case pb.ValueType_Floating:
+				if _, ok := newParameterValue.Value.(*pb.ParameterValue_Floating); !ok {
+					log.Errorf("Parameter with ID %v is Type Float but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
+					continue
+				}
+			case pb.ValueType_Integer:
+				if _, ok := newParameterValue.Value.(*pb.ParameterValue_Integer); !ok {
+					log.Errorf("Parameter with ID %v is Type Integer but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
+					continue
+				}
+			case pb.ValueType_String:
+				if _, ok := newParameterValue.Value.(*pb.ParameterValue_Str); !ok {
+					log.Errorf("Parameter with ID %v is Type String but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
+					continue
+				}
+			case pb.ValueType_NoValue:
+				log.Errorf("Parameter with ID %v has No Value but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
+				continue
 			}
-			shouldSend = true
-		}
 
-		if !shouldSend {
-			continue
-		}
+			if !didSet {
+				if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
+					parameterBuffer.targetValue = *newParameterValue
+				}
+				parameterBuffer.currentValue = *newParameterValue
+			}
 
-		if values := m.parameterRegistry.getInstanceValues(*parameter.GetId()); values != nil {
-			m.serverClientsStream <- pb.Parameter{Value: values, Id: parameter.Id, Error: 0}
+			parameterBuffer.isAssumedState = parameterBuffer.currentValue.Value != parameterBuffer.targetValue.Value
+		} else {
+			parameterBuffer.available = newParameterValue.Available
 		}
+		shouldSend = true
+	}
+
+	if !shouldSend {
+		return
+	}
+
+	if values := m.parameterRegistry.getInstanceValues(*parameter.GetId()); values != nil {
+		m.serverClientsStream <- pb.Parameter{Value: values, Id: parameter.Id, Error: 0}
 	}
 }
 
 func (m *IbeamParameterManager) parameterLoop() {
-	// FIXME: do I need to lock info here ?
+	m.parameterRegistry.muInfo.RLock()
+	defer m.parameterRegistry.muInfo.RUnlock()
+
 	m.parameterRegistry.muDetail.RLock()
+	defer m.parameterRegistry.muValue.Unlock()
+
 	m.parameterRegistry.muValue.Lock()
+	defer m.parameterRegistry.muDetail.RUnlock()
 
 	// Range over all Devices
 	for _, deviceInfo := range m.parameterRegistry.DeviceInfos {
@@ -487,8 +503,6 @@ func (m *IbeamParameterManager) parameterLoop() {
 			m.loopDimension(parameterDimension, parameterDetail, deviceID)
 		}
 	}
-	m.parameterRegistry.muValue.Unlock()
-	m.parameterRegistry.muDetail.RUnlock()
 }
 
 func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameterDimension, parameterDetail *pb.ParameterDetail, deviceID uint32) {
