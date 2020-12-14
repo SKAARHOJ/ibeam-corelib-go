@@ -25,12 +25,9 @@ type IbeamParameterRegistry struct {
 }
 
 // device,parameter,instance
-func (r *IbeamParameterRegistry) getInstanceValues(dpID pb.DeviceParameterID) (values []*pb.ParameterValue) {
+func (r *IbeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID) (values []*pb.ParameterValue) {
 	deviceIndex := int(dpID.Device) - 1
 	parameterIndex := int(dpID.Parameter)
-
-	r.muValue.RLock()
-	defer r.muValue.RUnlock()
 
 	if dpID.Device == 0 || dpID.Parameter == 0 || len(r.parameterValue) <= deviceIndex {
 		log.Error("Could not get instance values for DeviceParameterID: Device:", dpID.Device, " and param: ", dpID.Parameter)
@@ -63,8 +60,6 @@ func (r *IbeamParameterRegistry) getInstanceValues(dpID pb.DeviceParameterID) (v
 }
 
 func (r *IbeamParameterRegistry) getModelIndex(deviceID uint32) int {
-	r.muInfo.RLock()
-	defer r.muInfo.RUnlock()
 	if len(r.DeviceInfos) < int(deviceID) || deviceID == 0 {
 		log.Panicf("Could not get model for device with id %v. DeviceInfos has lenght of %v", deviceID, len(r.DeviceInfos))
 	}
@@ -260,7 +255,7 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 	r.parameterValue = append(r.parameterValue, parameterDimensions)
 
 	log.Debugf("Device '%v' registered with model: %v (%v)", deviceIndex, modelID, r.ModelInfos[modelID-1].Name)
-	return
+	return deviceIndex
 }
 
 // GetIDMaps returns a Map witch maps the Name of all Parameters with their ID for each model

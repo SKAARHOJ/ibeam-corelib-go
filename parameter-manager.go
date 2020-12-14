@@ -138,8 +138,8 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 	modelIndex := m.parameterRegistry.getModelIndex(deviceID)
 
 	// Get State and the Configuration (Details) of the Parameter
-	m.parameterRegistry.muValue.RLock()
-	defer m.parameterRegistry.muValue.RUnlock()
+	m.parameterRegistry.muValue.Lock()
+	defer m.parameterRegistry.muValue.Unlock()
 	state := m.parameterRegistry.parameterValue
 
 	m.parameterRegistry.muDetail.RLock()
@@ -344,8 +344,8 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 	modelIndex := m.parameterRegistry.getModelIndex(deviceID)
 
 	// Get State and the Configuration (Details) of the Parameter
-	m.parameterRegistry.muValue.RLock()
-	defer m.parameterRegistry.muValue.RUnlock()
+	m.parameterRegistry.muValue.Lock()
+	defer m.parameterRegistry.muValue.Unlock()
 	state := m.parameterRegistry.parameterValue
 	m.parameterRegistry.muDetail.RLock()
 	defer m.parameterRegistry.muDetail.RUnlock()
@@ -404,9 +404,7 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 						log.Errorf("Parameter with ID %v has no Dynamic OptionList", parameter.Id.Parameter)
 						continue
 					}
-					m.parameterRegistry.muDetail.Lock()
 					m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex].OptionList = v.OptionList
-					m.parameterRegistry.muDetail.Unlock()
 
 					m.serverClientsStream <- pb.Parameter{
 						Value: []*pb.ParameterValue{newParameterValue},
@@ -463,20 +461,21 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 		return
 	}
 
-	if values := m.parameterRegistry.getInstanceValues(*parameter.GetId()); values != nil {
+	if values := m.parameterRegistry.getInstanceValues(parameter.GetId()); values != nil {
 		m.serverClientsStream <- pb.Parameter{Value: values, Id: parameter.Id, Error: 0}
 	}
 }
 
 func (m *IbeamParameterManager) parameterLoop() {
+
 	m.parameterRegistry.muInfo.RLock()
 	defer m.parameterRegistry.muInfo.RUnlock()
 
 	m.parameterRegistry.muDetail.RLock()
-	defer m.parameterRegistry.muValue.Unlock()
+	defer m.parameterRegistry.muDetail.RUnlock()
 
 	m.parameterRegistry.muValue.Lock()
-	defer m.parameterRegistry.muDetail.RUnlock()
+	defer m.parameterRegistry.muValue.Unlock()
 
 	// Range over all Devices
 	for _, deviceInfo := range m.parameterRegistry.DeviceInfos {
@@ -528,19 +527,12 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 	// ********************************************************************
 
 	if parameterBuffer.currentValue.Value == parameterBuffer.targetValue.Value {
-		//log.Errorf("Failed to set parameter %v '%v' for device %v, CurrentValue '%v' and TargetValue '%v' are the same", parameterConfig.Id.Parameter, parameterConfig.Name, deviceID+1, parameterBuffer.currentValue.Value, parameterBuffer.targetValue.Value)
 		return
 	}
 
 	// Is is send after Control Delay time
 	if parameterDetail.ControlDelayMs != 0 && time.Until(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterDetail.ControlDelayMs) {
 		//log.Errorf("Failed to set parameter %v '%v' for device %v, ControlDelayTime", parameterConfig.Id.Parameter, parameterConfig.Name, deviceID+1, parameterConfig.ControlDelayMs)
-		return
-	}
-
-	// Is is send after Quarantine Delay time
-	if parameterDetail.QuarantineDelayMs != 0 && time.Until(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterDetail.QuarantineDelayMs) {
-		//log.Errorf("Failed to set parameter %v '%v' for device %v, QuarantineDelayTime", parameterConfig.Id.Parameter, parameterConfig.Name, deviceID+1, parameterConfig.QuarantineDelayMs)
 		return
 	}
 
@@ -607,17 +599,6 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 				},
 			}
 		}
-		/* TODO
-		case pb.ControlStyle_IncrementalWithSteps:
-
-			m.out <- pb.Parameter{
-				Value: []*pb.ParameterValue{parameterBuffer.getParameterValue()},
-				Id: &pb.DeviceParameterID{
-					Device:    deviceID,
-					Parameter: parameterDetail.Id.Parameter,
-				},
-			}
-		*/
 	case pb.ControlStyle_ControlledIncremental:
 		if parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
 			return

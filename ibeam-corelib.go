@@ -81,7 +81,7 @@ func (s *IbeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 					Parameter: uint32(pid),
 					Device:    uint32(did) + 1,
 				}
-				iv := s.parameterRegistry.getInstanceValues(dpID)
+				iv := s.parameterRegistry.getInstanceValues(&dpID)
 				if iv != nil {
 					rParameters.Parameters = append(rParameters.Parameters, &pb.Parameter{
 						Id:    &dpID,
@@ -108,7 +108,7 @@ func (s *IbeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 				Parameter: uint32(pid),
 				Device:    uint32(did) + 1,
 			}
-			iv := s.parameterRegistry.getInstanceValues(dpID)
+			iv := s.parameterRegistry.getInstanceValues(&dpID)
 			if iv != nil {
 				rParameters.Parameters = append(rParameters.Parameters, &pb.Parameter{
 					Id:    &dpID,
@@ -125,7 +125,7 @@ func (s *IbeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 				err = errors.New("Failed to get instance values " + dpID.String())
 				return
 			}
-			iv := s.parameterRegistry.getInstanceValues(*dpID)
+			iv := s.parameterRegistry.getInstanceValues(dpID)
 			if len(iv) == 0 {
 				rParameters.Parameters = append(rParameters.Parameters, &pb.Parameter{
 					Id:    dpID,
@@ -232,7 +232,7 @@ func (s *IbeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 
 	log.Debugf("Added distributor number %v", len(s.serverClientsDistributor))
 
-	ping := time.NewTicker(time.Second)
+	ping := time.NewTicker(time.Second / 2)
 	for {
 		select {
 		case <-ping.C:
@@ -254,7 +254,7 @@ func (s *IbeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 
 			// Check for parameter filtering
 			if len(dpIDs.Ids) >= 1 && !containsDeviceParameter(parameter.Id, dpIDs) {
-				log.Trace("Blocked sending out of change because of device parameter id filter")
+				log.Trace("Blocked sending out of change of parameter %d because of device parameter id filter", parameter.Id.Parameter)
 				continue
 			}
 
