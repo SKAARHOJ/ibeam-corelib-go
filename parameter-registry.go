@@ -155,13 +155,13 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 		modelID = uint32(1)
 	}
 	r.muDetail.RLock()
+	defer r.muDetail.RUnlock()
+
 	if uint32(len(r.ParameterDetail)) <= (modelID - 1) {
 		log.Panicf("Could not register device for nonexistent model with id: %v", modelID)
-		return 0
 	}
 
 	modelConfig := r.ParameterDetail[modelID-1]
-	r.muDetail.RUnlock()
 
 	// create device info
 	// take all params from model and generate a value buffer array for all instances
@@ -188,14 +188,13 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 		}
 
 		if len(parameterDetail.Dimensions) > 3 {
-			log.Println("It is not recommended to use more than 3 dimensions, if needed please contact the maintainer")
+			log.Panicf("It is not recommended to use more than 3 dimensions, if needed please contact the maintainer")
 		}
 
 		var generateDimensions func([]uint32, IbeamParameterDimension) *IbeamParameterDimension
 
 		generateDimensions = func(dimensionConfig []uint32, initialValueDimension IbeamParameterDimension) *IbeamParameterDimension {
 			if len(dimensionConfig) == 0 {
-				initialValueDimension.value.dimensionID = []uint32{1}
 				return &initialValueDimension
 			}
 
@@ -246,18 +245,19 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 		parameterDimensions[int(parameterID)] = generateDimensions(dimensionConfig, initialValueDimension)
 	}
 
-	r.muInfo.RLock()
-	deviceIndex = uint32(len(r.DeviceInfos) + 1)
-	r.muInfo.RUnlock()
 	r.muInfo.Lock()
+	defer r.muInfo.Unlock()
+
+	r.muValue.Lock()
+	defer r.muValue.Unlock()
+
+	deviceIndex = uint32(len(r.DeviceInfos) + 1)
 	r.DeviceInfos = append(r.DeviceInfos, &pb.DeviceInfo{
 		DeviceID: deviceIndex,
 		ModelID:  modelID,
 	})
-	r.muInfo.Unlock()
-	r.muValue.Lock()
+
 	r.parameterValue = append(r.parameterValue, parameterDimensions)
-	r.muValue.Unlock()
 
 	log.Debugf("Device '%v' registered with model: %v (%v)", deviceIndex, modelID, r.ModelInfos[modelID-1].Name)
 	return

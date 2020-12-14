@@ -4,7 +4,7 @@ go 1.15
 
 require (
 	github.com/golang/protobuf v1.4.3
-	github.com/s00500/env_logger v0.1.4
+	github.com/s00500/env_logger v0.1.7
 	github.com/sirupsen/logrus v1.7.0 // indirect
 	github.com/stretchr/testify v1.6.1 // indirect
 	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b // indirect

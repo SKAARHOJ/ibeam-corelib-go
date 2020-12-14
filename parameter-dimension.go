@@ -2,7 +2,8 @@ package ibeam_corelib
 
 import (
 	"errors"
-	"log"
+
+	log "github.com/s00500/env_logger"
 )
 
 type IbeamParameterDimension struct {
@@ -16,6 +17,8 @@ func (pd *IbeamParameterDimension) isValue() bool {
 	}
 	return true
 }
+
+// All of these functions can return null if they hit an error, be sure to check, maybe should do different style of error handling at some point...
 
 // Value of the Dimension
 func (pd *IbeamParameterDimension) Value() (*IBeamParameterValueBuffer, error) {
@@ -33,25 +36,49 @@ func (pd *IbeamParameterDimension) Subdimensions() (map[int]*IbeamParameterDimen
 	return nil, errors.New("Dimension has no subdimension")
 }
 
-func (pd *IbeamParameterDimension) multiIndex(dimensionID []uint32) *IbeamParameterDimension {
+func (pd *IbeamParameterDimension) MultiIndexHasValue(dimensionID []uint32) bool {
 	valuePointer := pd
+
+	if len(dimensionID) == 0 {
+		return valuePointer.isValue()
+	}
+
+	for i, id := range dimensionID {
+		if i == len(dimensionID)-1 {
+			return valuePointer.index(id-1) != nil
+		}
+		valuePointer = valuePointer.index(id - 1)
+		if valuePointer == nil {
+			return false
+		}
+	}
+	return false
+}
+
+func (pd *IbeamParameterDimension) MultiIndex(dimensionID []uint32) *IbeamParameterDimension {
+	valuePointer := pd
+	if len(dimensionID) == 0 {
+		return valuePointer
+	}
+
 	for i, id := range dimensionID {
 		if i == len(dimensionID)-1 {
 			return valuePointer.index(id - 1)
 		}
 		valuePointer = valuePointer.index(id - 1)
+		if valuePointer == nil {
+			log.Error("DimensionID too long")
+			return nil
+		}
 	}
-	log.Panic("DimensionID too short")
+	log.Error("DimensionID too short")
 	return nil
 }
 
 func (pd *IbeamParameterDimension) index(index uint32) *IbeamParameterDimension {
-	if pd.isValue() {
-		log.Panic("Called Index on Value")
-	}
 	if len(pd.subDimensions) <= int(index) {
-		log.Panicf("Parameter Dimension Index out of range: wanted: %v length: %v", index, len(pd.subDimensions))
+		log.Errorf("Parameter Dimension Index out of range: wanted: %v length: %v", index, len(pd.subDimensions))
+		return nil
 	}
 	return pd.subDimensions[int(index)]
-
 }
