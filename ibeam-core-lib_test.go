@@ -1,4 +1,4 @@
-package ibeam_core_lib
+package ibeam_corelib
 
 import (
 	"math/rand"
