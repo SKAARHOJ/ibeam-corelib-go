@@ -8,8 +8,8 @@ import (
 	log "github.com/s00500/env_logger"
 )
 
-type parameterDetails []map[int]*pb.ParameterDetail       //Parameter Details: model, parameter
-type parameterStates []map[int][]*IbeamParameterDimension //Parameter States: device,parameter,dimension
+type parameterDetails []map[int]*pb.ParameterDetail     //Parameter Details: model, parameter
+type parameterStates []map[int]*IbeamParameterDimension //Parameter States: device,parameter,dimension
 
 // IbeamParameterRegistry is the storage of the core.
 // It saves all Infos about the Core, Device and Models and stores the Details and current Values of the Parameter.
@@ -57,9 +57,7 @@ func (r *IbeamParameterRegistry) getInstanceValues(dpID pb.DeviceParameterID) (v
 		}
 	}
 
-	for _, dimension := range r.parameterValue[deviceIndex][parameterIndex] {
-		getValues(dimension)
-	}
+	getValues(r.parameterValue[deviceIndex][parameterIndex])
 
 	return
 }
@@ -169,10 +167,9 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 	// take all params from model and generate a value buffer array for all instances
 	// add value buffers to the state array
 
-	parameterDimensions := map[int][]*IbeamParameterDimension{}
+	parameterDimensions := map[int]*IbeamParameterDimension{}
 	for _, parameterDetail := range modelConfig {
 		parameterID := parameterDetail.Id.Parameter
-		valueDimensions := []*IbeamParameterDimension{}
 
 		// Integer is default
 		initialValue := pb.ParameterValue{Value: &pb.ParameterValue_Integer{Integer: 0}}
@@ -246,9 +243,7 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 			dimensionConfig = append(dimensionConfig, dimension.Count)
 		}
 
-		valueDimensions = append(valueDimensions, generateDimensions(dimensionConfig, initialValueDimension))
-
-		parameterDimensions[int(parameterID)] = valueDimensions
+		parameterDimensions[int(parameterID)] = generateDimensions(dimensionConfig, initialValueDimension)
 	}
 
 	r.muInfo.RLock()

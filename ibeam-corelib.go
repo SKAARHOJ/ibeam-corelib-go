@@ -294,7 +294,7 @@ func CreateServer(coreInfo pb.CoreInfo, defaultModel pb.ModelInfo) (manager *Ibe
 		DeviceInfos:     []*pb.DeviceInfo{},
 		ModelInfos:      []*pb.ModelInfo{},
 		ParameterDetail: []map[int]*pb.ParameterDetail{},
-		parameterValue:  []map[int][]*IbeamParameterDimension{},
+		parameterValue:  []map[int]*IbeamParameterDimension{},
 	}
 
 	server := IbeamServer{
