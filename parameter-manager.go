@@ -2,6 +2,7 @@ package ibeam_corelib
 
 import (
 	"net"
+	"reflect"
 	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
@@ -392,10 +393,16 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 							CurrentOption: id,
 						},
 					}
+
 					if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
-						parameterBuffer.targetValue = newValue
+						if !reflect.DeepEqual(parameterBuffer.targetValue, newValue) {
+							parameterBuffer.targetValue = newValue
+						}
 					}
-					parameterBuffer.currentValue = newValue
+
+					if !reflect.DeepEqual(parameterBuffer.currentValue, newValue) {
+						parameterBuffer.currentValue = newValue
+					}
 
 					didSet = true
 
@@ -445,16 +452,23 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 
 			if !didSet {
 				if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
-					parameterBuffer.targetValue = *newParameterValue
+					if !reflect.DeepEqual(parameterBuffer.targetValue, *newParameterValue) {
+						parameterBuffer.targetValue = *newParameterValue
+						shouldSend = true
+					}
 				}
-				parameterBuffer.currentValue = *newParameterValue
+
+				if !reflect.DeepEqual(parameterBuffer.currentValue, *newParameterValue) {
+					parameterBuffer.currentValue = *newParameterValue
+					shouldSend = true
+				}
 			}
 
 			parameterBuffer.isAssumedState = parameterBuffer.currentValue.Value != parameterBuffer.targetValue.Value
 		} else {
 			parameterBuffer.available = newParameterValue.Available
+			shouldSend = true
 		}
-		shouldSend = true
 	}
 
 	if !shouldSend {
