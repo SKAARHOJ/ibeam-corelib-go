@@ -84,7 +84,6 @@ func (m *IbeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb
 
 // Start the communication between client and server.
 func (m *IbeamParameterManager) Start() {
-	log.Info("Manager started")
 	go func() {
 		for {
 			// ***************

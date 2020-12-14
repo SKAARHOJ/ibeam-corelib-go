@@ -326,8 +326,6 @@ func CreateServer(coreInfo pb.CoreInfo, defaultModel pb.ModelInfo) (manager *Ibe
 			}
 		}
 	}()
-
-	log.Info("Server created")
 	registry.RegisterModel(&defaultModel)
 	return
 }
