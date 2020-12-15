@@ -172,6 +172,16 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 			}
 			continue
 		}
+		dimension, err := state[deviceIndex][parameterIndex].MultiIndex(newParameterValue.DimensionID)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		parameterBuffer, err := dimension.Value()
+		if err != nil {
+			log.Error(err)
+			continue
+		}
 
 		// Check if Value is valid and has the right Type
 		switch newValue := newParameterValue.Value.(type) {
@@ -205,7 +215,8 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 				continue
 			}
 		case *pb.ParameterValue_IncDecSteps:
-			if parameterConfig.ValueType != pb.ValueType_Integer {
+			// inc dec currently only works with integers or no values, float is kind of missing, action lists need to be evaluated
+			if parameterConfig.ValueType != pb.ValueType_Integer && parameterConfig.ValueType == pb.ValueType_NoValue {
 				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
 				m.serverClientsStream <- pb.Parameter{
 					Id:    parameter.Id,
@@ -224,6 +235,28 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 				}
 				continue
 			}
+
+			if parameterConfig.ValueType == pb.ValueType_Integer {
+				newIntVal := parameterBuffer.targetValue.GetInteger() + newValue.IncDecSteps
+				log.Infof("Decrement %d by %d", parameterBuffer.targetValue.GetInteger(), newValue.IncDecSteps)
+				if newIntVal <= int32(parameterConfig.Maximum) && newIntVal >= int32(parameterConfig.Minimum) {
+					parameterBuffer.targetValue.Value = &pb.ParameterValue_Integer{Integer: newIntVal}
+					if parameterConfig.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
+						parameterBuffer.currentValue.Value = &pb.ParameterValue_Integer{Integer: newIntVal}
+						parameterBuffer.isAssumedState = false
+					}
+					// send out right away
+					m.serverClientsStream <- pb.Parameter{
+						Value: []*pb.ParameterValue{parameterBuffer.getParameterValue()},
+						Id: &pb.DeviceParameterID{
+							Device:    deviceID,
+							Parameter: parameterID,
+						},
+					}
+					continue // make sure we skip the rest of the logic :-)
+				}
+			}
+
 		case *pb.ParameterValue_Floating:
 			if parameterConfig.ValueType != pb.ValueType_Floating {
 				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
@@ -307,25 +340,6 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 		}
 
 		// Safe the momentary saved Value of the Parameter in the state
-		parameterDimension := state[deviceIndex][parameterIndex]
-		dimension, err := parameterDimension.MultiIndex(newParameterValue.DimensionID)
-		if err != nil {
-			log.Error(err)
-			continue
-		}
-		parameterBuffer, err := dimension.Value()
-		if err != nil {
-			log.Errorf("Trying to get stuff")
-			parameterSubdimensions, err := parameterDimension.Subdimensions()
-			if err != nil {
-				log.Errorf("Parameter %v has no Value and no SubDimension", parameterID)
-				continue
-			}
-			for _, parameterSubdimension := range parameterSubdimensions {
-				parameterSubdimension.Value()
-
-			}
-		}
 
 		log.Debugf("Set new TargetValue '%v', for Parameter %v (%v)", newParameterValue.Value, parameterID, parameterConfig.Name)
 		parameterBuffer.isAssumedState = newParameterValue.Value != parameterBuffer.currentValue.Value
