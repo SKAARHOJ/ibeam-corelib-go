@@ -2,8 +2,7 @@ package ibeam_corelib
 
 import (
 	"errors"
-
-	log "github.com/s00500/env_logger"
+	"fmt"
 )
 
 type IbeamParameterDimension struct {
@@ -45,40 +44,44 @@ func (pd *IbeamParameterDimension) MultiIndexHasValue(dimensionID []uint32) bool
 
 	for i, id := range dimensionID {
 		if i == len(dimensionID)-1 {
-			return valuePointer.index(id-1) != nil
+			dimension, err := valuePointer.index(id - 1)
+			if err != nil || dimension == nil {
+				return false
+			}
+			return true
 		}
-		valuePointer = valuePointer.index(id - 1)
-		if valuePointer == nil {
+		valuePointer, err := valuePointer.index(id - 1)
+		if valuePointer == nil || err != nil {
 			return false
 		}
 	}
 	return false
 }
 
-func (pd *IbeamParameterDimension) MultiIndex(dimensionID []uint32) *IbeamParameterDimension {
+func (pd *IbeamParameterDimension) MultiIndex(dimensionID []uint32) (*IbeamParameterDimension, error) {
 	valuePointer := pd
 	if len(dimensionID) == 0 {
-		return valuePointer
+		return valuePointer, nil
 	}
 
 	for i, id := range dimensionID {
 		if i == len(dimensionID)-1 {
 			return valuePointer.index(id - 1)
 		}
-		valuePointer = valuePointer.index(id - 1)
+		valuePointer, err := valuePointer.index(id - 1)
+		if err != nil {
+			return nil, err
+		}
 		if valuePointer == nil {
-			log.Error("DimensionID too long")
-			return nil
+			return nil, fmt.Errorf("DimensionID too long")
 		}
 	}
-	log.Error("DimensionID too short")
-	return nil
+	return nil, fmt.Errorf("DimensionID too short")
 }
 
-func (pd *IbeamParameterDimension) index(index uint32) *IbeamParameterDimension {
+func (pd *IbeamParameterDimension) index(index uint32) (*IbeamParameterDimension, error) {
 	if len(pd.subDimensions) <= int(index) {
-		log.Errorf("Parameter Dimension Index out of range: wanted: %v length: %v", index, len(pd.subDimensions))
-		return nil
+		return nil, fmt.Errorf("Parameter Dimension Index out of range: wanted: %v length: %v", index, len(pd.subDimensions))
 	}
-	return pd.subDimensions[int(index)]
+	return pd.subDimensions[int(index)], nil
 }

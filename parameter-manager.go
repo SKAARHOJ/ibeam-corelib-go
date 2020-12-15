@@ -306,7 +306,12 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 
 		// Safe the momentary saved Value of the Parameter in the state
 		parameterDimension := state[deviceIndex][parameterIndex]
-		parameterBuffer, err := parameterDimension.MultiIndex(newParameterValue.DimensionID).Value()
+		dimension, err := parameterDimension.MultiIndex(newParameterValue.DimensionID)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		parameterBuffer, err := dimension.Value()
 		if err != nil {
 			log.Errorf("Trying to get stuff")
 			parameterSubdimensions, err := parameterDimension.Subdimensions()
@@ -363,13 +368,16 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			continue
 		}
 
-		parameterDimension := state[deviceIndex][parameterIndex].MultiIndex(newParameterValue.DimensionID)
+		parameterDimension, err := state[deviceIndex][parameterIndex].MultiIndex(newParameterValue.DimensionID)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
 		parameterBuffer, err := parameterDimension.Value()
 		if err != nil {
 			log.Error(err)
 			continue
 		}
-
 		if newParameterValue.Value != nil {
 			didSet := false // flag to to handle custom cases
 
