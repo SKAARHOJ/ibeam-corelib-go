@@ -20,12 +20,13 @@ type IbeamParameterManager struct {
 	server              *IbeamServer
 }
 
-// StartWithServer Starts the ibeam parameter routine and the GRPC server in one call. This is blocking and should be called at the end of main
-func (m *IbeamParameterManager) StartWithServer(endPoint string) {
+// StartWithServer Starts the ibeam parameter routine and the GRPC server in one call. This is blocking and should be called at the end of main.
+// The network must be "tcp", "tcp4", "tcp6", "unix" or "unixpacket".
+func (m *IbeamParameterManager) StartWithServer(network, address string) {
 	// Start parameter management routine
 	m.Start()
 
-	lis, err := net.Listen("tcp", endPoint) // TODO: make listen: unix also possible!
+	lis, err := net.Listen(network, address)
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
