@@ -50,7 +50,8 @@ func (pd *IbeamParameterDimension) MultiIndexHasValue(dimensionID []uint32) bool
 			}
 			return true
 		}
-		valuePointer, err := valuePointer.index(id - 1)
+		var err error
+		valuePointer, err = valuePointer.index(id - 1)
 		if valuePointer == nil || err != nil {
 			return false
 		}
@@ -68,12 +69,10 @@ func (pd *IbeamParameterDimension) MultiIndex(dimensionID []uint32) (*IbeamParam
 		if i == len(dimensionID)-1 {
 			return valuePointer.index(id - 1)
 		}
-		valuePointer, err := valuePointer.index(id - 1)
+		var err error
+		valuePointer, err = valuePointer.index(id - 1)
 		if err != nil {
-			return nil, err
-		}
-		if valuePointer == nil {
-			return nil, fmt.Errorf("DimensionID too long")
+			return nil, fmt.Errorf("DimensionID too long %w", err)
 		}
 	}
 	return nil, fmt.Errorf("DimensionID too short")

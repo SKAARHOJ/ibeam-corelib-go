@@ -248,7 +248,7 @@ func (s *IbeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 			}
 			// Check if Device is Subscribed
 			if len(dpIDs.Ids) == 1 && dpIDs.Ids[0].Parameter == 0 && dpIDs.Ids[0].Device != parameter.Id.Device {
-				log.Trace("Blocked sending out of change because of devicefilter")
+				log.Tracef("Blocked sending out of change because of devicefilter Want: %d, Got: %d", dpIDs.Ids[0].Device, parameter.Id.Device)
 				continue
 			}
 

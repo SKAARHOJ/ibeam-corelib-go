@@ -342,7 +342,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 
 		// Safe the momentary saved Value of the Parameter in the state
 
-		log.Debugf("Set new TargetValue '%v', for Parameter %v (%v)", newParameterValue.Value, parameterID, parameterConfig.Name)
+		log.Debugf("Set new TargetValue '%v', for Parameter %v (%v), Device: %v", newParameterValue.Value, parameterID, parameterConfig.Name, deviceID)
 		parameterBuffer.isAssumedState = newParameterValue.Value != parameterBuffer.currentValue.Value
 		parameterBuffer.targetValue = *newParameterValue
 
