@@ -241,6 +241,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 				log.Infof("Decrement %d by %d", parameterBuffer.targetValue.GetInteger(), newValue.IncDecSteps)
 				if newIntVal <= int32(parameterConfig.Maximum) && newIntVal >= int32(parameterConfig.Minimum) {
 					parameterBuffer.targetValue.Value = &pb.ParameterValue_Integer{Integer: newIntVal}
+					parameterBuffer.targetValue.Invalid = false
 					if parameterConfig.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
 						parameterBuffer.currentValue.Value = &pb.ParameterValue_Integer{Integer: newIntVal}
 						parameterBuffer.isAssumedState = false

@@ -25,7 +25,8 @@ func (b *IBeamParameterValueBuffer) getParameterValue() *pb.ParameterValue {
 		Available:      b.available,
 		IsAssumedState: b.isAssumedState,
 		Value:          b.targetValue.Value,
-		MetaValues:     b.currentValue.MetaValues,
+		Invalid:        b.targetValue.Invalid,
+		MetaValues:     b.targetValue.MetaValues,
 	}
 }
 

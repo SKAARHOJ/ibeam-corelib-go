@@ -165,7 +165,7 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 		parameterID := parameterDetail.Id.Parameter
 
 		// Integer is default
-		initialValue := pb.ParameterValue{Value: &pb.ParameterValue_Integer{Integer: 0}}
+		initialValue := pb.ParameterValue{Value: &pb.ParameterValue_Integer{Integer: 0}, Invalid: true}
 
 		switch parameterDetail.ValueType {
 		case pb.ValueType_NoValue:
