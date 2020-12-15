@@ -420,11 +420,13 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
 						if !reflect.DeepEqual(parameterBuffer.targetValue, newValue) {
 							parameterBuffer.targetValue = newValue
+							shouldSend = true
 						}
 					}
 
 					if !reflect.DeepEqual(parameterBuffer.currentValue, newValue) {
 						parameterBuffer.currentValue = newValue
+						shouldSend = true
 					}
 
 					didSet = true
@@ -478,18 +480,30 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					if !reflect.DeepEqual(parameterBuffer.targetValue, *newParameterValue) {
 						parameterBuffer.targetValue = *newParameterValue
 						shouldSend = true
+						log.Info("Here")
 					}
 				}
 
 				if !reflect.DeepEqual(parameterBuffer.currentValue, *newParameterValue) {
 					parameterBuffer.currentValue = *newParameterValue
 					shouldSend = true
+					log.Info("Here")
+
 				}
 			}
-			parameterBuffer.isAssumedState = parameterBuffer.currentValue.Value != parameterBuffer.targetValue.Value
+
+			if parameterBuffer.isAssumedState != (parameterBuffer.currentValue.Value != parameterBuffer.targetValue.Value) {
+				parameterBuffer.isAssumedState = parameterBuffer.currentValue.Value != parameterBuffer.targetValue.Value
+				shouldSend = true
+				log.Info("Here")
+
+			}
 		} else {
-			parameterBuffer.available = newParameterValue.Available
-			shouldSend = true
+			if parameterBuffer.available != newParameterValue.Available {
+				parameterBuffer.available = newParameterValue.Available
+				shouldSend = true
+			}
+
 		}
 	}
 
