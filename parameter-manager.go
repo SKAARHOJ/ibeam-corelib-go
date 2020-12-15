@@ -121,7 +121,7 @@ func (m *IbeamParameterManager) Start() {
 			// ***************
 
 			m.parameterLoop()
-			time.Sleep(time.Microsecond * 500)
+			time.Sleep(time.Microsecond * 800)
 		}
 	}()
 }
