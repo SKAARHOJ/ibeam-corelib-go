@@ -23,7 +23,7 @@ type IbeamParameterManager struct {
 // StartWithServer Starts the ibeam parameter routine and the GRPC server in one call. This is blocking and should be called at the end of main
 func (m *IbeamParameterManager) StartWithServer(endPoint string) {
 	// Start parameter management routine
-	m.Start() // TODO: we could use a waitgroup or something here ? cross goroutine error handling is kinda missing
+	m.Start()
 
 	lis, err := net.Listen("tcp", endPoint) // TODO: make listen: unix also possible!
 	if err != nil {
@@ -174,7 +174,6 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 		// Check if Value is valid and has the right Type
 		switch newValue := newParameterValue.Value.(type) {
 		case *pb.ParameterValue_Integer:
-
 			if parameterConfig.ValueType != pb.ValueType_Integer {
 				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
 				m.serverClientsStream <- pb.Parameter{
@@ -384,7 +383,6 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					id, err := getIDFromOptionListByElementName(parameterConfig.OptionList, v.Str)
 					if err != nil {
 						log.Error(err)
-						// TODO:get new option list maybe
 						continue
 					}
 
@@ -463,7 +461,6 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					shouldSend = true
 				}
 			}
-
 			parameterBuffer.isAssumedState = parameterBuffer.currentValue.Value != parameterBuffer.targetValue.Value
 		} else {
 			parameterBuffer.available = newParameterValue.Available
@@ -613,6 +610,14 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 				},
 			}
 		}
+	case pb.ControlStyle_Incremental:
+		m.out <- pb.Parameter{
+			Value: []*pb.ParameterValue{parameterBuffer.getParameterValue()},
+			Id: &pb.DeviceParameterID{
+				Device:    deviceID,
+				Parameter: parameterDetail.Id.Parameter,
+			},
+		}
 	case pb.ControlStyle_ControlledIncremental:
 		if parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
 			return
@@ -688,10 +693,10 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 				Device:    deviceID,
 				Parameter: parameterDetail.Id.Parameter,
 			},
-			Error: 0,
+			Error: pb.ParameterError_NoError,
 			Value: cmdValue,
 		}
-	case pb.ControlStyle_NoControl, pb.ControlStyle_Incremental, pb.ControlStyle_Oneshot:
+	case pb.ControlStyle_NoControl, pb.ControlStyle_Oneshot:
 		// Do Nothing
 	default:
 		log.Errorf("Could not match controlltype")
