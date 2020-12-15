@@ -39,24 +39,22 @@ func (r *IbeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID) (
 		return nil
 	}
 
-	var getValues func(dimensions *IbeamParameterDimension)
-	getValues = func(dimension *IbeamParameterDimension) {
-		if dimension.isValue() {
-			value, err := dimension.Value()
-			if err != nil {
-				log.Fatal(err)
-			}
-			values = append(values, value.getParameterValue())
-		} else {
-			for _, dimension := range dimension.subDimensions {
-				getValues(dimension)
-			}
+	return getValues(r.parameterValue[deviceIndex][parameterIndex])
+}
+
+func getValues(dimension *IbeamParameterDimension) (values []*pb.ParameterValue) {
+	if dimension.isValue() {
+		value, err := dimension.Value()
+		if err != nil {
+			log.Fatal(err)
+		}
+		values = append(values, value.getParameterValue())
+	} else {
+		for _, dimension := range dimension.subDimensions {
+			values = append(values, getValues(dimension)...)
 		}
 	}
-
-	getValues(r.parameterValue[deviceIndex][parameterIndex])
-
-	return
+	return values
 }
 
 func (r *IbeamParameterRegistry) getModelIndex(deviceID uint32) int {
@@ -193,7 +191,7 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 				return &initialValueDimension
 			}
 
-			dimensions := make(map[int]*IbeamParameterDimension, 0)
+			dimensions := make([]*IbeamParameterDimension, 0)
 
 			for count := 0; count < int(dimensionConfig[0]); count++ {
 				valueWithID := IbeamParameterDimension{}
@@ -209,13 +207,13 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 				valueWithID.value.dimensionID = append(valueWithID.value.dimensionID, uint32(count+1))
 
 				if len(dimensionConfig) == 1 {
-					dimensions[count] = &valueWithID
+
+					dimensions = append(dimensions, &valueWithID)
 				} else {
 					subDim := generateDimensions(dimensionConfig[1:], valueWithID)
-					dimensions[count] = subDim
+					dimensions = append(dimensions, subDim)
 				}
 			}
-			//fmt.Println(dimensions[1].value.dimensionID)
 			return &IbeamParameterDimension{
 				subDimensions: dimensions,
 			}

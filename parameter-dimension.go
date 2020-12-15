@@ -6,7 +6,7 @@ import (
 )
 
 type IbeamParameterDimension struct {
-	subDimensions map[int]*IbeamParameterDimension
+	subDimensions []*IbeamParameterDimension
 	value         *IBeamParameterValueBuffer
 }
 
@@ -28,7 +28,7 @@ func (pd *IbeamParameterDimension) Value() (*IBeamParameterValueBuffer, error) {
 }
 
 // Subdimensions of the Dimension
-func (pd *IbeamParameterDimension) Subdimensions() (map[int]*IbeamParameterDimension, error) {
+func (pd *IbeamParameterDimension) Subdimensions() ([]*IbeamParameterDimension, error) {
 	if !pd.isValue() {
 		return pd.subDimensions, nil
 	}
