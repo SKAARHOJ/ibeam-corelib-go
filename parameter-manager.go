@@ -614,8 +614,8 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 	}
 
 	// Is is send after Control Delay time
-	if parameterDetail.ControlDelayMs != 0 && time.Until(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterDetail.ControlDelayMs) {
-		//log.Errorf("Failed to set parameter %v '%v' for device %v, ControlDelayTime", parameterConfig.Id.Parameter, parameterConfig.Name, deviceID+1, parameterConfig.ControlDelayMs)
+	if parameterDetail.ControlDelayMs != 0 && time.Until(parameterBuffer.lastUpdate).Milliseconds()*-1 < int64(parameterDetail.ControlDelayMs) {
+		//log.Infof("Failed to set parameter cause control delay time %v", time.Until(parameterBuffer.lastUpdate).Milliseconds()*-1)
 		return
 	}
 
