@@ -608,7 +608,8 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 	// First Basic Check Pipeline if the Parameter Value can be send to out
 	// ********************************************************************
 
-	if parameterBuffer.currentValue.Value == parameterBuffer.targetValue.Value {
+	// Old:if parameterBuffer.currentValue.Value == parameterBuffer.targetValue.Value
+	if reflect.DeepEqual(parameterBuffer.currentValue.Value, parameterBuffer.targetValue.Value) {
 		return
 	}
 
