@@ -109,7 +109,7 @@ func (m *IbeamParameterManager) Start() {
 	go func() {
 		for {
 			// ***************
-			//  ClientToManagerLoop, inputs change request from GRPC SET to  to manager
+			//  ClientToManagerLoop, inputs change request from GRPC SET to to manager
 			// ***************
 		clientToManagerLoop:
 			for {
@@ -336,7 +336,15 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 				continue
 			}
 		case *pb.ParameterValue_Cmd:
-			// Command can be send directly to the output
+			if parameterConfig.ControlStyle == pb.ControlStyle_Normal {
+				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it has ControlStyle Normal and needs a Value", newValue, parameterID, parameterConfig.Name)
+				m.serverClientsStream <- pb.Parameter{
+					Id:    parameter.Id,
+					Error: pb.ParameterError_InvalidType,
+					Value: []*pb.ParameterValue{},
+				}
+				continue
+			}
 			m.out <- pb.Parameter{
 				Id:    parameter.Id,
 				Error: 0,
