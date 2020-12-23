@@ -365,16 +365,20 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 			log.Debugf("Got Set Binary: %v", newValue)
 		case *pb.ParameterValue_OptionList:
 			log.Debugf("Got Set Option List: %v", newValue)
-			//TODO: check if Option list is valid (unique ids etc.)
+
 		}
 
 		// Safe the momentary saved Value of the Parameter in the state
 
-		log.Debugf("Set new TargetValue '%v', for Parameter %v (%v), Device: %v", newParameterValue.Value, parameterID, parameterConfig.Name, deviceID)
-		parameterBuffer.isAssumedState = newParameterValue.Value != parameterBuffer.currentValue.Value
+		parameterBuffer.isAssumedState = !reflect.DeepEqual(newParameterValue.Value, parameterBuffer.currentValue.Value)
 		parameterBuffer.targetValue = *newParameterValue
-
 		parameterBuffer.tryCount = 0
+
+		if parameterBuffer.isAssumedState {
+			log.Debugf("Set new TargetValue '%v', for Parameter %v (%v), Device: %v", newParameterValue.Value, parameterID, parameterConfig.Name, deviceID)
+		} else {
+			log.Debugf("TargetValue %v is equal to CurrentValue", newParameterValue.Value)
+		}
 
 	}
 
