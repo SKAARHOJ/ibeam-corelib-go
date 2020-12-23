@@ -72,12 +72,32 @@ func (m *IbeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb
 	}
 
 	// Check if the configured type of the Parameter has a value
-	if parameterConfig.ValueType == pb.ValueType_NoValue {
-		log.Errorf("Want to set Parameter with ID %v (%v), but it is configured as Type NoValue", parameterID, parameterConfig.Name)
+	if parameterConfig.ValueType == pb.ValueType_NoValue && parameterConfig.ControlStyle == pb.ControlStyle_NoControl {
+		log.Errorf("Want to set Parameter with ID %v (%v), but it is configured as Type NoValue with no Control", parameterID, parameterConfig.Name)
 		return &pb.Parameter{
 			Id:    parameter.Id,
 			Error: pb.ParameterError_HasNoValue,
 			Value: []*pb.ParameterValue{},
+		}
+	}
+
+	if parameterConfig.ValueType == pb.ValueType_NoValue && parameterConfig.ControlStyle == pb.ControlStyle_Oneshot {
+		if cmd, ok := parameter.Value[0].Value.(*pb.ParameterValue_Cmd); ok {
+			if cmd.Cmd != pb.Command_Trigger {
+				log.Errorf("Want to set Parameter with ID %v (%v), but it is configured as Type NoValue with ControlStyle OneShot. Accept only Command:Trigger", parameterID, parameterConfig.Name)
+				return &pb.Parameter{
+					Id:    parameter.Id,
+					Error: pb.ParameterError_InvalidType,
+					Value: []*pb.ParameterValue{},
+				}
+			}
+		} else {
+			log.Errorf("Want to set Parameter with ID %v (%v), but it is configured as Type NoValue with ControlStyle OneShot. Accept only Command:Trigger", parameterID, parameterConfig.Name)
+			return &pb.Parameter{
+				Id:    parameter.Id,
+				Error: pb.ParameterError_InvalidType,
+				Value: []*pb.ParameterValue{},
+			}
 		}
 	}
 
