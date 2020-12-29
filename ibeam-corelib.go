@@ -9,6 +9,7 @@ import (
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
 	log "github.com/s00500/env_logger"
 	"google.golang.org/grpc/peer"
+	"google.golang.org/protobuf/proto"
 )
 
 // IbeamServer implements the IbeamCoreServer interface of the generated protofile library.
@@ -21,7 +22,9 @@ type IbeamServer struct {
 
 // GetCoreInfo returns the CoreInfo of the Ibeam-Core
 func (s *IbeamServer) GetCoreInfo(_ context.Context, _ *pb.Empty) (*pb.CoreInfo, error) {
-	return &s.parameterRegistry.coreInfo, nil
+	coreInfo := proto.Clone(s.parameterRegistry.coreInfo.ProtoReflect().Interface()).(*pb.CoreInfo)
+	coreInfo.ConnectedClients = uint32(len(s.serverClientsDistributor))
+	return coreInfo, nil
 }
 
 // GetDeviceInfo returns the DeviceInfos for given DeviceIDs.
@@ -238,7 +241,7 @@ func (s *IbeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 		case <-ping.C:
 			err := stream.Context().Err()
 			if err != nil {
-				s.serverClientsDistributor[distributor] = false
+				delete(s.serverClientsDistributor, distributor)
 				log.Warn("Connection to client for subscription lost")
 				return nil
 			}
