@@ -512,23 +512,18 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					if !reflect.DeepEqual(parameterBuffer.targetValue, *newParameterValue) {
 						parameterBuffer.targetValue = *newParameterValue
 						shouldSend = true
-						log.Info("Here")
 					}
 				}
 
 				if !reflect.DeepEqual(parameterBuffer.currentValue, *newParameterValue) {
 					parameterBuffer.currentValue = *newParameterValue
 					shouldSend = true
-					log.Info("Here")
-
 				}
 			}
 
 			if parameterBuffer.isAssumedState != (parameterBuffer.currentValue.Value != parameterBuffer.targetValue.Value) {
 				parameterBuffer.isAssumedState = parameterBuffer.currentValue.Value != parameterBuffer.targetValue.Value
 				shouldSend = true
-				log.Info("Here")
-
 			}
 		} else {
 			if parameterBuffer.available != newParameterValue.Available {
