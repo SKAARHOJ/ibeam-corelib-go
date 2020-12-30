@@ -199,7 +199,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 		}
 		parameterBuffer, err := dimension.Value()
 		if err != nil {
-			log.Error(err)
+			log.Errorf("Could not get value for dimension id %v,: %v", newParameterValue.DimensionID, err)
 			continue
 		}
 
