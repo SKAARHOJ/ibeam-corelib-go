@@ -609,7 +609,7 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 	}
 
 	// Is is send after Control Delay time
-	if parameterDetail.ControlDelayMs != 0 && time.Until(parameterBuffer.lastUpdate).Milliseconds()*-1 < int64(parameterDetail.ControlDelayMs) {
+	if parameterDetail.ControlDelayMs != 0 && time.Since(parameterBuffer.lastUpdate).Milliseconds() < int64(parameterDetail.ControlDelayMs) {
 		//log.Infof("Failed to set parameter cause control delay time %v", time.Until(parameterBuffer.lastUpdate).Milliseconds()*-1)
 		return
 	}
@@ -764,7 +764,12 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 			Value: cmdValue,
 		}
 	case pb.ControlStyle_NoControl, pb.ControlStyle_Oneshot:
-		// Do Nothing
+		if parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
+			parameterBuffer.targetValue = parameterBuffer.currentValue
+			parameterBuffer.isAssumedState = false
+
+		}
+
 	default:
 		log.Errorf("Could not match controlltype")
 		return
