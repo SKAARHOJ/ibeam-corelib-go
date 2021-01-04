@@ -5,6 +5,7 @@ import (
 	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
+	"github.com/jinzhu/copier"
 	log "github.com/s00500/env_logger"
 )
 
@@ -195,7 +196,7 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 				if err != nil {
 					log.Fatalf("Initial Value is not set %v", err)
 				}
-				*valueWithID.value = *dimValue
+				copier.Copy(valueWithID.value, dimValue)
 
 				valueWithID.value.dimensionID = make([]uint32, len(dimValue.dimensionID))
 				copy(valueWithID.value.dimensionID, dimValue.dimensionID)
@@ -221,10 +222,11 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 				available:      true,
 				isAssumedState: true,
 				lastUpdate:     time.Now(),
-				currentValue:   initialValue,
-				targetValue:    initialValue,
 			},
 		}
+
+		copier.Copy(&initialValueDimension.value.currentValue, &initialValue)
+		copier.Copy(&initialValueDimension.value.targetValue, &initialValue)
 
 		for _, dimension := range parameterDetail.Dimensions {
 			dimensionConfig = append(dimensionConfig, dimension.Count)

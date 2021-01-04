@@ -5,6 +5,7 @@ import (
 	"fmt"
 )
 
+// IbeamParameterDimension is a recursive structure to enable the state management of parameters with several dimensions
 type IbeamParameterDimension struct {
 	subDimensions []*IbeamParameterDimension
 	value         *IBeamParameterValueBuffer
@@ -16,8 +17,6 @@ func (pd *IbeamParameterDimension) isValue() bool {
 	}
 	return true
 }
-
-// All of these functions can return null if they hit an error, be sure to check, maybe should do different style of error handling at some point...
 
 // Value of the Dimension
 func (pd *IbeamParameterDimension) Value() (*IBeamParameterValueBuffer, error) {
@@ -35,6 +34,7 @@ func (pd *IbeamParameterDimension) Subdimensions() ([]*IbeamParameterDimension, 
 	return nil, errors.New("Dimension has no subdimension")
 }
 
+// MultiIndexHasValue checks for a specific dimension ids existence
 func (pd *IbeamParameterDimension) MultiIndexHasValue(dimensionID []uint32) bool {
 	valuePointer := pd
 
@@ -59,6 +59,7 @@ func (pd *IbeamParameterDimension) MultiIndexHasValue(dimensionID []uint32) bool
 	return false
 }
 
+// MultiIndex gets a specific dimension by dimensionID
 func (pd *IbeamParameterDimension) MultiIndex(dimensionID []uint32) (*IbeamParameterDimension, error) {
 	valuePointer := pd
 	if len(dimensionID) == 0 {

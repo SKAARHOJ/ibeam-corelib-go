@@ -372,7 +372,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 		// Safe the momentary saved Value of the Parameter in the state
 
 		parameterBuffer.isAssumedState = !reflect.DeepEqual(newParameterValue.Value, parameterBuffer.currentValue.Value)
-		parameterBuffer.targetValue = *newParameterValue
+		copier.Copy(&parameterBuffer.targetValue, newParameterValue)
 		parameterBuffer.tryCount = 0
 
 		if parameterBuffer.isAssumedState {
@@ -451,13 +451,13 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					}
 
 					if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
-						if !reflect.DeepEqual(parameterBuffer.targetValue, newValue) {
-							parameterBuffer.targetValue = newValue
+						if !reflect.DeepEqual(&parameterBuffer.targetValue, &newValue) {
+							copier.Copy(&parameterBuffer.targetValue, &newValue)
 							shouldSend = true
 						}
 					}
 
-					if !reflect.DeepEqual(parameterBuffer.currentValue, newValue) {
+					if !reflect.DeepEqual(&parameterBuffer.currentValue, &newValue) {
 						copier.Copy(&parameterBuffer.currentValue, &newValue)
 						shouldSend = true
 					}
@@ -510,14 +510,14 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 
 			if !didSet {
 				if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
-					if !reflect.DeepEqual(parameterBuffer.targetValue, *newParameterValue) {
-						parameterBuffer.targetValue = *newParameterValue
+					if !reflect.DeepEqual(&parameterBuffer.targetValue, newParameterValue) {
+						copier.Copy(&parameterBuffer.targetValue, newParameterValue)
 						shouldSend = true
 					}
 				}
 
-				if !reflect.DeepEqual(parameterBuffer.currentValue, *newParameterValue) {
-					parameterBuffer.currentValue = *newParameterValue
+				if !reflect.DeepEqual(&parameterBuffer.currentValue, newParameterValue) {
+					copier.Copy(&parameterBuffer.currentValue, newParameterValue)
 					shouldSend = true
 				}
 			}
@@ -618,7 +618,7 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 		parameterBuffer.tryCount++
 		if parameterBuffer.tryCount > parameterDetail.RetryCount {
 			log.Errorf("Failed to set parameter %v '%v' in %v tries on device %v", parameterDetail.Id.Parameter, parameterDetail.Name, parameterDetail.RetryCount, deviceID+1)
-			parameterBuffer.targetValue = parameterBuffer.currentValue
+			copier.Copy(&parameterBuffer.targetValue, &parameterBuffer.currentValue)
 			parameterBuffer.isAssumedState = false
 
 			m.serverClientsStream <- pb.Parameter{
@@ -641,7 +641,7 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 		parameterBuffer.isAssumedState = true
 
 		if parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
-			parameterBuffer.currentValue = parameterBuffer.targetValue
+			copier.Copy(&parameterBuffer.currentValue, &parameterBuffer.targetValue)
 			parameterBuffer.isAssumedState = false
 		}
 
@@ -764,7 +764,7 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 		}
 	case pb.ControlStyle_NoControl, pb.ControlStyle_Oneshot:
 		if parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
-			parameterBuffer.targetValue = parameterBuffer.currentValue
+			copier.Copy(&parameterBuffer.targetValue, &parameterBuffer.currentValue)
 			parameterBuffer.isAssumedState = false
 
 		}
