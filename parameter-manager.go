@@ -6,6 +6,7 @@ import (
 	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
+	"github.com/jinzhu/copier"
 	log "github.com/s00500/env_logger"
 	"google.golang.org/grpc"
 )
@@ -457,7 +458,7 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					}
 
 					if !reflect.DeepEqual(parameterBuffer.currentValue, newValue) {
-						parameterBuffer.currentValue = newValue
+						copier.Copy(&parameterBuffer.currentValue, &newValue)
 						shouldSend = true
 					}
 
@@ -560,11 +561,9 @@ func (m *IbeamParameterManager) parameterLoop() {
 		deviceID := deviceInfo.DeviceID
 		deviceIndex := int(deviceID - 1)
 
-		modelID := deviceInfo.ModelID
-		modelIndex := int(modelID - 1)
+		modelID := int(deviceInfo.ModelID)
 
-		for _, parameterDetail := range m.parameterRegistry.ParameterDetail[modelIndex] {
-
+		for _, parameterDetail := range m.parameterRegistry.ParameterDetail[modelID] {
 			parameterID := parameterDetail.Id.Parameter
 			parameterIndex := int(parameterID)
 

@@ -277,7 +277,16 @@ func containsDeviceParameter(dpID *pb.DeviceParameterID, dpIDs *pb.DeviceParamet
 }
 
 // CreateServer sets up the ibeam server, parameter manager and parameter registry
-func CreateServer(coreInfo pb.CoreInfo, defaultModel pb.ModelInfo) (manager *IbeamParameterManager, registry *IbeamParameterRegistry, settoManager chan pb.Parameter, getfromManager chan pb.Parameter) {
+func CreateServer(coreInfo *pb.CoreInfo) (manager *IbeamParameterManager, registry *IbeamParameterRegistry, settoManager chan pb.Parameter, getfromManager chan pb.Parameter) {
+	defaultModelInfo := &pb.ModelInfo{
+		Name:        "Generic Model",
+		Description: "default model of the implementation",
+	}
+	return CreateServerWithDefaultModel(coreInfo, defaultModelInfo)
+}
+
+// CreateServerWithDefaultModel sets up the ibeam server, parameter manager and parameter registry and allows to specify a default model
+func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelInfo) (manager *IbeamParameterManager, registry *IbeamParameterRegistry, settoManager chan pb.Parameter, getfromManager chan pb.Parameter) {
 	clientsSetter := make(chan pb.Parameter, 100)
 	getfromManager = make(chan pb.Parameter, 100)
 	settoManager = make(chan pb.Parameter, 100)
@@ -293,7 +302,7 @@ func CreateServer(coreInfo pb.CoreInfo, defaultModel pb.ModelInfo) (manager *Ibe
 	coreInfo.IbeamVersion = pb.File_ibeam_core_proto.Options().ProtoReflect().Get(pb.E_IbeamVersion.TypeDescriptor()).String()
 
 	registry = &IbeamParameterRegistry{
-		coreInfo:        coreInfo,
+		coreInfo:        *coreInfo,
 		DeviceInfos:     []*pb.DeviceInfo{},
 		ModelInfos:      []*pb.ModelInfo{},
 		ParameterDetail: []map[int]*pb.ParameterDetail{},
@@ -329,6 +338,6 @@ func CreateServer(coreInfo pb.CoreInfo, defaultModel pb.ModelInfo) (manager *Ibe
 			}
 		}
 	}()
-	registry.RegisterModel(&defaultModel)
+	registry.RegisterModel(defaultModel)
 	return
 }

@@ -61,26 +61,24 @@ func (r *IbeamParameterRegistry) getModelIndex(deviceID uint32) int {
 	if len(r.DeviceInfos) < int(deviceID) || deviceID == 0 {
 		log.Panicf("Could not get model for device with id %v. DeviceInfos has lenght of %v", deviceID, len(r.DeviceInfos))
 	}
-	return int(r.DeviceInfos[deviceID-1].ModelID - 1)
+	return int(r.DeviceInfos[deviceID-1].ModelID)
 }
 
 // RegisterParameter registers a Parameter and his Details in the Registry.
 func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (parameterIndex uint32) {
-	mid := uint32(1)
+	mid := uint32(0)
 	parameterIndex = uint32(0)
 	if detail.Id != nil {
-		if detail.Id.Model != 0 {
-			mid = detail.Id.Model
-		}
+		mid = detail.Id.Model
 		parameterIndex = detail.Id.Parameter
 	}
 	r.muDetail.RLock()
-	if uint32(len(r.ParameterDetail)) <= (mid - 1) {
+	if uint32(len(r.ParameterDetail)) <= (mid) {
 		log.Panic("Could not register parameter for nonexistent model ", mid)
 		return 0
 	}
 
-	if mid == 1 {
+	if mid == 0 {
 		// append to all models, need to check for ids
 		defaultModelConfig := &r.ParameterDetail[0]
 		if parameterIndex == 0 {
@@ -98,7 +96,7 @@ func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 		r.muDetail.Unlock()
 
 	} else {
-		modelconfig := &r.ParameterDetail[mid-1]
+		modelconfig := &r.ParameterDetail[mid]
 		if parameterIndex == 0 {
 			parameterIndex = uint32(len(*modelconfig) + 1)
 		}
@@ -127,7 +125,7 @@ func (r *IbeamParameterRegistry) RegisterParameters(details *pb.ParameterDetails
 // RegisterModel registers a new Model in the Registry with given ModelInfo
 func (r *IbeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32 {
 	r.muDetail.RLock()
-	model.Id = uint32(len(r.ParameterDetail) + 1)
+	model.Id = uint32(len(r.ParameterDetail))
 	r.muDetail.RUnlock()
 
 	r.muInfo.Lock()
@@ -144,17 +142,14 @@ func (r *IbeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32 {
 
 // RegisterDevice registers a new Device in the Registry with given ModelID
 func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uint32) {
-	if modelID == 0 {
-		modelID = uint32(1)
-	}
 	r.muDetail.RLock()
 	defer r.muDetail.RUnlock()
 
-	if uint32(len(r.ParameterDetail)) <= (modelID - 1) {
+	if uint32(len(r.ParameterDetail)) <= (modelID) {
 		log.Panicf("Could not register device for nonexistent model with id: %v", modelID)
 	}
 
-	modelConfig := r.ParameterDetail[modelID-1]
+	modelConfig := r.ParameterDetail[modelID]
 
 	// create device info
 	// take all params from model and generate a value buffer array for all instances
@@ -252,7 +247,7 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 
 	r.parameterValue = append(r.parameterValue, parameterDimensions)
 
-	log.Debugf("Device '%v' registered with model: %v (%v)", deviceIndex, modelID, r.ModelInfos[modelID-1].Name)
+	log.Debugf("Device '%v' registered with model: %v (%v)", deviceIndex, modelID, r.ModelInfos[modelID].Name)
 	return deviceIndex
 }
 
