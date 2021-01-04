@@ -16,9 +16,9 @@ import (
 // IbeamServer implements the IbeamCoreServer interface of the generated protofile library.
 type IbeamServer struct {
 	parameterRegistry        *IbeamParameterRegistry
-	clientsSetterStream      chan pb.Parameter
-	serverClientsStream      chan pb.Parameter
-	serverClientsDistributor map[chan pb.Parameter]bool
+	clientsSetterStream      chan *pb.Parameter
+	serverClientsStream      chan *pb.Parameter
+	serverClientsDistributor map[chan *pb.Parameter]bool
 }
 
 // GetCoreInfo returns the CoreInfo of the Ibeam-Core
@@ -207,7 +207,7 @@ func (s *IbeamServer) getParameterDetail(mpID *pb.ModelParameterID) (*pb.Paramet
 // Set will change the Value for the given Parameter.
 func (s *IbeamServer) Set(_ context.Context, ps *pb.Parameters) (*pb.Empty, error) {
 	for _, parameter := range ps.Parameters {
-		s.clientsSetterStream <- *parameter
+		s.clientsSetterStream <- parameter
 	}
 	return &pb.Empty{}, nil
 }
@@ -231,7 +231,7 @@ func (s *IbeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 		stream.Send(parameter)
 	}
 
-	distributor := make(chan pb.Parameter, 100)
+	distributor := make(chan *pb.Parameter, 100)
 	s.serverClientsDistributor[distributor] = true
 
 	log.Debugf("Added distributor number %v", len(s.serverClientsDistributor))
@@ -263,7 +263,7 @@ func (s *IbeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 			}
 
 			log.Debugf("Send Parameter with ID '%v' to client from ServerClientsStream", parameter.Id)
-			stream.Send(&parameter)
+			stream.Send(parameter)
 		}
 	}
 }
@@ -278,7 +278,7 @@ func containsDeviceParameter(dpID *pb.DeviceParameterID, dpIDs *pb.DeviceParamet
 }
 
 // CreateServer sets up the ibeam server, parameter manager and parameter registry
-func CreateServer(coreInfo *pb.CoreInfo) (manager *IbeamParameterManager, registry *IbeamParameterRegistry, settoManager chan pb.Parameter, getfromManager chan pb.Parameter) {
+func CreateServer(coreInfo *pb.CoreInfo) (manager *IbeamParameterManager, registry *IbeamParameterRegistry, settoManager chan *pb.Parameter, getfromManager chan *pb.Parameter) {
 	defaultModelInfo := &pb.ModelInfo{
 		Name:        "Generic Model",
 		Description: "default model of the implementation",
@@ -287,10 +287,10 @@ func CreateServer(coreInfo *pb.CoreInfo) (manager *IbeamParameterManager, regist
 }
 
 // CreateServerWithDefaultModel sets up the ibeam server, parameter manager and parameter registry and allows to specify a default model
-func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelInfo) (manager *IbeamParameterManager, registry *IbeamParameterRegistry, settoManager chan pb.Parameter, getfromManager chan pb.Parameter) {
-	clientsSetter := make(chan pb.Parameter, 100)
-	getfromManager = make(chan pb.Parameter, 100)
-	settoManager = make(chan pb.Parameter, 100)
+func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelInfo) (manager *IbeamParameterManager, registry *IbeamParameterRegistry, settoManager chan *pb.Parameter, getfromManager chan *pb.Parameter) {
+	clientsSetter := make(chan *pb.Parameter, 100)
+	getfromManager = make(chan *pb.Parameter, 100)
+	settoManager = make(chan *pb.Parameter, 100)
 
 	fistParameter := pb.Parameter{}
 	fistParameter.Id = &pb.DeviceParameterID{
@@ -298,7 +298,7 @@ func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelI
 		Parameter: 0,
 	}
 
-	watcher := make(chan pb.Parameter)
+	watcher := make(chan *pb.Parameter)
 
 	coreInfo.IbeamVersion = pb.File_ibeam_core_proto.Options().ProtoReflect().Get(pb.E_IbeamVersion.TypeDescriptor()).String()
 
@@ -314,7 +314,7 @@ func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelI
 		parameterRegistry:        registry,
 		clientsSetterStream:      clientsSetter,
 		serverClientsStream:      watcher,
-		serverClientsDistributor: make(map[chan pb.Parameter]bool),
+		serverClientsDistributor: make(map[chan *pb.Parameter]bool),
 	}
 
 	manager = &IbeamParameterManager{

@@ -14,10 +14,10 @@ import (
 // IbeamParameterManager manages parameter changes.
 type IbeamParameterManager struct {
 	parameterRegistry   *IbeamParameterRegistry
-	out                 chan pb.Parameter
-	in                  chan pb.Parameter
-	clientsSetterStream chan pb.Parameter
-	serverClientsStream chan pb.Parameter
+	out                 chan *pb.Parameter
+	in                  chan *pb.Parameter
+	clientsSetterStream chan *pb.Parameter
+	serverClientsStream chan *pb.Parameter
 	server              *IbeamServer
 }
 
@@ -114,10 +114,10 @@ func (m *IbeamParameterManager) Start() {
 			// ***************
 		clientToManagerLoop:
 			for {
-				var parameter pb.Parameter
+				var parameter *pb.Parameter
 				select {
 				case parameter = <-m.clientsSetterStream:
-					m.ingestTargetParameter(&parameter)
+					m.ingestTargetParameter(parameter)
 				default:
 					break clientToManagerLoop
 				}
@@ -129,10 +129,10 @@ func (m *IbeamParameterManager) Start() {
 
 		deviceToManagerLoop:
 			for {
-				var parameter pb.Parameter
+				var parameter *pb.Parameter
 				select {
 				case parameter = <-m.in:
-					m.ingestCurrentParameter(&parameter)
+					m.ingestCurrentParameter(parameter)
 				default:
 					break deviceToManagerLoop
 				}
@@ -150,7 +150,7 @@ func (m *IbeamParameterManager) Start() {
 
 func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 	if errorParam := m.checkValidParameter(parameter); errorParam != nil {
-		m.serverClientsStream <- *errorParam
+		m.serverClientsStream <- errorParam
 		return
 	}
 
@@ -175,7 +175,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 		// Check if the NewValue has a Value
 		if newParameterValue.Value == nil {
 			log.Errorf("Received no value for parameter %d on device %d", parameterID, parameter.Id.Device)
-			m.serverClientsStream <- pb.Parameter{
+			m.serverClientsStream <- &pb.Parameter{
 				Id:    parameter.Id,
 				Error: pb.ParameterError_HasNoValue,
 				Value: []*pb.ParameterValue{},
@@ -186,7 +186,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 		// Check if dimension of the value is valid
 		if !state[deviceIndex][parameterIndex].MultiIndexHasValue(newParameterValue.DimensionID) {
 			log.Errorf("Received invalid Dimension %d for parameter %d on device %d", newParameterValue.DimensionID, parameterID, parameter.Id.Device)
-			m.serverClientsStream <- pb.Parameter{
+			m.serverClientsStream <- &pb.Parameter{
 				Id:    parameter.Id,
 				Error: pb.ParameterError_UnknownID,
 				Value: []*pb.ParameterValue{},
@@ -209,7 +209,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 		case *pb.ParameterValue_Integer:
 			if parameterConfig.ValueType != pb.ValueType_Integer {
 				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
-				m.serverClientsStream <- pb.Parameter{
+				m.serverClientsStream <- &pb.Parameter{
 					Id:    parameter.Id,
 					Error: pb.ParameterError_InvalidType,
 					Value: []*pb.ParameterValue{},
@@ -219,7 +219,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 
 			if newValue.Integer > int32(parameterConfig.Maximum) {
 				log.Errorf("Max violation for parameter %v", parameterID)
-				m.serverClientsStream <- pb.Parameter{
+				m.serverClientsStream <- &pb.Parameter{
 					Id:    parameter.Id,
 					Error: pb.ParameterError_MaxViolation,
 					Value: []*pb.ParameterValue{},
@@ -228,7 +228,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 			}
 			if newValue.Integer < int32(parameterConfig.Minimum) {
 				log.Errorf("Min violation for parameter %v", parameterID)
-				m.serverClientsStream <- pb.Parameter{
+				m.serverClientsStream <- &pb.Parameter{
 					Id:    parameter.Id,
 					Error: pb.ParameterError_MinViolation,
 					Value: []*pb.ParameterValue{},
@@ -239,7 +239,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 			// inc dec currently only works with integers or no values, float is kind of missing, action lists need to be evaluated
 			if parameterConfig.ValueType != pb.ValueType_Integer && parameterConfig.ValueType == pb.ValueType_NoValue {
 				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
-				m.serverClientsStream <- pb.Parameter{
+				m.serverClientsStream <- &pb.Parameter{
 					Id:    parameter.Id,
 					Error: pb.ParameterError_InvalidType,
 					Value: []*pb.ParameterValue{},
@@ -249,7 +249,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 
 			if newValue.IncDecSteps > parameterConfig.IncDecStepsUpperRange || newValue.IncDecSteps < parameterConfig.IncDecStepsLowerRange {
 				log.Errorf("In- or Decrementation Step %v is outside of the range [%v,%v] of the parameter %v", newValue.IncDecSteps, parameterConfig.IncDecStepsLowerRange, parameterConfig.IncDecStepsUpperRange, parameterID)
-				m.serverClientsStream <- pb.Parameter{
+				m.serverClientsStream <- &pb.Parameter{
 					Id:    parameter.Id,
 					Error: pb.ParameterError_RangeViolation,
 					Value: []*pb.ParameterValue{},
@@ -268,7 +268,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 						parameterBuffer.isAssumedState = false
 					}
 					// send out right away
-					m.serverClientsStream <- pb.Parameter{
+					m.serverClientsStream <- &pb.Parameter{
 						Value: []*pb.ParameterValue{parameterBuffer.getParameterValue()},
 						Id: &pb.DeviceParameterID{
 							Device:    deviceID,
@@ -282,7 +282,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 		case *pb.ParameterValue_Floating:
 			if parameterConfig.ValueType != pb.ValueType_Floating {
 				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
-				m.serverClientsStream <- pb.Parameter{
+				m.serverClientsStream <- &pb.Parameter{
 					Id:    parameter.Id,
 					Error: pb.ParameterError_InvalidType,
 					Value: []*pb.ParameterValue{},
@@ -292,7 +292,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 
 			if newValue.Floating > parameterConfig.Maximum {
 				log.Errorf("Max violation for parameter %v", parameterID)
-				m.serverClientsStream <- pb.Parameter{
+				m.serverClientsStream <- &pb.Parameter{
 					Id:    parameter.Id,
 					Error: pb.ParameterError_MaxViolation,
 					Value: []*pb.ParameterValue{},
@@ -301,7 +301,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 			}
 			if newValue.Floating < parameterConfig.Minimum {
 				log.Errorf("Min violation for parameter %v", parameterID)
-				m.serverClientsStream <- pb.Parameter{
+				m.serverClientsStream <- &pb.Parameter{
 					Id:    parameter.Id,
 					Error: pb.ParameterError_MinViolation,
 					Value: []*pb.ParameterValue{},
@@ -311,7 +311,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 		case *pb.ParameterValue_Str:
 			if parameterConfig.ValueType != pb.ValueType_String {
 				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
-				m.serverClientsStream <- pb.Parameter{
+				m.serverClientsStream <- &pb.Parameter{
 					Id:    parameter.Id,
 					Error: pb.ParameterError_InvalidType,
 					Value: []*pb.ParameterValue{},
@@ -329,7 +329,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 			}
 			if newValue.CurrentOption > uint32(len(parameterConfig.OptionList.Options)) {
 				log.Errorf("Invalid operation index for parameter %v", parameterID)
-				m.serverClientsStream <- pb.Parameter{
+				m.serverClientsStream <- &pb.Parameter{
 					Id:    parameter.Id,
 					Error: pb.ParameterError_UnknownID,
 					Value: []*pb.ParameterValue{},
@@ -339,14 +339,14 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 		case *pb.ParameterValue_Cmd:
 			if parameterConfig.ControlStyle == pb.ControlStyle_Normal {
 				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it has ControlStyle Normal and needs a Value", newValue, parameterID, parameterConfig.Name)
-				m.serverClientsStream <- pb.Parameter{
+				m.serverClientsStream <- &pb.Parameter{
 					Id:    parameter.Id,
 					Error: pb.ParameterError_InvalidType,
 					Value: []*pb.ParameterValue{},
 				}
 				continue
 			}
-			m.out <- pb.Parameter{
+			m.out <- &pb.Parameter{
 				Id:    parameter.Id,
 				Error: 0,
 				Value: []*pb.ParameterValue{newParameterValue},
@@ -355,7 +355,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 
 			if parameterConfig.ValueType != pb.ValueType_Binary {
 				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
-				m.serverClientsStream <- pb.Parameter{
+				m.serverClientsStream <- &pb.Parameter{
 					Id:    parameter.Id,
 					Error: pb.ParameterError_InvalidType,
 					Value: []*pb.ParameterValue{},
@@ -471,7 +471,7 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					}
 					m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex].OptionList = v.OptionList
 
-					m.serverClientsStream <- pb.Parameter{
+					m.serverClientsStream <- &pb.Parameter{
 						Value: []*pb.ParameterValue{newParameterValue},
 						Id:    parameter.Id,
 						Error: pb.ParameterError_NoError,
@@ -540,7 +540,7 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 	}
 
 	if values := m.parameterRegistry.getInstanceValues(parameter.GetId()); values != nil {
-		m.serverClientsStream <- pb.Parameter{Value: values, Id: parameter.Id, Error: 0}
+		m.serverClientsStream <- &pb.Parameter{Value: values, Id: parameter.Id, Error: 0}
 	}
 }
 
@@ -621,7 +621,7 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 			copier.Copy(&parameterBuffer.targetValue, &parameterBuffer.currentValue)
 			parameterBuffer.isAssumedState = false
 
-			m.serverClientsStream <- pb.Parameter{
+			m.serverClientsStream <- &pb.Parameter{
 				Value: []*pb.ParameterValue{parameterBuffer.getParameterValue()},
 				Id: &pb.DeviceParameterID{
 					Device:    deviceID,
@@ -657,7 +657,7 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 			}
 		}
 
-		m.out <- pb.Parameter{
+		m.out <- &pb.Parameter{
 			Value: []*pb.ParameterValue{parameterBuffer.getParameterValue()},
 			Id: &pb.DeviceParameterID{
 				Device:    deviceID,
@@ -668,7 +668,7 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 		if parameterDetail.FeedbackStyle == pb.FeedbackStyle_DelayedFeedback ||
 			parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
 			// send out assumed value immediately
-			m.serverClientsStream <- pb.Parameter{
+			m.serverClientsStream <- &pb.Parameter{
 				Value: []*pb.ParameterValue{parameterBuffer.getParameterValue()},
 				Id: &pb.DeviceParameterID{
 					Device:    deviceID,
@@ -677,7 +677,7 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 			}
 		}
 	case pb.ControlStyle_Incremental:
-		m.out <- pb.Parameter{
+		m.out <- &pb.Parameter{
 			Value: []*pb.ParameterValue{parameterBuffer.getParameterValue()},
 			Id: &pb.DeviceParameterID{
 				Device:    deviceID,
@@ -754,7 +754,7 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 
 		log.Debugf("Send value '%v' to Device", cmdValue)
 
-		m.out <- pb.Parameter{
+		m.out <- &pb.Parameter{
 			Id: &pb.DeviceParameterID{
 				Device:    deviceID,
 				Parameter: parameterDetail.Id.Parameter,
