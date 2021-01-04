@@ -167,8 +167,8 @@ func (s *IbeamServer) GetParameterDetails(c context.Context, mpIDs *pb.ModelPara
 		}
 	} else if len(mpIDs.Ids) == 1 && int(mpIDs.Ids[0].Parameter) == 0 {
 		// Return all parameters for model
-		if int(mpIDs.Ids[0].Model) != 0 && len(s.parameterRegistry.ParameterDetail) >= int(mpIDs.Ids[0].Model) {
-			for _, modelDetail := range s.parameterRegistry.ParameterDetail[mpIDs.Ids[0].Model-1] {
+		if len(s.parameterRegistry.ParameterDetail) > int(mpIDs.Ids[0].Model) {
+			for _, modelDetail := range s.parameterRegistry.ParameterDetail[mpIDs.Ids[0].Model] {
 				rParameterDetails.Details = append(rParameterDetails.Details, modelDetail)
 			}
 		} else {

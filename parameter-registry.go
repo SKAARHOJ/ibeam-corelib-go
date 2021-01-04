@@ -141,6 +141,40 @@ func (r *IbeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32 {
 	return model.Id
 }
 
+func generateDimensions(dimensionConfig []uint32, initialValueDimension *IbeamParameterDimension) *IbeamParameterDimension {
+	if len(dimensionConfig) == 0 {
+		return initialValueDimension
+	}
+
+	dimensions := make([]*IbeamParameterDimension, 0)
+
+	for count := 0; count < int(dimensionConfig[0]); count++ {
+		valueWithID := IbeamParameterDimension{}
+		dimValue := initialValueDimension.value
+
+		valueWithID.value = &IBeamParameterValueBuffer{
+			available:      dimValue.available,
+			isAssumedState: dimValue.isAssumedState,
+		}
+		copier.Copy(&valueWithID.value.currentValue, dimValue)
+		copier.Copy(&valueWithID.value.targetValue, dimValue)
+
+		valueWithID.value.dimensionID = make([]uint32, len(dimValue.dimensionID))
+		copy(valueWithID.value.dimensionID, dimValue.dimensionID)
+		valueWithID.value.dimensionID = append(valueWithID.value.dimensionID, uint32(count+1))
+
+		if len(dimensionConfig) == 1 {
+			dimensions = append(dimensions, &valueWithID)
+		} else {
+			subDim := generateDimensions(dimensionConfig[1:], &valueWithID)
+			dimensions = append(dimensions, subDim)
+		}
+	}
+	return &IbeamParameterDimension{
+		subDimensions: dimensions,
+	}
+}
+
 // RegisterDevice registers a new Device in the Registry with given ModelID
 func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uint32) {
 	r.muDetail.RLock()
@@ -161,7 +195,14 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 		parameterID := parameterDetail.Id.Parameter
 
 		// Integer is default
-		initialValue := pb.ParameterValue{Value: &pb.ParameterValue_Integer{Integer: 0}, Invalid: true}
+		initialValue := &pb.ParameterValue{
+			DimensionID:    []uint32{},
+			Available:      true,
+			IsAssumedState: false,
+			Invalid:        true,
+			Value:          &pb.ParameterValue_Integer{Integer: 0},
+			MetaValues:     map[string]*pb.ParameterMetaValue{},
+		}
 
 		switch parameterDetail.ValueType {
 		case pb.ValueType_NoValue:
@@ -180,41 +221,6 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 			log.Panicf("It is not recommended to use more than 3 dimensions, if needed please contact the maintainer")
 		}
 
-		var generateDimensions func([]uint32, IbeamParameterDimension) *IbeamParameterDimension
-
-		generateDimensions = func(dimensionConfig []uint32, initialValueDimension IbeamParameterDimension) *IbeamParameterDimension {
-			if len(dimensionConfig) == 0 {
-				return &initialValueDimension
-			}
-
-			dimensions := make([]*IbeamParameterDimension, 0)
-
-			for count := 0; count < int(dimensionConfig[0]); count++ {
-				valueWithID := IbeamParameterDimension{}
-				valueWithID.value = &IBeamParameterValueBuffer{}
-				dimValue, err := initialValueDimension.Value()
-				if err != nil {
-					log.Fatalf("Initial Value is not set %v", err)
-				}
-				copier.Copy(valueWithID.value, dimValue)
-
-				valueWithID.value.dimensionID = make([]uint32, len(dimValue.dimensionID))
-				copy(valueWithID.value.dimensionID, dimValue.dimensionID)
-				valueWithID.value.dimensionID = append(valueWithID.value.dimensionID, uint32(count+1))
-
-				if len(dimensionConfig) == 1 {
-
-					dimensions = append(dimensions, &valueWithID)
-				} else {
-					subDim := generateDimensions(dimensionConfig[1:], valueWithID)
-					dimensions = append(dimensions, subDim)
-				}
-			}
-			return &IbeamParameterDimension{
-				subDimensions: dimensions,
-			}
-		}
-
 		dimensionConfig := []uint32{}
 		initialValueDimension := IbeamParameterDimension{
 			value: &IBeamParameterValueBuffer{
@@ -225,14 +231,14 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 			},
 		}
 
-		copier.Copy(&initialValueDimension.value.currentValue, &initialValue)
-		copier.Copy(&initialValueDimension.value.targetValue, &initialValue)
+		copier.Copy(&initialValueDimension.value.currentValue, initialValue)
+		copier.Copy(&initialValueDimension.value.targetValue, initialValue)
 
 		for _, dimension := range parameterDetail.Dimensions {
 			dimensionConfig = append(dimensionConfig, dimension.Count)
 		}
 
-		parameterDimensions[int(parameterID)] = generateDimensions(dimensionConfig, initialValueDimension)
+		parameterDimensions[int(parameterID)] = generateDimensions(dimensionConfig, &initialValueDimension)
 	}
 
 	r.muInfo.Lock()
