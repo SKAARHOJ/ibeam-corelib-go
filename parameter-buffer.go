@@ -1,4 +1,4 @@
-package ibeam_corelib
+package ibeamcorelib
 
 import (
 	"time"
