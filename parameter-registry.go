@@ -208,18 +208,16 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 	}
 
 	r.muInfo.Lock()
-	defer r.muInfo.Unlock()
-
-	r.muValue.Lock()
-	defer r.muValue.Unlock()
-
 	deviceIndex = uint32(len(r.DeviceInfos) + 1)
 	r.DeviceInfos = append(r.DeviceInfos, &pb.DeviceInfo{
 		DeviceID: deviceIndex,
 		ModelID:  modelID,
 	})
+	r.muInfo.Unlock()
 
+	r.muValue.Lock()
 	r.parameterValue = append(r.parameterValue, parameterDimensions)
+	r.muValue.Unlock()
 
 	log.Debugf("Device '%v' registered with model: %v (%v)", deviceIndex, modelID, r.ModelInfos[modelID].Name)
 	return deviceIndex

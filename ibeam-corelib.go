@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
@@ -19,12 +20,15 @@ type IbeamServer struct {
 	clientsSetterStream      chan *pb.Parameter
 	serverClientsStream      chan *pb.Parameter
 	serverClientsDistributor map[chan *pb.Parameter]bool
+	muDistributor            sync.RWMutex
 }
 
 // GetCoreInfo returns the CoreInfo of the Ibeam-Core
 func (s *IbeamServer) GetCoreInfo(_ context.Context, _ *pb.Empty) (*pb.CoreInfo, error) {
 	coreInfo := proto.Clone(s.parameterRegistry.coreInfo.ProtoReflect().Interface()).(*pb.CoreInfo)
+	s.muDistributor.RLock()
 	coreInfo.ConnectedClients = uint32(len(s.serverClientsDistributor))
+	s.muDistributor.RUnlock()
 	return coreInfo, nil
 }
 
@@ -33,6 +37,8 @@ func (s *IbeamServer) GetCoreInfo(_ context.Context, _ *pb.Empty) (*pb.CoreInfo,
 func (s *IbeamServer) GetDeviceInfo(_ context.Context, deviceIDs *pb.DeviceIDs) (*pb.DeviceInfos, error) {
 
 	log.Debugf("Client asks for DeviceInfo with ids %v", deviceIDs.Ids)
+	s.parameterRegistry.muInfo.RLock()
+	defer s.parameterRegistry.muInfo.RUnlock()
 
 	if len(deviceIDs.Ids) == 0 {
 		return &pb.DeviceInfos{DeviceInfos: s.parameterRegistry.DeviceInfos}, nil
@@ -232,9 +238,11 @@ func (s *IbeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 	}
 
 	distributor := make(chan *pb.Parameter, 100)
+	s.muDistributor.Lock()
 	s.serverClientsDistributor[distributor] = true
 
 	log.Debugf("Added distributor number %v", len(s.serverClientsDistributor))
+	s.muDistributor.Unlock()
 
 	ping := time.NewTicker(time.Second / 2)
 	for {
@@ -242,7 +250,9 @@ func (s *IbeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 		case <-ping.C:
 			err := stream.Context().Err()
 			if err != nil {
+				s.muDistributor.Lock()
 				delete(s.serverClientsDistributor, distributor)
+				s.muDistributor.Unlock()
 				log.Warn("Connection to client for subscription lost")
 				return nil
 			}
@@ -334,7 +344,9 @@ func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelI
 					channel <- parameter
 				} else {
 					log.Debugf("Deleted Channel %v", channel)
+					server.muDistributor.Lock()
 					delete(server.serverClientsDistributor, channel)
+					server.muDistributor.Unlock()
 				}
 			}
 		}
