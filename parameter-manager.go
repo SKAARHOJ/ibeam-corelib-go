@@ -594,7 +594,7 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 
 	parameterBuffer, err := parameterDimension.Value()
 	if err != nil {
-		log.Errorf("ParameterDimension is Value but returns no Value: ", err.Error())
+		log.Errorln("ParameterDimension is Value but returns no Value: ", err.Error())
 		return
 	}
 

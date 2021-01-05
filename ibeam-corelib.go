@@ -154,7 +154,7 @@ func (s *IbeamServer) GetParameterDetails(c context.Context, mpIDs *pb.ModelPara
 	p, _ := peer.FromContext(c)
 	clientIP := p.Addr.String()
 
-	log.Debugf("Got a GetParameterDetails from ", clientIP)
+	log.Debugln("Got a GetParameterDetails from", clientIP)
 	rParameterDetails := &pb.ParameterDetails{}
 	s.parameterRegistry.muInfo.RLock()
 	defer s.parameterRegistry.muInfo.RUnlock()
