@@ -3,6 +3,8 @@ package ibeamcorelib
 import (
 	"errors"
 	"fmt"
+
+	"github.com/jinzhu/copier"
 )
 
 // IbeamParameterDimension is a recursive structure to enable the state management of parameters with several dimensions
@@ -48,7 +50,7 @@ func (pd *IbeamParameterDimension) MultiIndexHasValue(dimensionID []uint32) bool
 			if err != nil || dimension == nil {
 				return false
 			}
-			return true
+			return dimension.isValue()
 		}
 		var err error
 		valuePointer, err = valuePointer.index(id - 1)
@@ -84,4 +86,38 @@ func (pd *IbeamParameterDimension) index(index uint32) (*IbeamParameterDimension
 		return nil, fmt.Errorf("Parameter Dimension Index out of range: wanted: %v length: %v", index, len(pd.subDimensions))
 	}
 	return pd.subDimensions[int(index)], nil
+}
+
+func generateDimensions(dimensionConfig []uint32, initialValueDimension *IbeamParameterDimension) *IbeamParameterDimension {
+	if len(dimensionConfig) == 0 {
+		return initialValueDimension
+	}
+
+	dimensions := make([]*IbeamParameterDimension, 0)
+
+	for count := 0; count < int(dimensionConfig[0]); count++ {
+		valueWithID := IbeamParameterDimension{}
+		dimValue := initialValueDimension.value
+
+		valueWithID.value = &IBeamParameterValueBuffer{
+			available:      dimValue.available,
+			isAssumedState: dimValue.isAssumedState,
+		}
+		copier.Copy(&valueWithID.value.currentValue, dimValue)
+		copier.Copy(&valueWithID.value.targetValue, dimValue)
+
+		valueWithID.value.dimensionID = make([]uint32, len(dimValue.dimensionID))
+		copy(valueWithID.value.dimensionID, dimValue.dimensionID)
+		valueWithID.value.dimensionID = append(valueWithID.value.dimensionID, uint32(count+1))
+
+		if len(dimensionConfig) == 1 {
+			dimensions = append(dimensions, &valueWithID)
+		} else {
+			subDim := generateDimensions(dimensionConfig[1:], &valueWithID)
+			dimensions = append(dimensions, subDim)
+		}
+	}
+	return &IbeamParameterDimension{
+		subDimensions: dimensions,
+	}
 }

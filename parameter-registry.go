@@ -141,40 +141,6 @@ func (r *IbeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32 {
 	return model.Id
 }
 
-func generateDimensions(dimensionConfig []uint32, initialValueDimension *IbeamParameterDimension) *IbeamParameterDimension {
-	if len(dimensionConfig) == 0 {
-		return initialValueDimension
-	}
-
-	dimensions := make([]*IbeamParameterDimension, 0)
-
-	for count := 0; count < int(dimensionConfig[0]); count++ {
-		valueWithID := IbeamParameterDimension{}
-		dimValue := initialValueDimension.value
-
-		valueWithID.value = &IBeamParameterValueBuffer{
-			available:      dimValue.available,
-			isAssumedState: dimValue.isAssumedState,
-		}
-		copier.Copy(&valueWithID.value.currentValue, dimValue)
-		copier.Copy(&valueWithID.value.targetValue, dimValue)
-
-		valueWithID.value.dimensionID = make([]uint32, len(dimValue.dimensionID))
-		copy(valueWithID.value.dimensionID, dimValue.dimensionID)
-		valueWithID.value.dimensionID = append(valueWithID.value.dimensionID, uint32(count+1))
-
-		if len(dimensionConfig) == 1 {
-			dimensions = append(dimensions, &valueWithID)
-		} else {
-			subDim := generateDimensions(dimensionConfig[1:], &valueWithID)
-			dimensions = append(dimensions, subDim)
-		}
-	}
-	return &IbeamParameterDimension{
-		subDimensions: dimensions,
-	}
-}
-
 // RegisterDevice registers a new Device in the Registry with given ModelID
 func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uint32) {
 	r.muDetail.RLock()
