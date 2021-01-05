@@ -5,6 +5,7 @@ go 1.15
 require (
 	github.com/golang/protobuf v1.4.3
 	github.com/google/go-cmp v0.5.4 // indirect
+	github.com/jinzhu/copier v0.1.0
 	github.com/kr/text v0.2.0 // indirect
 	github.com/s00500/env_logger v0.1.9
 	github.com/sirupsen/logrus v1.7.0 // indirect
