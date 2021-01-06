@@ -84,12 +84,16 @@ func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 		defaultModelConfig := &r.ParameterDetail[0]
 		if parameterIndex == 0 {
 			parameterIndex = uint32(len(*defaultModelConfig) + 1)
+			log.Warn("Automatically assigning ID %d to parameter '%s', implementation should use static IDs when possible", parameterIndex, detail.Name)
 		}
 		r.muDetail.RUnlock()
 		detail.Id = &pb.ModelParameterID{
 			Parameter: parameterIndex,
 			Model:     mid,
 		}
+
+		validateParameter(detail)
+
 		r.muDetail.Lock()
 		for _, modelconfig := range r.ParameterDetail {
 			modelconfig[int(parameterIndex)] = detail
@@ -106,6 +110,8 @@ func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 			Parameter: parameterIndex,
 			Model:     mid,
 		}
+
+		validateParameter(detail)
 		r.muDetail.Lock()
 		(*modelconfig)[int(parameterIndex)] = detail
 		r.muDetail.Unlock()
@@ -237,4 +243,28 @@ func (r *IbeamParameterRegistry) GetIDMaps() []map[string]uint32 {
 	}
 	r.muDetail.RUnlock()
 	return idMaps
+}
+
+func validateParameter(detail *pb.ParameterDetail) {
+	if detail.Name == "" {
+		log.Panicf("Could not validate parameter ID %v: No name set", detail.Id)
+	}
+	if detail.ControlStyle == pb.ControlStyle_NoControl && detail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
+		log.Panicf("Could not validate parameter ID %v: Can not have no control and no feedback", detail.Id)
+	}
+	if detail.ControlStyle == pb.ControlStyle_ControlledIncremental && detail.ValueType != pb.ValueType_Integer {
+		log.Panicf("Could not validate parameter ID %v: Controlled Incremental only supported on integers right now", detail.Id)
+	}
+	if detail.ControlStyle == pb.ControlStyle_Incremental && detail.IncDecStepsLowerRange == 0 && detail.IncDecStepsUpperRange == 0 {
+		log.Panicf("Could not validate parameter ID %v: Incremental: please provide lower and upper range for incDecSteps", detail.Id)
+	}
+	if detail.Label == "" {
+		log.Panicf("Could not validate parameter ID %v: No label set", detail.Id)
+	}
+	if detail.ShortLabel == "" {
+		log.Warnf("Parameter ID %v: No short label set", detail.Id)
+	}
+	if detail.Description == "" {
+		log.Warnf("Parameter ID %v: No description set", detail.Id)
+	}
 }
