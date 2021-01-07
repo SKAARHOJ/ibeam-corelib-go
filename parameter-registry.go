@@ -23,6 +23,13 @@ type IbeamParameterRegistry struct {
 	ModelInfos      []*pb.ModelInfo
 	ParameterDetail parameterDetails //Parameter Details: model, parameter
 	parameterValue  parameterStates  //Parameter States: device,parameter,dimension
+	allowAutoIDs    bool
+}
+
+// AllowAutoIDs Allowing Automatic IDs for parameters, this is only meant for initial development
+func (r *IbeamParameterRegistry) AllowAutoIDs() {
+	log.Warn("Allowing Automatic IDs for parameters, this is only meant for initial development!!!")
+	r.allowAutoIDs = true
 }
 
 // device,parameter,instance
@@ -83,8 +90,10 @@ func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 		// append to all models, need to check for ids
 		defaultModelConfig := &r.ParameterDetail[0]
 		if parameterIndex == 0 {
+			if !r.allowAutoIDs {
+				log.Panicf("Missing ID on parameter '%s'", detail.Name)
+			}
 			parameterIndex = uint32(len(*defaultModelConfig) + 1)
-			log.Warn("Automatically assigning ID %d to parameter '%s', implementation should use static IDs when possible", parameterIndex, detail.Name)
 		}
 		r.muDetail.RUnlock()
 		detail.Id = &pb.ModelParameterID{
