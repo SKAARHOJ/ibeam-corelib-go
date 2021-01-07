@@ -33,7 +33,10 @@ func (m *IbeamParameterManager) StartWithServer(network, address string) {
 	}
 	grpcServer := grpc.NewServer()
 	pb.RegisterIbeamCoreServer(grpcServer, m.server)
-	grpcServer.Serve(lis)
+	err = grpcServer.Serve(lis)
+	if err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
 }
 
 func (m *IbeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb.Parameter {
@@ -259,7 +262,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 
 			if parameterConfig.ValueType == pb.ValueType_Integer {
 				newIntVal := parameterBuffer.targetValue.GetInteger() + newValue.IncDecSteps
-				log.Infof("Decrement %d by %d", parameterBuffer.targetValue.GetInteger(), newValue.IncDecSteps)
+				log.Tracef("Decrement %d by %d", parameterBuffer.targetValue.GetInteger(), newValue.IncDecSteps)
 				if newIntVal <= int32(parameterConfig.Maximum) && newIntVal >= int32(parameterConfig.Minimum) {
 					parameterBuffer.targetValue.Value = &pb.ParameterValue_Integer{Integer: newIntVal}
 					parameterBuffer.targetValue.Invalid = false
@@ -609,7 +612,7 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 
 	// Is is send after Control Delay time
 	if parameterDetail.ControlDelayMs != 0 && time.Since(parameterBuffer.lastUpdate).Milliseconds() < int64(parameterDetail.ControlDelayMs) {
-		//log.Infof("Failed to set parameter cause control delay time %v", time.Until(parameterBuffer.lastUpdate).Milliseconds()*-1)
+		log.Tracef("Failed to set parameter cause control delay time %v", time.Until(parameterBuffer.lastUpdate).Milliseconds()*-1)
 		return
 	}
 
