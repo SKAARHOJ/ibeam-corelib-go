@@ -342,16 +342,20 @@ func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelI
 	go func() {
 		for {
 			parameter := <-watcher
+			server.muDistributor.RLock()
 			for channel, isOpen := range server.serverClientsDistributor {
 				if isOpen {
 					channel <- parameter
 				} else {
 					log.Debugf("Deleted Channel %v", channel)
+					server.muDistributor.RUnlock()
 					server.muDistributor.Lock()
 					delete(server.serverClientsDistributor, channel)
 					server.muDistributor.Unlock()
+					server.muDistributor.RLock()
 				}
 			}
+			server.muDistributor.RUnlock()
 		}
 	}()
 	registry.RegisterModel(defaultModel)
