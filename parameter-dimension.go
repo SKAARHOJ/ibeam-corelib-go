@@ -103,8 +103,9 @@ func generateDimensions(dimensionConfig []uint32, initialValueDimension *IbeamPa
 			available:      dimValue.available,
 			isAssumedState: dimValue.isAssumedState,
 		}
-		copier.Copy(&valueWithID.value.currentValue, dimValue)
-		copier.Copy(&valueWithID.value.targetValue, dimValue)
+
+		copier.Copy(&valueWithID.value.currentValue, &initialValueDimension.value.currentValue)
+		copier.Copy(&valueWithID.value.targetValue, &initialValueDimension.value.targetValue)
 
 		valueWithID.value.dimensionID = make([]uint32, len(dimValue.dimensionID))
 		copy(valueWithID.value.dimensionID, dimValue.dimensionID)
