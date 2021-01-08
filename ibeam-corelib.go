@@ -84,6 +84,9 @@ func getModelWithID(s *IbeamServer, mID uint32) *pb.ModelInfo {
 // If no IDs are given, all Parameters will be returned.
 func (s *IbeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rParameters *pb.Parameters, err error) {
 	rParameters = &pb.Parameters{}
+	s.parameterRegistry.muValue.RLock()
+	defer s.parameterRegistry.muValue.RUnlock()
+
 	if len(dpIDs.Ids) == 0 {
 		for did, dState := range s.parameterRegistry.parameterValue {
 			for pid := range dState {

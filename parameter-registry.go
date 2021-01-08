@@ -255,25 +255,43 @@ func (r *IbeamParameterRegistry) GetIDMaps() []map[string]uint32 {
 }
 
 func validateParameter(detail *pb.ParameterDetail) {
+	// Fatals
 	if detail.Name == "" {
-		log.Panicf("Could not validate parameter ID %v: No name set", detail.Id)
+		log.Fatalf("Could not validate parameter ID %v: No name set", detail.Id)
 	}
 	if detail.ControlStyle == pb.ControlStyle_NoControl && detail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
-		log.Panicf("Could not validate parameter ID %v: Can not have no control and no feedback", detail.Id)
+		log.Fatalf("Could not validate parameter '%v': Can not have no control and no feedback", detail.Name)
 	}
 	if detail.ControlStyle == pb.ControlStyle_ControlledIncremental && detail.ValueType != pb.ValueType_Integer {
-		log.Panicf("Could not validate parameter ID %v: Controlled Incremental only supported on integers right now", detail.Id)
+		log.Fatalf("Could not validate parameter '%v': Controlled Incremental only supported on integers right now", detail.Name)
 	}
 	if detail.ControlStyle == pb.ControlStyle_Incremental && detail.IncDecStepsLowerRange == 0 && detail.IncDecStepsUpperRange == 0 {
-		log.Panicf("Could not validate parameter ID %v: Incremental: please provide lower and upper range for incDecSteps", detail.Id)
+		log.Fatalf("Could not validate parameter '%v': Incremental: please provide lower and upper range for incDecSteps", detail.Name)
 	}
 	if detail.Label == "" {
-		log.Panicf("Could not validate parameter ID %v: No label set", detail.Id)
+		log.Fatalf("Could not validate parameter '%v': No label set", detail.Name)
 	}
+	if detail.ControlStyle != pb.ControlStyle_NoControl && detail.FeedbackStyle != pb.FeedbackStyle_NoFeedback && detail.RetryCount == 0 {
+		log.Fatalf("Parameter '%v': Any non assumed value (FeedbackStyle_NoFeedback) needs to have RetryCount set", detail.Name)
+	}
+
+	// ValueType Checks
+	switch detail.ValueType {
+	case pb.ValueType_Integer:
+		if detail.Minimum == 0 && detail.Maximum == 0 {
+			log.Fatalf("Could not validate parameter '%v': Integer needs min/max set", detail.Name)
+		}
+	case pb.ValueType_Binary:
+		if detail.ControlStyle == pb.ControlStyle_Incremental {
+			log.Fatalf("Could not validate parameter '%v': Binary con not have incremental control", detail.Name)
+		}
+	}
+
+	// Warnings
 	if detail.ShortLabel == "" {
-		log.Warnf("Parameter ID %v: No short label set", detail.Id)
+		log.Warnf("Parameter '%v': No short label set", detail.Name)
 	}
 	if detail.Description == "" {
-		log.Warnf("Parameter ID %v: No description set", detail.Id)
+		log.Warnf("Parameter '%v': No description set", detail.Name)
 	}
 }
