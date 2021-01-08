@@ -268,6 +268,11 @@ func validateParameter(detail *pb.ParameterDetail) {
 	if detail.ControlStyle == pb.ControlStyle_Incremental && detail.IncDecStepsLowerRange == 0 && detail.IncDecStepsUpperRange == 0 {
 		log.Fatalf("Could not validate parameter '%v': Incremental: please provide lower and upper range for incDecSteps", detail.Name)
 	}
+	if detail.ControlStyle != pb.ControlStyle_Incremental &&
+		detail.ControlStyle != pb.ControlStyle_ControlledIncremental &&
+		(detail.IncDecStepsLowerRange != 0 || detail.IncDecStepsUpperRange != 0) {
+		log.Fatalf("Could not validate parameter '%v': Lower and upper range are only valid on Incremental Control Mode", detail.Name)
+	}
 	if detail.Label == "" {
 		log.Fatalf("Could not validate parameter '%v': No label set", detail.Name)
 	}
@@ -277,13 +282,22 @@ func validateParameter(detail *pb.ParameterDetail) {
 
 	// ValueType Checks
 	switch detail.ValueType {
+	case pb.ValueType_Floating:
+		fallthrough
 	case pb.ValueType_Integer:
 		if detail.Minimum == 0 && detail.Maximum == 0 {
 			log.Fatalf("Could not validate parameter '%v': Integer needs min/max set", detail.Name)
 		}
 	case pb.ValueType_Binary:
 		if detail.ControlStyle == pb.ControlStyle_Incremental {
-			log.Fatalf("Could not validate parameter '%v': Binary con not have incremental control", detail.Name)
+			log.Fatalf("Could not validate parameter '%v': Binary can not have incremental control", detail.Name)
+		}
+	case pb.ValueType_NoValue:
+		if detail.FeedbackStyle != pb.FeedbackStyle_NoFeedback {
+			log.Fatalf("Could not validate parameter '%v': NoValue can not have Feedback", detail.Name)
+		}
+		if detail.Minimum != 0 || detail.Maximum != 0 {
+			log.Fatalf("Could not validate parameter '%v': NoValue can not min/max", detail.Name)
 		}
 	}
 
