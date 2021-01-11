@@ -130,12 +130,32 @@ func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 	return
 }
 
+// UnregisterParameterForModel removes a specific parameter for a specific model.
+func (r *IbeamParameterRegistry) UnregisterParameterForModel(modelID, parameterID uint32) {
+	if modelID == 0 {
+		log.Fatal("Do not unregister parameters on the default model")
+	}
+
+	r.muDetail.Lock()
+	if uint32(len(r.ParameterDetail)) <= (modelID) {
+		log.Fatalln("Could not register parameter for nonexistent model", modelID)
+	}
+	if _, ok := r.ParameterDetail[modelID][int(parameterID)]; !ok {
+		log.Fatalf("Unknown parameter ID %d to be unregistered for model %d", parameterID, modelID)
+	}
+
+	delete(r.ParameterDetail[modelID], int(parameterID))
+	r.muDetail.Unlock()
+
+	log.Debugf("ParameterDetail with ID: %d removed for Model %d", parameterID, modelID)
+}
+
 // RegisterParameters registers multiple Parameter and their Details in the Registry
 func (r *IbeamParameterRegistry) RegisterParameters(details *pb.ParameterDetails) (ids []uint32) {
 	for _, detail := range details.Details {
 		ids = append(ids, r.RegisterParameter(detail))
 	}
-	return
+	return ids
 }
 
 // RegisterModel registers a new Model in the Registry with given ModelInfo
