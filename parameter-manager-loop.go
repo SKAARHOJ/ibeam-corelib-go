@@ -81,7 +81,7 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 	if parameterDetail.RetryCount != 0 && parameterDetail.FeedbackStyle != pb.FeedbackStyle_NoFeedback {
 		parameterBuffer.tryCount++
 		if parameterBuffer.tryCount > parameterDetail.RetryCount {
-			log.Errorf("Failed to set parameter %v '%v' in %v tries on device %v", parameterDetail.Id.Parameter, parameterDetail.Name, parameterDetail.RetryCount, deviceID+1)
+			log.Errorf("Failed to set parameter %v '%v' in %v tries on device %v", parameterDetail.Id.Parameter, parameterDetail.Name, parameterDetail.RetryCount, deviceID)
 			copier.Copy(&parameterBuffer.targetValue, &parameterBuffer.currentValue)
 			parameterBuffer.isAssumedState = false
 

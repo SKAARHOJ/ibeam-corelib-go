@@ -24,6 +24,8 @@ type IbeamParameterRegistry struct {
 	ParameterDetail parameterDetails //Parameter Details: model, parameter
 	parameterValue  parameterStates  //Parameter States: device,parameter,dimension
 	allowAutoIDs    bool
+	modelsDone      bool // Sanity flag set on first call to add parameters to ensure order
+	parametersDone  bool // Sanity flag set on first call to add devices to ensure order
 }
 
 // AllowAutoIDs Allowing Automatic IDs for parameters, this is only meant for initial development
@@ -72,8 +74,36 @@ func (r *IbeamParameterRegistry) getModelIndex(deviceID uint32) int {
 	return int(r.DeviceInfos[deviceID-1].ModelID)
 }
 
-// RegisterParameter registers a Parameter and his Details in the Registry.
+// RegisterParameterForModels registers a parameter and its detail struct in the registry for multiple models.
+func (r *IbeamParameterRegistry) RegisterParameterForModels(modelIDs []uint32, detail *pb.ParameterDetail) {
+	for _, id := range modelIDs {
+		if id == 0 {
+			log.Panic("RegisterParameterForModels: do not use this function with the generic model")
+		}
+		dt := new(pb.ParameterDetail)
+		err := copier.Copy(&dt, &detail)
+		if err != nil {
+			panic("lol")
+		}
+		r.RegisterParameterForModel(id, dt)
+	}
+}
+
+func (r *IbeamParameterRegistry) RegisterParameterForModel(modelID uint32, detail *pb.ParameterDetail) (parameterIndex uint32) {
+	if detail.Id == nil {
+		detail.Id = new(pb.ModelParameterID)
+	}
+	detail.Id.Model = modelID
+	return r.RegisterParameter(detail)
+}
+
+// RegisterParameter registers a parameter and its detail struct in the registry.
 func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (parameterIndex uint32) {
+	r.modelsDone = true
+	if r.parametersDone {
+		log.Fatal("Can not unregister a parameter after registering the first device")
+	}
+
 	mid := uint32(0)
 	parameterIndex = uint32(0)
 	if detail.Id != nil {
@@ -81,13 +111,14 @@ func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 		parameterIndex = detail.Id.Parameter
 	}
 	r.muDetail.RLock()
-	if uint32(len(r.ParameterDetail)) <= (mid) {
-		log.Panic("Could not register parameter for nonexistent model ", mid)
-		return 0
-	}
-
 	if mid == 0 {
 		// append to all models, need to check for ids
+
+		_, found := r.findParameterByName(mid, detail.Name)
+		if found {
+			log.Fatal("Duplicate parameter name for ", detail.Name)
+		}
+
 		defaultModelConfig := &r.ParameterDetail[0]
 		if parameterIndex == 0 {
 			if !r.allowAutoIDs {
@@ -110,9 +141,17 @@ func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 		r.muDetail.Unlock()
 
 	} else {
-		modelconfig := &r.ParameterDetail[mid]
+		paramid, found := r.findParameterByName(0, detail.Name)
+		if found {
+			parameterIndex = uint32(paramid)
+		}
+
+		modelconfig := r.ParameterDetail[mid]
 		if parameterIndex == 0 {
-			parameterIndex = uint32(len(*modelconfig) + 1)
+			if !r.allowAutoIDs {
+				log.Panicf("Missing ID on parameter '%s'", detail.Name)
+			}
+			parameterIndex = uint32(len(r.ParameterDetail[0]) + 1)
 		}
 		r.muDetail.RUnlock()
 		detail.Id = &pb.ModelParameterID{
@@ -122,44 +161,63 @@ func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 
 		validateParameter(detail)
 		r.muDetail.Lock()
-		(*modelconfig)[int(parameterIndex)] = detail
+
+		modelconfig[int(parameterIndex)] = detail
+
+		// if the default model does not have the param it still needs to be added there too!
+		if !found {
+			dt := new(pb.ParameterDetail)
+			copier.Copy(&dt, &detail)
+			dt.Id.Model = 0
+			r.ParameterDetail[0][int(parameterIndex)] = dt
+		}
 		r.muDetail.Unlock()
+		if found {
+			log.Debugf("ParameterDetail '%v' with ID: %v was overridden for Model %v", detail.Name, detail.Id.Parameter, detail.Id.Model)
+			return
+		}
 	}
 
 	log.Debugf("ParameterDetail '%v' registered with ID: %v for Model %v", detail.Name, detail.Id.Parameter, detail.Id.Model)
 	return
 }
 
+// UnregisterParameterForModels removes a specific parameter for a list of models.
+func (r *IbeamParameterRegistry) UnregisterParameterForModels(modelIDs []uint32, parameterName string) {
+	for _, id := range modelIDs {
+		r.UnregisterParameterForModel(id, parameterName)
+	}
+}
+
 // UnregisterParameterForModel removes a specific parameter for a specific model.
-func (r *IbeamParameterRegistry) UnregisterParameterForModel(modelID, parameterID uint32) {
+func (r *IbeamParameterRegistry) UnregisterParameterForModel(modelID uint32, parameterName string) {
+	if r.parametersDone {
+		log.Fatal("Can not unregister a parameter after registering the first device")
+	}
+
 	if modelID == 0 {
 		log.Fatal("Do not unregister parameters on the default model")
 	}
 
 	r.muDetail.Lock()
-	if uint32(len(r.ParameterDetail)) <= (modelID) {
-		log.Fatalln("Could not register parameter for nonexistent model", modelID)
-	}
-	if _, ok := r.ParameterDetail[modelID][int(parameterID)]; !ok {
-		log.Fatalf("Unknown parameter ID %d to be unregistered for model %d", parameterID, modelID)
+	id, found := r.findParameterByName(modelID, parameterName)
+
+	if !found {
+		log.Fatalf("Unknown parameter %s to be unregistered for model %d", parameterName, modelID)
 	}
 
-	delete(r.ParameterDetail[modelID], int(parameterID))
+	delete(r.ParameterDetail[modelID], id)
 	r.muDetail.Unlock()
 
-	log.Debugf("ParameterDetail with ID: %d removed for Model %d", parameterID, modelID)
-}
-
-// RegisterParameters registers multiple Parameter and their Details in the Registry
-func (r *IbeamParameterRegistry) RegisterParameters(details *pb.ParameterDetails) (ids []uint32) {
-	for _, detail := range details.Details {
-		ids = append(ids, r.RegisterParameter(detail))
-	}
-	return ids
+	log.Debugf("ParameterDetail with ID: %d removed for Model %d", id, modelID)
 }
 
 // RegisterModel registers a new Model in the Registry with given ModelInfo
 func (r *IbeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32 {
+	if r.modelsDone {
+		log.Fatal("Can not register a new model after registering parameters")
+	}
+
 	r.muDetail.RLock()
 	model.Id = uint32(len(r.ParameterDetail))
 	r.muDetail.RUnlock()
@@ -178,6 +236,8 @@ func (r *IbeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32 {
 
 // RegisterDevice registers a new Device in the Registry with given ModelID
 func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uint32) {
+	r.parametersDone = true
+
 	r.muDetail.RLock()
 	defer r.muDetail.RUnlock()
 
@@ -272,6 +332,20 @@ func (r *IbeamParameterRegistry) GetIDMaps() []map[string]uint32 {
 	}
 	r.muDetail.RUnlock()
 	return idMaps
+}
+
+func (r *IbeamParameterRegistry) findParameterByName(modelID uint32, parameterName string) (id int, found bool) {
+	// Function requires mutex to be fully locked before invocation
+	if uint32(len(r.ParameterDetail)) <= (modelID) {
+		log.Fatalln("Could not register parameter for nonexistent model", modelID)
+	}
+
+	for id, param := range r.ParameterDetail[modelID] {
+		if param.Name == parameterName {
+			return id, true
+		}
+	}
+	return id, false
 }
 
 func validateParameter(detail *pb.ParameterDetail) {
