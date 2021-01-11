@@ -285,13 +285,13 @@ func validateParameter(detail *pb.ParameterDetail) {
 	if detail.ControlStyle == pb.ControlStyle_ControlledIncremental && detail.ValueType != pb.ValueType_Integer {
 		log.Fatalf("Could not validate parameter '%v': Controlled Incremental only supported on integers right now", detail.Name)
 	}
-	if detail.ControlStyle == pb.ControlStyle_Incremental && detail.IncDecStepsLowerRange == 0 && detail.IncDecStepsUpperRange == 0 {
+	if detail.ControlStyle == pb.ControlStyle_Incremental && detail.IncDecStepsLowerLimit == 0 && detail.IncDecStepsUpperLimit == 0 {
 		log.Fatalf("Could not validate parameter '%v': Incremental: please provide lower and upper range for incDecSteps", detail.Name)
 	}
 	if detail.ControlStyle != pb.ControlStyle_Incremental &&
 		detail.ControlStyle != pb.ControlStyle_ControlledIncremental &&
-		(detail.IncDecStepsLowerRange != 0 || detail.IncDecStepsUpperRange != 0) {
-		log.Fatalf("Could not validate parameter '%v': Lower and upper range are only valid on Incremental Control Mode", detail.Name)
+		(detail.IncDecStepsLowerLimit != 0 || detail.IncDecStepsUpperLimit != 0) {
+		log.Fatalf("Could not validate parameter '%v': Lower and upper limit are only valid on Incremental Control Mode", detail.Name)
 	}
 	if detail.Label == "" {
 		log.Fatalf("Could not validate parameter '%v': No label set", detail.Name)

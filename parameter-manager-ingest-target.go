@@ -106,11 +106,11 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 				continue
 			}
 
-			if newValue.IncDecSteps > parameterConfig.IncDecStepsUpperRange || newValue.IncDecSteps < parameterConfig.IncDecStepsLowerRange {
-				log.Errorf("In- or Decrementation Step %v is outside of the range [%v,%v] of the parameter %v", newValue.IncDecSteps, parameterConfig.IncDecStepsLowerRange, parameterConfig.IncDecStepsUpperRange, parameterID)
+			if newValue.IncDecSteps > parameterConfig.IncDecStepsUpperLimit || newValue.IncDecSteps < parameterConfig.IncDecStepsLowerLimit {
+				log.Errorf("In- or Decrementation Step %v is outside of limits [%v,%v] of the parameter %v", newValue.IncDecSteps, parameterConfig.IncDecStepsLowerLimit, parameterConfig.IncDecStepsUpperLimit, parameterID)
 				m.serverClientsStream <- &pb.Parameter{
 					Id:    parameter.Id,
-					Error: pb.ParameterError_RangeViolation,
+					Error: pb.ParameterError_StepSizeViolation,
 					Value: []*pb.ParameterValue{},
 				}
 				continue
