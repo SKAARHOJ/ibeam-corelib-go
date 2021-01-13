@@ -69,7 +69,7 @@ func getValues(dimension *IbeamParameterDimension) (values []*pb.ParameterValue)
 
 func (r *IbeamParameterRegistry) getModelIndex(deviceID uint32) int {
 	if len(r.DeviceInfos) < int(deviceID) || deviceID == 0 {
-		log.Panicf("Could not get model for device with id %v. DeviceInfos has lenght of %v", deviceID, len(r.DeviceInfos))
+		log.Fatalf("Could not get model for device with id %v. DeviceInfos has lenght of %v", deviceID, len(r.DeviceInfos))
 	}
 	return int(r.DeviceInfos[deviceID-1].ModelID)
 }
@@ -78,13 +78,10 @@ func (r *IbeamParameterRegistry) getModelIndex(deviceID uint32) int {
 func (r *IbeamParameterRegistry) RegisterParameterForModels(modelIDs []uint32, detail *pb.ParameterDetail) {
 	for _, id := range modelIDs {
 		if id == 0 {
-			log.Panic("RegisterParameterForModels: do not use this function with the generic model")
+			log.Fatal("RegisterParameterForModels: do not use this function with the generic model")
 		}
 		dt := new(pb.ParameterDetail)
-		err := copier.Copy(&dt, &detail)
-		if err != nil {
-			panic("lol")
-		}
+		copier.Copy(&dt, &detail)
 		r.RegisterParameterForModel(id, dt)
 	}
 }
@@ -122,7 +119,7 @@ func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 		defaultModelConfig := &r.ParameterDetail[0]
 		if parameterIndex == 0 {
 			if !r.allowAutoIDs {
-				log.Panicf("Missing ID on parameter '%s'", detail.Name)
+				log.Fatalf("Missing ID on parameter '%s'", detail.Name)
 			}
 			parameterIndex = uint32(len(*defaultModelConfig) + 1)
 		}
@@ -149,7 +146,7 @@ func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 		modelconfig := r.ParameterDetail[mid]
 		if parameterIndex == 0 {
 			if !r.allowAutoIDs {
-				log.Panicf("Missing ID on parameter '%s'", detail.Name)
+				log.Fatalf("Missing ID on parameter '%s'", detail.Name)
 			}
 			parameterIndex = uint32(len(r.ParameterDetail[0]) + 1)
 		}
@@ -242,7 +239,7 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 	defer r.muDetail.RUnlock()
 
 	if uint32(len(r.ParameterDetail)) <= (modelID) {
-		log.Panicf("Could not register device for nonexistent model with id: %v", modelID)
+		log.Fatalf("Could not register device for nonexistent model with id: %v", modelID)
 	}
 
 	modelConfig := r.ParameterDetail[modelID]
@@ -279,7 +276,7 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 		}
 
 		if len(parameterDetail.Dimensions) > 3 {
-			log.Panicf("It is not recommended to use more than 3 dimensions, if needed please contact the maintainer")
+			log.Fatalf("It is not recommended to use more than 3 dimensions, if needed please contact the maintainer")
 		}
 
 		dimensionConfig := []uint32{}
