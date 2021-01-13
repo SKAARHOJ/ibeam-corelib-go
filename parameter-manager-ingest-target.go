@@ -230,12 +230,12 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 
 		// Safe the momentary saved Value of the Parameter in the state
 
-		parameterBuffer.isAssumedState = !reflect.DeepEqual(newParameterValue.Value, parameterBuffer.currentValue.Value)
-		copier.Copy(&parameterBuffer.targetValue, newParameterValue)
-		parameterBuffer.tryCount = 0
-
-		if parameterBuffer.isAssumedState {
+		if !reflect.DeepEqual(newParameterValue.Value, parameterBuffer.currentValue.Value) {
+			parameterBuffer.isAssumedState = true
 			log.Debugf("Set new TargetValue '%v', for Parameter %v (%v), Device: %v", newParameterValue.Value, parameterID, parameterConfig.Name, deviceID)
+			copier.Copy(&parameterBuffer.targetValue, newParameterValue)
+			parameterBuffer.tryCount = 0
+
 		} else {
 			log.Debugf("TargetValue %v is equal to CurrentValue", newParameterValue.Value)
 		}

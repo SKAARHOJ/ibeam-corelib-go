@@ -1,6 +1,7 @@
 package ibeamcorelib
 
 import (
+	"reflect"
 	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
@@ -20,6 +21,7 @@ type IBeamParameterValueBuffer struct {
 }
 
 func (b *IBeamParameterValueBuffer) getParameterValue() *pb.ParameterValue {
+	b.isAssumedState = !reflect.DeepEqual(b.targetValue.Value, b.currentValue.Value)
 	return &pb.ParameterValue{
 		DimensionID:    b.dimensionID,
 		Available:      b.available,
