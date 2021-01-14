@@ -8,7 +8,6 @@ import (
 	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
-	"github.com/jinzhu/copier"
 	log "github.com/s00500/env_logger"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/proto"
@@ -317,12 +316,12 @@ func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelI
 	coreInfo.IbeamVersion = pb.File_ibeam_core_proto.Options().ProtoReflect().Get(pb.E_IbeamVersion.TypeDescriptor()).String()
 
 	registry = &IbeamParameterRegistry{
+		coreInfo:        proto.Clone(coreInfo).(*pb.CoreInfo),
 		DeviceInfos:     []*pb.DeviceInfo{},
 		ModelInfos:      []*pb.ModelInfo{},
 		ParameterDetail: []map[int]*pb.ParameterDetail{},
 		parameterValue:  []map[int]*IbeamParameterDimension{},
 	}
-	copier.Copy(&registry.coreInfo, coreInfo)
 
 	server := IbeamServer{
 		parameterRegistry:        registry,

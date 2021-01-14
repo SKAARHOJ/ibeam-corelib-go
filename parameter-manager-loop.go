@@ -1,12 +1,11 @@
 package ibeamcorelib
 
 import (
-	"reflect"
 	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
-	"github.com/jinzhu/copier"
 	log "github.com/s00500/env_logger"
+	"google.golang.org/protobuf/proto"
 )
 
 func (m *IbeamParameterManager) parameterLoop() {
@@ -67,8 +66,7 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 	// First Basic Check Pipeline if the Parameter Value can be send to out
 	// ********************************************************************
 
-	// Old:if parameterBuffer.currentValue.Value == parameterBuffer.targetValue.Value
-	if reflect.DeepEqual(parameterBuffer.currentValue.Value, parameterBuffer.targetValue.Value) {
+	if proto.Equal(parameterBuffer.currentValue, parameterBuffer.targetValue) {
 		return
 	}
 
@@ -82,8 +80,7 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 		parameterBuffer.tryCount++
 		if parameterBuffer.tryCount > parameterDetail.RetryCount {
 			log.Errorf("Failed to set parameter %v '%v' in %v tries on device %v", parameterDetail.Id.Parameter, parameterDetail.Name, parameterDetail.RetryCount, deviceID)
-			copier.Copy(&parameterBuffer.targetValue, &parameterBuffer.currentValue)
-
+			parameterBuffer.targetValue = proto.Clone(parameterBuffer.currentValue).(*pb.ParameterValue)
 			m.serverClientsStream <- &pb.Parameter{
 				Value: []*pb.ParameterValue{parameterBuffer.getParameterValue()},
 				Id: &pb.DeviceParameterID{
@@ -102,7 +99,7 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 	switch parameterDetail.ControlStyle {
 	case pb.ControlStyle_Normal:
 		if parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
-			copier.Copy(&parameterBuffer.currentValue, &parameterBuffer.targetValue)
+			parameterBuffer.currentValue = proto.Clone(parameterBuffer.targetValue).(*pb.ParameterValue)
 		}
 
 		// If we Have a current Option, get the Value for the option from the Option List
@@ -226,7 +223,7 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 		}
 	case pb.ControlStyle_NoControl, pb.ControlStyle_Oneshot:
 		if parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
-			copier.Copy(&parameterBuffer.targetValue, &parameterBuffer.currentValue)
+			parameterBuffer.targetValue = proto.Clone(parameterBuffer.currentValue).(*pb.ParameterValue)
 		}
 
 	default:

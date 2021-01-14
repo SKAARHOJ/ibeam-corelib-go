@@ -1,10 +1,10 @@
 package ibeamcorelib
 
 import (
-	"reflect"
 	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
+	"google.golang.org/protobuf/proto"
 )
 
 // IBeamParameterValueBuffer is used for updating a ParameterValue.
@@ -15,13 +15,13 @@ type IBeamParameterValueBuffer struct {
 	isAssumedState bool
 	lastUpdate     time.Time
 	tryCount       uint32
-	currentValue   pb.ParameterValue
-	targetValue    pb.ParameterValue
+	currentValue   *pb.ParameterValue
+	targetValue    *pb.ParameterValue
 	metaValues     []pb.ParameterMetaValue
 }
 
 func (b *IBeamParameterValueBuffer) getParameterValue() *pb.ParameterValue {
-	b.isAssumedState = !reflect.DeepEqual(b.targetValue.Value, b.currentValue.Value)
+	b.isAssumedState = !proto.Equal(b.targetValue, b.currentValue)
 	return &pb.ParameterValue{
 		DimensionID:    b.dimensionID,
 		Available:      b.available,

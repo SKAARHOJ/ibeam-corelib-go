@@ -4,7 +4,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/jinzhu/copier"
+	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
+	"google.golang.org/protobuf/proto"
 )
 
 // IbeamParameterDimension is a recursive structure to enable the state management of parameters with several dimensions
@@ -102,10 +103,9 @@ func generateDimensions(dimensionConfig []uint32, initialValueDimension *IbeamPa
 		valueWithID.value = &IBeamParameterValueBuffer{
 			available:      dimValue.available,
 			isAssumedState: dimValue.isAssumedState,
+			currentValue:   proto.Clone(initialValueDimension.value.currentValue).(*pb.ParameterValue),
+			targetValue:    proto.Clone(initialValueDimension.value.targetValue).(*pb.ParameterValue),
 		}
-
-		copier.Copy(&valueWithID.value.currentValue, &initialValueDimension.value.currentValue)
-		copier.Copy(&valueWithID.value.targetValue, &initialValueDimension.value.targetValue)
 
 		valueWithID.value.dimensionID = make([]uint32, len(dimValue.dimensionID))
 		copy(valueWithID.value.dimensionID, dimValue.dimensionID)

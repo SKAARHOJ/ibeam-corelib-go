@@ -5,8 +5,8 @@ import (
 	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
-	"github.com/jinzhu/copier"
 	log "github.com/s00500/env_logger"
+	"google.golang.org/protobuf/proto"
 )
 
 type parameterDetails []map[int]*pb.ParameterDetail     //Parameter Details: model, parameter
@@ -18,7 +18,7 @@ type IbeamParameterRegistry struct {
 	muInfo          sync.RWMutex
 	muDetail        sync.RWMutex
 	muValue         sync.RWMutex
-	coreInfo        pb.CoreInfo
+	coreInfo        *pb.CoreInfo
 	DeviceInfos     []*pb.DeviceInfo
 	ModelInfos      []*pb.ModelInfo
 	ParameterDetail parameterDetails //Parameter Details: model, parameter
@@ -80,12 +80,12 @@ func (r *IbeamParameterRegistry) RegisterParameterForModels(modelIDs []uint32, d
 		if id == 0 {
 			log.Fatal("RegisterParameterForModels: do not use this function with the generic model")
 		}
-		dt := new(pb.ParameterDetail)
-		copier.Copy(&dt, &detail)
+		dt := proto.Clone(detail).(*pb.ParameterDetail)
 		r.RegisterParameterForModel(id, dt)
 	}
 }
 
+// RegisterParameterForModels registers a parameter and its detail struct in the registry for a single specified model and the default model if the id does not exist there yet.
 func (r *IbeamParameterRegistry) RegisterParameterForModel(modelID uint32, detail *pb.ParameterDetail) (parameterIndex uint32) {
 	if detail.Id == nil {
 		detail.Id = new(pb.ModelParameterID)
@@ -163,8 +163,7 @@ func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 
 		// if the default model does not have the param it still needs to be added there too!
 		if !found {
-			dt := new(pb.ParameterDetail)
-			copier.Copy(&dt, &detail)
+			dt := proto.Clone(detail).(*pb.ParameterDetail)
 			dt.Id.Model = 0
 			r.ParameterDetail[0][int(parameterIndex)] = dt
 		}
@@ -286,11 +285,10 @@ func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uin
 				available:      true,
 				isAssumedState: true,
 				lastUpdate:     time.Now(),
+				currentValue:   proto.Clone(initialValue).(*pb.ParameterValue),
+				targetValue:    proto.Clone(initialValue).(*pb.ParameterValue),
 			},
 		}
-
-		copier.Copy(&initialValueDimension.value.currentValue, initialValue)
-		copier.Copy(&initialValueDimension.value.targetValue, initialValue)
 
 		for _, dimension := range parameterDetail.Dimensions {
 			dimensionConfig = append(dimensionConfig, dimension.Count)

@@ -1,12 +1,11 @@
 package ibeamcorelib
 
 import (
-	"reflect"
 	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
-	"github.com/jinzhu/copier"
 	log "github.com/s00500/env_logger"
+	"google.golang.org/protobuf/proto"
 )
 
 func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) {
@@ -74,14 +73,14 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					}
 
 					if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
-						if !reflect.DeepEqual(&parameterBuffer.targetValue, &newValue) {
-							copier.Copy(&parameterBuffer.targetValue, &newValue)
+						if !proto.Equal(parameterBuffer.targetValue, &newValue) {
+							parameterBuffer.targetValue = proto.Clone(&newValue).(*pb.ParameterValue)
 							shouldSend = true
 						}
 					}
 
-					if !reflect.DeepEqual(&parameterBuffer.currentValue, &newValue) {
-						copier.Copy(&parameterBuffer.currentValue, &newValue)
+					if !proto.Equal(parameterBuffer.currentValue, &newValue) {
+						parameterBuffer.currentValue = proto.Clone(&newValue).(*pb.ParameterValue)
 						shouldSend = true
 					}
 
@@ -133,18 +132,18 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 
 			if !didSet {
 				if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
-					if !reflect.DeepEqual(&parameterBuffer.targetValue, newParameterValue) {
-						copier.Copy(&parameterBuffer.targetValue, newParameterValue)
+					if !proto.Equal(parameterBuffer.targetValue, newParameterValue) {
+						parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
 						shouldSend = true
 					}
 				}
 
-				if !reflect.DeepEqual(&parameterBuffer.currentValue, newParameterValue) {
-					copier.Copy(&parameterBuffer.currentValue, newParameterValue)
+				if !proto.Equal(parameterBuffer.currentValue, newParameterValue) {
+					parameterBuffer.currentValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
 					shouldSend = true
 				}
 			}
-			assumed := !reflect.DeepEqual(parameterBuffer.currentValue.Value, parameterBuffer.targetValue.Value)
+			assumed := !proto.Equal(parameterBuffer.currentValue, parameterBuffer.targetValue)
 			if parameterBuffer.isAssumedState != assumed {
 				shouldSend = true
 			}

@@ -1,11 +1,9 @@
 package ibeamcorelib
 
 import (
-	"reflect"
-
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
-	"github.com/jinzhu/copier"
 	log "github.com/s00500/env_logger"
+	"google.golang.org/protobuf/proto"
 )
 
 func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
@@ -124,7 +122,6 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 					parameterBuffer.targetValue.Invalid = false
 					if parameterConfig.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
 						parameterBuffer.currentValue.Value = &pb.ParameterValue_Integer{Integer: newIntVal}
-						parameterBuffer.isAssumedState = false
 					}
 					// send out right away
 					m.serverClientsStream <- &pb.Parameter{
@@ -230,10 +227,9 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 
 		// Safe the momentary saved Value of the Parameter in the state
 
-		if !reflect.DeepEqual(newParameterValue.Value, parameterBuffer.currentValue.Value) {
-			parameterBuffer.isAssumedState = true
+		if !proto.Equal(newParameterValue, parameterBuffer.currentValue) {
 			log.Debugf("Set new TargetValue '%v', for Parameter %v (%v), Device: %v", newParameterValue.Value, parameterID, parameterConfig.Name, deviceID)
-			copier.Copy(&parameterBuffer.targetValue, newParameterValue)
+			parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
 			parameterBuffer.tryCount = 0
 
 		} else {
