@@ -132,8 +132,10 @@ func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 		validateParameter(detail)
 
 		r.muDetail.Lock()
-		for _, modelconfig := range r.ParameterDetail {
-			modelconfig[int(parameterIndex)] = detail
+		for aMid, modelconfig := range r.ParameterDetail {
+			dt := proto.Clone(detail).(*pb.ParameterDetail)
+			dt.Id.Model = uint32(aMid)
+			modelconfig[int(parameterIndex)] = dt
 		}
 		r.muDetail.Unlock()
 

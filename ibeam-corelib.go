@@ -168,8 +168,10 @@ func (s *IbeamServer) GetParameterDetails(c context.Context, mpIDs *pb.ModelPara
 	defer s.parameterRegistry.muInfo.RUnlock()
 
 	if len(mpIDs.Ids) == 0 {
-		for _, modelDetail := range s.parameterRegistry.ParameterDetail[0] {
-			rParameterDetails.Details = append(rParameterDetails.Details, modelDetail)
+		for _, modelDetails := range s.parameterRegistry.ParameterDetail {
+			for _, modelDetail := range modelDetails {
+				rParameterDetails.Details = append(rParameterDetails.Details, modelDetail)
+			}
 		}
 	} else if len(mpIDs.Ids) == 1 && int(mpIDs.Ids[0].Parameter) == 0 {
 		// Return all parameters for model
