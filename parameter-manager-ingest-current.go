@@ -51,109 +51,125 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			log.Error(err)
 			continue
 		}
-		if newParameterValue.Value != nil {
-			didSet := false // flag to to handle custom cases
+		if newParameterValue.Value == nil {
+			if values := m.parameterRegistry.getInstanceValues(parameter.GetId()); values != nil {
+				m.serverClientsStream <- &pb.Parameter{Value: values, Id: parameter.Id, Error: 0}
+			}
+			continue
+		}
 
-			// Check Type of Parameter
-			switch parameterConfig.ValueType {
-			case pb.ValueType_Opt:
-				// If Type of Parameter is Opt, find the right Opt
-				switch v := newParameterValue.Value.(type) {
-				case *pb.ParameterValue_Str:
-					id, err := getIDFromOptionListByElementName(parameterConfig.OptionList, v.Str)
-					if err != nil {
-						log.Error(err)
-						continue
-					}
-					// FIXME: We have to clear this inconsistentcy here
-					newValue := pb.ParameterValue{
-						Value: &pb.ParameterValue_CurrentOption{
-							CurrentOption: id,
-						},
-					}
+		didSet := false // flag to to handle custom cases
 
-					if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
-						if !proto.Equal(parameterBuffer.targetValue, &newValue) {
-							parameterBuffer.targetValue = proto.Clone(&newValue).(*pb.ParameterValue)
-							shouldSend = true
-						}
-					}
+		// Check Type of Parameter
+		switch parameterConfig.ValueType {
+		case pb.ValueType_Opt:
+			// If Type of Parameter is Opt, find the right Opt
+			switch v := newParameterValue.Value.(type) {
+			case *pb.ParameterValue_Str:
+				id, err := getIDFromOptionListByElementName(parameterConfig.OptionList, v.Str)
+				if err != nil {
+					log.Error(err)
+					continue
+				}
+				// FIXME: We have to clear this inconsistentcy here
+				newValue := pb.ParameterValue{
+					Value: &pb.ParameterValue_CurrentOption{
+						CurrentOption: id,
+					},
+				}
 
-					if !proto.Equal(parameterBuffer.currentValue, &newValue) {
-						parameterBuffer.currentValue = proto.Clone(&newValue).(*pb.ParameterValue)
+				if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
+					if !proto.Equal(parameterBuffer.targetValue, &newValue) {
+						parameterBuffer.targetValue = proto.Clone(&newValue).(*pb.ParameterValue)
 						shouldSend = true
 					}
+				}
 
-					didSet = true
+				if !proto.Equal(parameterBuffer.currentValue, &newValue) {
+					parameterBuffer.currentValue = proto.Clone(&newValue).(*pb.ParameterValue)
+					shouldSend = true
+				}
 
-				case *pb.ParameterValue_OptionList:
-					if !parameterConfig.OptionListIsDynamic {
-						log.Errorf("Parameter with ID %v has no Dynamic OptionList", parameter.Id.Parameter)
-						continue
-					}
-					m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex].OptionList = v.OptionList
+				didSet = true
 
-					m.serverClientsStream <- &pb.Parameter{
-						Value: []*pb.ParameterValue{newParameterValue},
-						Id:    parameter.Id,
-						Error: pb.ParameterError_NoError,
-					}
-					continue
-				case *pb.ParameterValue_CurrentOption:
-					// Handled below
-				default:
-					log.Errorf("Valuetype of Parameter is Opt and so we should get a String or Opt or currentOpt, but got %T", newParameterValue)
+			case *pb.ParameterValue_OptionList:
+				if !parameterConfig.OptionListIsDynamic {
+					log.Errorf("Parameter with ID %v has no Dynamic OptionList", parameter.Id.Parameter)
 					continue
 				}
-			case pb.ValueType_Binary:
-				if _, ok := newParameterValue.Value.(*pb.ParameterValue_Binary); !ok {
-					log.Errorf("Parameter with ID %v is Type Binary but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
-					continue
+				m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex].OptionList = v.OptionList
+
+				m.serverClientsStream <- &pb.Parameter{
+					Value: []*pb.ParameterValue{newParameterValue},
+					Id:    parameter.Id,
+					Error: pb.ParameterError_NoError,
 				}
-			case pb.ValueType_Floating:
-				if _, ok := newParameterValue.Value.(*pb.ParameterValue_Floating); !ok {
-					log.Errorf("Parameter with ID %v is Type Float but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
-					continue
-				}
-			case pb.ValueType_Integer:
-				if _, ok := newParameterValue.Value.(*pb.ParameterValue_Integer); !ok {
-					log.Errorf("Parameter with ID %v is Type Integer but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
-					continue
-				}
-			case pb.ValueType_String:
-				if _, ok := newParameterValue.Value.(*pb.ParameterValue_Str); !ok {
-					log.Errorf("Parameter with ID %v is Type String but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
-					continue
-				}
-			case pb.ValueType_NoValue:
-				log.Errorf("Parameter with ID %v has No Value but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
+				continue
+			case *pb.ParameterValue_CurrentOption:
+				// Handled below
+			default:
+				log.Errorf("Valuetype of Parameter is Opt and so we should get a String or Opt or currentOpt, but got %T", newParameterValue)
 				continue
 			}
+		case pb.ValueType_Binary:
+			if _, ok := newParameterValue.Value.(*pb.ParameterValue_Binary); !ok {
+				log.Errorf("Parameter with ID %v is Type Binary but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
+				continue
+			}
+		case pb.ValueType_Floating:
+			if _, ok := newParameterValue.Value.(*pb.ParameterValue_Floating); !ok {
+				log.Errorf("Parameter with ID %v is Type Float but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
+				continue
+			}
+			if newParameterValue.Value.(*pb.ParameterValue_Floating).Floating > parameterConfig.Maximum {
+				log.Errorf("Ingest Current Loop: Max violation for parameter %v", parameterID)
+				continue
+			}
+			if newParameterValue.Value.(*pb.ParameterValue_Floating).Floating < parameterConfig.Minimum {
+				log.Errorf("Ingest Current Loop: Min violation for parameter %v", parameterID)
+				continue
+			}
+		case pb.ValueType_Integer:
+			if _, ok := newParameterValue.Value.(*pb.ParameterValue_Integer); !ok {
+				log.Errorf("Parameter with ID %v is Type Integer but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
+				continue
+			}
+			if newParameterValue.Value.(*pb.ParameterValue_Integer).Integer > int32(parameterConfig.Maximum) {
+				log.Errorf("Ingest Current Loop: Max violation for parameter %v", parameterID)
+				continue
+			}
+			if newParameterValue.Value.(*pb.ParameterValue_Integer).Integer < int32(parameterConfig.Minimum) {
+				log.Errorf("Ingest Current Loop: Min violation for parameter %v", parameterID)
+				continue
+			}
+		case pb.ValueType_String:
+			if _, ok := newParameterValue.Value.(*pb.ParameterValue_Str); !ok {
+				log.Errorf("Parameter with ID %v is Type String but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
+				continue
+			}
+		case pb.ValueType_NoValue:
+			log.Errorf("Parameter with ID %v has No Value but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
+			continue
+		}
 
-			if !didSet {
-				if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
-					if !proto.Equal(parameterBuffer.targetValue, newParameterValue) {
-						parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
-						shouldSend = true
-					}
-				}
-
-				if !proto.Equal(parameterBuffer.currentValue, newParameterValue) {
-					parameterBuffer.currentValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
+		if !didSet {
+			if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
+				if !proto.Equal(parameterBuffer.targetValue, newParameterValue) {
+					parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
 					shouldSend = true
 				}
 			}
-			assumed := !proto.Equal(parameterBuffer.currentValue, parameterBuffer.targetValue)
-			if parameterBuffer.isAssumedState != assumed {
-				shouldSend = true
-			}
-		} else {
-			if parameterBuffer.available != newParameterValue.Available {
-				parameterBuffer.available = newParameterValue.Available
-				shouldSend = true
-			}
 
+			if !proto.Equal(parameterBuffer.currentValue, newParameterValue) {
+				parameterBuffer.currentValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
+				shouldSend = true
+			}
 		}
+		assumed := !proto.Equal(parameterBuffer.currentValue, parameterBuffer.targetValue)
+		if parameterBuffer.isAssumedState != assumed {
+			shouldSend = true
+		}
+
 	}
 
 	if !shouldSend {
