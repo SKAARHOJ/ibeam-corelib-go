@@ -24,7 +24,7 @@ type IbeamServer struct {
 
 // GetCoreInfo returns the CoreInfo of the Ibeam-Core
 func (s *IbeamServer) GetCoreInfo(_ context.Context, _ *pb.Empty) (*pb.CoreInfo, error) {
-	coreInfo := proto.Clone(s.parameterRegistry.coreInfo.ProtoReflect().Interface()).(*pb.CoreInfo)
+	coreInfo := proto.Clone(s.parameterRegistry.coreInfo).(*pb.CoreInfo)
 	s.muDistributor.RLock()
 	coreInfo.ConnectedClients = uint32(len(s.serverClientsDistributor))
 	s.muDistributor.RUnlock()
