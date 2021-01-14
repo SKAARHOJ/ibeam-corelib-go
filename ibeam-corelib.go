@@ -198,13 +198,13 @@ func (s *IbeamServer) GetParameterDetails(c context.Context, mpIDs *pb.ModelPara
 }
 
 func (s *IbeamServer) getParameterDetail(mpID *pb.ModelParameterID) (*pb.ParameterDetail, error) {
-	if mpID.Model == 0 || mpID.Parameter == 0 {
+	if mpID.Parameter == 0 {
 		return nil, errors.New("Failed to get instance values " + mpID.String())
 	}
 	if len(s.parameterRegistry.ParameterDetail) < int(mpID.Model) {
 		return nil, fmt.Errorf("ParamerDetail does not have Model with id %v", mpID.Model)
 	}
-	for _, parameterDetail := range s.parameterRegistry.ParameterDetail[mpID.Model-1] {
+	for _, parameterDetail := range s.parameterRegistry.ParameterDetail[mpID.Model] {
 		if parameterDetail.Id.Model == mpID.Model && parameterDetail.Id.Parameter == mpID.Parameter {
 			return parameterDetail, nil
 		}
