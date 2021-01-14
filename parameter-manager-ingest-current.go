@@ -144,9 +144,8 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					shouldSend = true
 				}
 			}
-
-			if parameterBuffer.isAssumedState != (parameterBuffer.currentValue.Value != parameterBuffer.targetValue.Value) {
-				parameterBuffer.isAssumedState = parameterBuffer.currentValue.Value != parameterBuffer.targetValue.Value
+			assumed := !reflect.DeepEqual(parameterBuffer.currentValue.Value, parameterBuffer.targetValue.Value)
+			if parameterBuffer.isAssumedState != assumed {
 				shouldSend = true
 			}
 		} else {

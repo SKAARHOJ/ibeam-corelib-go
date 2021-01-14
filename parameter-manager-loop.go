@@ -83,7 +83,6 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 		if parameterBuffer.tryCount > parameterDetail.RetryCount {
 			log.Errorf("Failed to set parameter %v '%v' in %v tries on device %v", parameterDetail.Id.Parameter, parameterDetail.Name, parameterDetail.RetryCount, deviceID)
 			copier.Copy(&parameterBuffer.targetValue, &parameterBuffer.currentValue)
-			parameterBuffer.isAssumedState = false
 
 			m.serverClientsStream <- &pb.Parameter{
 				Value: []*pb.ParameterValue{parameterBuffer.getParameterValue()},
@@ -102,11 +101,8 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 
 	switch parameterDetail.ControlStyle {
 	case pb.ControlStyle_Normal:
-		parameterBuffer.isAssumedState = true
-
 		if parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
 			copier.Copy(&parameterBuffer.currentValue, &parameterBuffer.targetValue)
-			parameterBuffer.isAssumedState = false
 		}
 
 		// If we Have a current Option, get the Value for the option from the Option List
@@ -231,8 +227,6 @@ func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameter
 	case pb.ControlStyle_NoControl, pb.ControlStyle_Oneshot:
 		if parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
 			copier.Copy(&parameterBuffer.targetValue, &parameterBuffer.currentValue)
-			parameterBuffer.isAssumedState = false
-
 		}
 
 	default:
