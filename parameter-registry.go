@@ -1,6 +1,7 @@
 package ibeamcorelib
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -15,7 +16,7 @@ type parameterStates []map[int]*IbeamParameterDimension //Parameter States: devi
 // IbeamParameterRegistry is the storage of the core.
 // It saves all Infos about the Core, Device and Models and stores the Details and current Values of the Parameter.
 type IbeamParameterRegistry struct {
-	muInfo          sync.RWMutex
+	muInfo          sync.RWMutex // Protects both Model and DeviceInfos
 	muDetail        sync.RWMutex
 	muValue         sync.RWMutex
 	coreInfo        *pb.CoreInfo
@@ -230,6 +231,15 @@ func (r *IbeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32 {
 
 	log.Debugf("Model '%v' registered with ID: %v ", model.Name, model.Id)
 	return model.Id
+}
+
+func (r *IbeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) (uint32, error) {
+	r.muInfo.RLock()
+	if int(deviceID) > len(r.DeviceInfos) {
+		return 0, fmt.Errorf("can not get model: no device with ID %d found", deviceID)
+	}
+	device := r.DeviceInfos[deviceID-1]
+	return device.ModelID, nil
 }
 
 // RegisterDeviceWithModelName registers a new Device in the Registry with given Modelname, if there is no it uses the generic one
