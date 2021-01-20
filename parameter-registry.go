@@ -235,6 +235,7 @@ func (r *IbeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32 {
 
 func (r *IbeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) (uint32, error) {
 	r.muInfo.RLock()
+	defer r.muInfo.RUnlock()
 	if int(deviceID) > len(r.DeviceInfos) {
 		return 0, fmt.Errorf("can not get model: no device with ID %d found", deviceID)
 	}
@@ -248,11 +249,11 @@ func (r *IbeamParameterRegistry) RegisterDeviceWithModelName(modelName string) (
 	r.muInfo.RLock()
 	for _, m := range r.ModelInfos {
 		if m.Name == modelName {
-			r.muDetail.RUnlock()
+			r.muInfo.RUnlock()
 			return r.RegisterDevice(modelID)
 		}
 	}
-	r.muDetail.RUnlock()
+	r.muInfo.RUnlock()
 	log.Warn("Could not find model for '%s', using generic model", modelName)
 	return r.RegisterDevice(modelID)
 }
