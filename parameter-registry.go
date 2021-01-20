@@ -232,6 +232,21 @@ func (r *IbeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32 {
 	return model.Id
 }
 
+// RegisterDeviceWithModelName registers a new Device in the Registry with given Modelname, if there is no it uses the generic one
+func (r *IbeamParameterRegistry) RegisterDeviceWithModelName(modelName string) (deviceIndex uint32) {
+	modelID := uint32(0)
+	r.muInfo.RLock()
+	for _, m := range r.ModelInfos {
+		if m.Name == modelName {
+			r.muDetail.RUnlock()
+			return r.RegisterDevice(modelID)
+		}
+	}
+	r.muDetail.RUnlock()
+	log.Warn("Could not find model for '%s', using generic model", modelName)
+	return r.RegisterDevice(modelID)
+}
+
 // RegisterDevice registers a new Device in the Registry with given ModelID
 func (r *IbeamParameterRegistry) RegisterDevice(modelID uint32) (deviceIndex uint32) {
 	r.parametersDone = true
