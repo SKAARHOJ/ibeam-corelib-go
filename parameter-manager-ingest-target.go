@@ -183,7 +183,17 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 				log.Errorf("No option List found for Parameter %v", newValue)
 				continue
 			}
-			if newValue.CurrentOption > uint32(len(parameterConfig.OptionList.Options)) {
+
+			// check if id is valid in optionlist
+			found := false
+			for _, o := range parameterConfig.OptionList.Options {
+				if o.Id == newValue.CurrentOption {
+					found = true
+					break
+				}
+			}
+
+			if !found {
 				log.Errorf("Invalid operation index for parameter %v", parameterID)
 				m.serverClientsStream <- &pb.Parameter{
 					Id:    parameter.Id,
