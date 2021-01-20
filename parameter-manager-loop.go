@@ -25,11 +25,11 @@ func (m *IbeamParameterManager) parameterLoop() {
 		deviceID := deviceInfo.DeviceID
 		deviceIndex := int(deviceID - 1)
 
-		modelID := int(deviceInfo.ModelID)
+		modelID := deviceInfo.ModelID
 
 		for _, parameterDetail := range m.parameterRegistry.ParameterDetail[modelID] {
 			parameterID := parameterDetail.Id.Parameter
-			parameterIndex := int(parameterID)
+			parameterIndex := parameterID
 
 			// Check if Parameter has a Control Style
 			if parameterDetail.ControlStyle == pb.ControlStyle_Undefined {

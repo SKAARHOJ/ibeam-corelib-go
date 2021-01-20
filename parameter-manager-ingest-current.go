@@ -16,7 +16,7 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 
 	// Get Index and ID for Device and Parameter and the actual state of all parameters
 	parameterID := parameter.Id.Parameter
-	parameterIndex := int(parameterID)
+	parameterIndex := parameterID
 	deviceID := parameter.Id.Device
 	deviceIndex := int(deviceID - 1)
 	modelIndex := m.parameterRegistry.getModelIndex(deviceID)

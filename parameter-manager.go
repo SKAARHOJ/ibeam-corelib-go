@@ -53,7 +53,7 @@ func (m *IbeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb
 
 	// Get Index and ID for Device and Parameter and the actual state of all parameters
 	parameterID := parameter.Id.Parameter
-	parameterIndex := int(parameterID)
+	parameterIndex := parameterID
 	deviceID := parameter.Id.Device
 	deviceIndex := int(deviceID - 1)
 	modelIndex := m.parameterRegistry.getModelIndex(deviceID)

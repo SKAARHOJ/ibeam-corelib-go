@@ -57,8 +57,15 @@ func (s *IbeamServer) GetDeviceInfo(_ context.Context, deviceIDs *pb.DeviceIDs) 
 // GetModelInfo returns the ModelInfos for given ModelIDs.
 // If no IDs are given, all ModelInfos will be returned.
 func (s *IbeamServer) GetModelInfo(_ context.Context, mIDs *pb.ModelIDs) (*pb.ModelInfos, error) {
+	s.parameterRegistry.muInfo.RLock()
+	defer s.parameterRegistry.muInfo.RUnlock()
+
 	if len(mIDs.Ids) == 0 {
-		return &pb.ModelInfos{ModelInfos: s.parameterRegistry.ModelInfos}, nil
+		infos := []*pb.ModelInfo{}
+		for _, info := range s.parameterRegistry.ModelInfos {
+			infos = append(infos, info)
+		}
+		return &pb.ModelInfos{ModelInfos: infos}, nil
 	}
 	var rModelInfos pb.ModelInfos
 	for _, ID := range mIDs.Ids {
@@ -175,7 +182,7 @@ func (s *IbeamServer) GetParameterDetails(c context.Context, mpIDs *pb.ModelPara
 		}
 	} else if len(mpIDs.Ids) == 1 && int(mpIDs.Ids[0].Parameter) == 0 {
 		// Return all parameters for model
-		if len(s.parameterRegistry.ParameterDetail) > int(mpIDs.Ids[0].Model) {
+		if _, exists := s.parameterRegistry.ParameterDetail[mpIDs.Ids[0].Model]; exists {
 			for _, modelDetail := range s.parameterRegistry.ParameterDetail[mpIDs.Ids[0].Model] {
 				rParameterDetails.Details = append(rParameterDetails.Details, modelDetail)
 			}
@@ -193,7 +200,7 @@ func (s *IbeamServer) GetParameterDetails(c context.Context, mpIDs *pb.ModelPara
 
 		}
 	}
-	log.Debugf("Send ParameterDetails for %v parameters", rParameterDetails.Details[0].Name)
+	log.Debugf("Send ParameterDetails for %v parameters", len(rParameterDetails.Details))
 	return rParameterDetails, nil
 }
 
@@ -318,9 +325,9 @@ func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelI
 	registry = &IbeamParameterRegistry{
 		coreInfo:        proto.Clone(coreInfo).(*pb.CoreInfo),
 		DeviceInfos:     []*pb.DeviceInfo{},
-		ModelInfos:      []*pb.ModelInfo{},
-		ParameterDetail: []map[int]*pb.ParameterDetail{},
-		parameterValue:  []map[int]*IbeamParameterDimension{},
+		ModelInfos:      map[uint32]*pb.ModelInfo{},
+		ParameterDetail: map[uint32]map[uint32]*pb.ParameterDetail{},
+		parameterValue:  []map[uint32]*IbeamParameterDimension{},
 	}
 
 	server := IbeamServer{
