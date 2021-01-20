@@ -254,7 +254,7 @@ func (r *IbeamParameterRegistry) RegisterDeviceWithModelName(modelName string) (
 		}
 	}
 	r.muInfo.RUnlock()
-	log.Warn("Could not find model for '%s', using generic model", modelName)
+	log.Warnf("Could not find model for '%s', using generic model", modelName)
 	return r.RegisterDevice(modelID)
 }
 

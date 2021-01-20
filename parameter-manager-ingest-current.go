@@ -135,11 +135,11 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				continue
 			}
 			if newParameterValue.Value.(*pb.ParameterValue_Integer).Integer > int32(parameterConfig.Maximum) {
-				log.Errorf("Ingest Current Loop: Max violation for parameter %v", parameterID)
+				log.Errorf("Ingest Current Loop: Max violation for parameter %v, got %d", parameterID, newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)
 				continue
 			}
 			if newParameterValue.Value.(*pb.ParameterValue_Integer).Integer < int32(parameterConfig.Minimum) {
-				log.Errorf("Ingest Current Loop: Min violation for parameter %v", parameterID)
+				log.Errorf("Ingest Current Loop: Min violation for parameter %v, got %d", parameterID, newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)
 				continue
 			}
 		case pb.ValueType_String:
