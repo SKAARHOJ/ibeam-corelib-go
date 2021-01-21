@@ -86,7 +86,7 @@ func (r *IbeamParameterRegistry) RegisterParameterForModels(modelIDs []uint32, d
 	}
 }
 
-// RegisterParameterForModels registers a parameter and its detail struct in the registry for a single specified model and the default model if the id does not exist there yet.
+// RegisterParameterForModel registers a parameter and its detail struct in the registry for a single specified model and the default model if the id does not exist there yet.
 func (r *IbeamParameterRegistry) RegisterParameterForModel(modelID uint32, detail *pb.ParameterDetail) (parameterIndex uint32) {
 	if detail.Id == nil {
 		detail.Id = new(pb.ModelParameterID)
@@ -220,11 +220,20 @@ func (r *IbeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32 {
 		log.Fatal("Can not register a new model after registering parameters")
 	}
 
-	// FIXME: this needs to only happen on autoids
-	r.muInfo.Lock()
+	if model.Name == "" {
+		log.Fatal("please specify a name for all models")
+	}
 
+	if model.Description == "" {
+		log.Fatal("please specify a description for all models")
+	}
+
+	r.muInfo.Lock()
 	if _, exists := r.ModelInfos[model.Id]; exists {
 		// if the id already exists count it up
+		if !r.allowAutoIDs {
+			log.Fatalf("Refusing to autoassign id for model '%s', please specify an explicit ID", model.Name)
+		}
 		r.muDetail.RLock()
 		model.Id = uint32(len(r.ParameterDetail))
 		log.Warnf("Autoassigning id %d for model '%s'", model.Id, model.Name)
