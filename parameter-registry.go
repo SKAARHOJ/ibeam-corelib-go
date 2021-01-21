@@ -242,14 +242,34 @@ func (r *IbeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32 {
 	return model.Id
 }
 
-func (r *IbeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) (uint32, error) {
+// GetParameterNameOfModel gets the name of a parameter by id and model id
+func (r *IbeamParameterRegistry) GetParameterNameOfModel(parameterID, modelID uint32) (string, error) {
+	r.muDetail.RLock()
+	defer r.muDetail.RUnlock()
+
+	modelInfo, exists := r.ParameterDetail[modelID]
+	if !exists {
+		return "", fmt.Errorf("Could not find Parameter for Model with id %d", modelID)
+	}
+
+	for _, pd := range modelInfo {
+		if pd.Id.Parameter == parameterID {
+			return pd.Name, nil
+		}
+	}
+	return "", fmt.Errorf("Could not find Parameter with id %v", parameterID)
+}
+
+// GetModelIDByDeviceID is a helper to get the modelid for a specific device
+func (r *IbeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32 {
 	r.muInfo.RLock()
 	defer r.muInfo.RUnlock()
 	if int(deviceID) > len(r.DeviceInfos) {
-		return 0, fmt.Errorf("can not get model: no device with ID %d found", deviceID)
+		log.Warnf("can not get model: no device with ID %d found", deviceID)
+		return 0
 	}
 	device := r.DeviceInfos[deviceID-1]
-	return device.ModelID, nil
+	return device.ModelID
 }
 
 // RegisterDeviceWithModelName registers a new Device in the Registry with given Modelname, if there is no it uses the generic one

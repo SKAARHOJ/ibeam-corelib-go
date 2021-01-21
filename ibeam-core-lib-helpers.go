@@ -25,6 +25,8 @@ func GenerateOptionList(options ...string) (optionList *pb.OptionList) {
 }
 
 // GetNameOfParameterOfModel returns the Name of a Parameter with a given id in a given ParameterDetail Map
+//
+// Deprecated: please use the registry function GetParameterNameOfModel
 func GetNameOfParameterOfModel(parameterID, modelID uint32, paramIDs []map[string]uint32) (string, error) {
 	if len(paramIDs) <= int(modelID) {
 		return "", fmt.Errorf("Could not find Parameter for Model with id %d", modelID)
@@ -39,6 +41,8 @@ func GetNameOfParameterOfModel(parameterID, modelID uint32, paramIDs []map[strin
 }
 
 // GetNameOfParameter returns the Name of a Parameter with a given id in a given ParameterDetail Map
+//
+// Deprecated: please use the registry function GetParameterNameOfModel
 func GetNameOfParameter(parameterID uint32, paramIDs map[string]uint32) (string, error) {
 	for name, pd := range paramIDs {
 		if pd == parameterID {
