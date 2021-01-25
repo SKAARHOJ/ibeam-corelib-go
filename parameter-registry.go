@@ -299,22 +299,56 @@ func (r *IbeamParameterRegistry) RegisterDeviceWithModelName(deviceID uint32, mo
 	return r.RegisterDevice(deviceID, modelID)
 }
 
+// ReRegisterDevice registers an existing device again. This allows to reset it's state and change the type of model if necessary
+// Make sure to handle the error properly
+func (r *IbeamParameterRegistry) ReRegisterDevice(deviceID, modelID uint32) error {
+	// Check for device exists
+	r.muInfo.RLock()
+	if _, exists := r.DeviceInfos[deviceID]; exists {
+		r.muInfo.RUnlock()
+		return fmt.Errorf("Could not re-register device with existing deviceid: %v", deviceID)
+	}
+	r.muInfo.RUnlock()
+
+	r.muDetail.RLock()
+	if _, exists := r.ParameterDetail[modelID]; !exists {
+		r.muDetail.RUnlock()
+		log.Fatalf("Could not register device for nonexistent model with id: %v", modelID)
+	}
+	r.muDetail.RUnlock()
+
+	// clear device
+	r.muInfo.Lock()
+	delete(r.DeviceInfos, deviceID)
+	r.muInfo.Unlock()
+
+	r.muValue.Lock()
+	delete(r.ParameterValue, deviceID)
+	r.muValue.Unlock()
+
+	// Call register device with old ID
+	_, err := r.RegisterDevice(deviceID, modelID)
+	return err
+}
+
 // RegisterDevice registers a new Device in the Registry with given DeviceID and ModelID. If the DeviceID is 0 it will be picked automatically
-func (r *IbeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) uint32 {
+// Make sure to handle the error properly
+func (r *IbeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint32, error) {
 	r.parametersDone = true
 
 	r.muDetail.RLock()
 	defer r.muDetail.RUnlock()
 
 	if _, exists := r.ParameterDetail[modelID]; !exists {
-		log.Fatalf("Could not register device for nonexistent model with id: %v", modelID)
+		return 0, fmt.Errorf("Could not register device for nonexistent model with id: %v", modelID)
 	}
 
 	r.muInfo.RLock()
 	if _, exists := r.DeviceInfos[deviceID]; exists {
 		r.muInfo.RUnlock()
-		log.Fatalf("Could not register device with existing deviceid: %v", deviceID)
+		return 0, fmt.Errorf("Could not register device with existing deviceid: %v", deviceID)
 	}
+	r.muInfo.RUnlock()
 
 	modelConfig := r.ParameterDetail[modelID]
 
