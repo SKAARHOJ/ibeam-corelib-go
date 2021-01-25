@@ -285,7 +285,7 @@ func (r *IbeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32 {
 }
 
 // RegisterDeviceWithModelName registers a new Device in the Registry with given Modelname, if there is no it uses the generic one. If the DeviceID is 0 it will be picked automatically
-func (r *IbeamParameterRegistry) RegisterDeviceWithModelName(deviceID uint32, modelName string) (deviceIndex uint32) {
+func (r *IbeamParameterRegistry) RegisterDeviceWithModelName(deviceID uint32, modelName string) (deviceIndex uint32, err error) {
 	modelID := uint32(0)
 	r.muInfo.RLock()
 	for _, m := range r.ModelInfos {
@@ -422,7 +422,7 @@ func (r *IbeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 	r.muValue.Unlock()
 
 	log.Debugf("Device '%v' registered with model: %v (%v)", deviceID, modelID, r.ModelInfos[modelID].Name)
-	return deviceID
+	return deviceID, nil
 }
 
 // GetIDMaps returns a Map witch maps the Name of all Parameters with their ID for each model
