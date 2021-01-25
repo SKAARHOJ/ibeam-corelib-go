@@ -18,13 +18,12 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 	parameterID := parameter.Id.Parameter
 	parameterIndex := parameterID
 	deviceID := parameter.Id.Device
-	deviceIndex := int(deviceID - 1)
 	modelIndex := m.parameterRegistry.getModelIndex(deviceID)
 
 	// Get State and the Configuration (Details) of the Parameter
 	m.parameterRegistry.muValue.Lock()
 	defer m.parameterRegistry.muValue.Unlock()
-	state := m.parameterRegistry.parameterValue
+	state := m.parameterRegistry.ParameterValue
 	m.parameterRegistry.muDetail.RLock()
 	defer m.parameterRegistry.muDetail.RUnlock()
 	parameterConfig := m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex]
@@ -36,12 +35,12 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			continue
 		}
 		// Check if Dimension is Valid
-		if !state[deviceIndex][parameterIndex].MultiIndexHasValue(newParameterValue.DimensionID) {
+		if !state[deviceID][parameterIndex].MultiIndexHasValue(newParameterValue.DimensionID) {
 			log.Errorf("Received invalid dimension id  %v for parameter %d from device %d", newParameterValue.DimensionID, parameterID, deviceID)
 			continue
 		}
 
-		parameterDimension, err := state[deviceIndex][parameterIndex].MultiIndex(newParameterValue.DimensionID)
+		parameterDimension, err := state[deviceID][parameterIndex].MultiIndex(newParameterValue.DimensionID)
 		if err != nil {
 			log.Error(err)
 			continue

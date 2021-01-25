@@ -15,13 +15,12 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 	// Get Index and ID for Device and Parameter and the actual state of all parameters
 	parameterID := parameter.Id.Parameter
 	deviceID := parameter.Id.Device
-	deviceIndex := int(deviceID - 1)
 	modelIndex := m.parameterRegistry.getModelIndex(deviceID)
 
 	// Get State and the Configuration (Details) of the Parameter
 	m.parameterRegistry.muValue.Lock()
 	defer m.parameterRegistry.muValue.Unlock()
-	state := m.parameterRegistry.parameterValue
+	state := m.parameterRegistry.ParameterValue
 
 	m.parameterRegistry.muDetail.RLock()
 	defer m.parameterRegistry.muDetail.RUnlock()
@@ -41,7 +40,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 		}
 
 		// Check if dimension of the value is valid
-		if !state[deviceIndex][parameterID].MultiIndexHasValue(newParameterValue.DimensionID) {
+		if !state[deviceID][parameterID].MultiIndexHasValue(newParameterValue.DimensionID) {
 			log.Errorf("Received invalid Dimension %d for parameter %d on device %d", newParameterValue.DimensionID, parameterID, parameter.Id.Device)
 			m.serverClientsStream <- &pb.Parameter{
 				Id:    parameter.Id,
@@ -50,7 +49,7 @@ func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 			}
 			continue
 		}
-		dimension, err := state[deviceIndex][parameterID].MultiIndex(newParameterValue.DimensionID)
+		dimension, err := state[deviceID][parameterID].MultiIndex(newParameterValue.DimensionID)
 		if err != nil {
 			log.Error(err)
 			continue

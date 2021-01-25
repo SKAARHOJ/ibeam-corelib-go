@@ -23,8 +23,6 @@ func (m *IbeamParameterManager) parameterLoop() {
 	for _, deviceInfo := range m.parameterRegistry.DeviceInfos {
 
 		deviceID := deviceInfo.DeviceID
-		deviceIndex := int(deviceID - 1)
-
 		modelID := deviceInfo.ModelID
 
 		for _, parameterDetail := range m.parameterRegistry.ParameterDetail[modelID] {
@@ -36,8 +34,8 @@ func (m *IbeamParameterManager) parameterLoop() {
 				continue
 			}
 
-			state := m.parameterRegistry.parameterValue
-			parameterDimension := state[deviceIndex][parameterIndex]
+			state := m.parameterRegistry.ParameterValue
+			parameterDimension := state[deviceID][parameterIndex]
 			m.loopDimension(parameterDimension, parameterDetail, deviceID)
 		}
 	}

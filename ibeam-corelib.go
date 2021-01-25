@@ -40,13 +40,18 @@ func (s *IbeamServer) GetDeviceInfo(_ context.Context, deviceIDs *pb.DeviceIDs) 
 	defer s.parameterRegistry.muInfo.RUnlock()
 
 	if len(deviceIDs.Ids) == 0 {
-		return &pb.DeviceInfos{DeviceInfos: s.parameterRegistry.DeviceInfos}, nil
+		infos := []*pb.DeviceInfo{}
+		for _, info := range s.parameterRegistry.DeviceInfos {
+			infos = append(infos, info)
+		}
+		return &pb.DeviceInfos{DeviceInfos: infos}, nil
 	}
 
 	var rDeviceInfos pb.DeviceInfos
 	for _, deviceID := range deviceIDs.Ids {
-		if len(s.parameterRegistry.DeviceInfos) >= int(deviceID) && deviceID > 0 {
-			rDeviceInfos.DeviceInfos = append(rDeviceInfos.DeviceInfos, s.parameterRegistry.DeviceInfos[deviceID-1])
+		_, dExists := s.parameterRegistry.DeviceInfos[deviceID]
+		if dExists && deviceID != 0 {
+			rDeviceInfos.DeviceInfos = append(rDeviceInfos.DeviceInfos, s.parameterRegistry.DeviceInfos[deviceID])
 		}
 		// If we have no Device with such a ID, skip
 	}
@@ -94,11 +99,11 @@ func (s *IbeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 	defer s.parameterRegistry.muValue.RUnlock()
 
 	if len(dpIDs.Ids) == 0 {
-		for did, dState := range s.parameterRegistry.parameterValue {
+		for did, dState := range s.parameterRegistry.ParameterValue {
 			for pid := range dState {
 				dpID := pb.DeviceParameterID{
 					Parameter: uint32(pid),
-					Device:    uint32(did) + 1,
+					Device:    uint32(did),
 				}
 				iv := s.parameterRegistry.getInstanceValues(&dpID)
 				if iv != nil {
@@ -112,8 +117,8 @@ func (s *IbeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 		}
 		rParameters.Parameters = append(rParameters.Parameters)
 	} else if len(dpIDs.Ids) == 1 && dpIDs.Ids[0].Parameter == 0 && dpIDs.Ids[0].Device != 0 {
-		did := dpIDs.Ids[0].Device - 1
-		if len(s.parameterRegistry.parameterValue) <= int(did) {
+		did := dpIDs.Ids[0].Device
+		if _, exists := s.parameterRegistry.ParameterValue[did]; !exists {
 			rParameters.Parameters = append(rParameters.Parameters, &pb.Parameter{
 				Id:    dpIDs.Ids[0],
 				Error: pb.ParameterError_UnknownID,
@@ -121,11 +126,12 @@ func (s *IbeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 			})
 			return
 		}
-
-		for pid := range s.parameterRegistry.parameterValue[did] {
+		_, exists := s.parameterRegistry.ParameterValue[did][0]
+		log.Info(exists)
+		for pid := range s.parameterRegistry.ParameterValue[did] {
 			dpID := pb.DeviceParameterID{
-				Parameter: uint32(pid),
-				Device:    uint32(did) + 1,
+				Parameter: pid,
+				Device:    did,
 			}
 			iv := s.parameterRegistry.getInstanceValues(&dpID)
 			if iv != nil {
@@ -324,10 +330,10 @@ func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelI
 
 	registry = &IbeamParameterRegistry{
 		coreInfo:        proto.Clone(coreInfo).(*pb.CoreInfo),
-		DeviceInfos:     []*pb.DeviceInfo{},
+		DeviceInfos:     map[uint32]*pb.DeviceInfo{},
 		ModelInfos:      map[uint32]*pb.ModelInfo{},
 		ParameterDetail: map[uint32]map[uint32]*pb.ParameterDetail{},
-		parameterValue:  []map[uint32]*IbeamParameterDimension{},
+		ParameterValue:  map[uint32]map[uint32]*IbeamParameterDimension{},
 	}
 
 	server := IbeamServer{

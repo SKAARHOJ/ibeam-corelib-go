@@ -55,16 +55,14 @@ func (m *IbeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb
 	parameterID := parameter.Id.Parameter
 	parameterIndex := parameterID
 	deviceID := parameter.Id.Device
-	deviceIndex := int(deviceID - 1)
 	modelIndex := m.parameterRegistry.getModelIndex(deviceID)
 
 	// Get State and the Configuration (Details) of the Parameter, assume mutex is locked in outer layers of parameterLoop
-	state := m.parameterRegistry.parameterValue
+	state := m.parameterRegistry.ParameterValue
 	parameterConfig := m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex]
-
-	// Check if ID and Index are valid and in the State
-	if _, ok := state[deviceIndex][parameterIndex]; !ok {
-		log.Errorf("Invalid DeviceID %d for Parameter %d", deviceID, parameterID)
+	// Check if device and param id are valid and in the State
+	if _, exists := state[deviceID][parameterIndex]; !exists {
+		log.Errorf("Invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
 
 		return &pb.Parameter{
 			Id:    parameter.Id,
