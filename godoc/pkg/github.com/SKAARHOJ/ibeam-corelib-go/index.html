@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#375EAB">
+
+  <title>ibeamcorelib - Go Documentation Server</title>
+
+<link type="text/css" rel="stylesheet" href="../../../../lib/godoc/style.css">
+
+<script>window.initFuncs = [];</script>
+<script src="../../../../lib/godoc/jquery.js" defer></script>
+
+
+
+<script>var goVersion = "go1.15.6";</script>
+<script src="../../../../lib/godoc/godocs.js" defer></script>
+</head>
+<body>
+
+<div id='lowframe' style="position: fixed; bottom: 0; left: 0; height: 0; width: 100%; border-top: thin solid grey; background-color: white; overflow: auto;">
+...
+</div><!-- #lowframe -->
+
+<div id="topbar" class="wide"><div class="container">
+<div class="top-heading" id="heading-wide"><a href="http://localhost:6060/pkg/">Go Documentation Server</a></div>
+<div class="top-heading" id="heading-narrow"><a href="http://localhost:6060/pkg/">GoDoc</a></div>
+<a href="index.html#" id="menu-button"><span id="menu-button-arrow">&#9661;</span></a>
+<form method="GET" action="http://localhost:6060/search">
+<div id="menu">
+
+<span class="search-box"><input type="search" id="search" name="q" placeholder="Search" aria-label="Search" required><button type="submit"><span><!-- magnifying glass: --><svg width="24" height="24" viewBox="0 0 24 24"><title>submit search</title><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/><path d="M0 0h24v24H0z" fill="none"/></svg></span></button></span>
+</div>
+</form>
+
+</div></div>
+
+
+
+<div id="page" class="wide">
+<div class="container">
+
+
+  <h1>
+    Package ibeamcorelib
+    <span class="text-muted"></span>
+  </h1>
+
+
+
+
+
+
+
+<div id="nav"></div>
+
+
+<!--
+	Copyright 2009 The Go Authors. All rights reserved.
+	Use of this source code is governed by a BSD-style
+	license that can be found in the LICENSE file.
+-->
+<!--
+	Note: Static (i.e., not template-generated) href and id
+	attributes start with "pkg-" to make it impossible for
+	them to conflict with generated attributes (some of which
+	correspond to Go identifiers).
+-->
+
+	<script>
+	document.ANALYSIS_DATA = null;
+	document.CALLGRAPH = null;
+	</script>
+
+	
+		
+		<div id="short-nav">
+			<dl>
+			<dd><code>import "github.com/SKAARHOJ/ibeam-corelib-go"</code></dd>
+			</dl>
+			<dl>
+			<dd><a href="index.html#pkg-overview" class="overviewLink">Overview</a></dd>
+			<dd><a href="index.html#pkg-index" class="indexLink">Index</a></dd>
+			
+			
+				<dd><a href="index.html#pkg-subdirectories">Subdirectories</a></dd>
+			
+			</dl>
+		</div>
+		<!-- The package's Name is printed as title by the top-level template -->
+		<div id="pkg-overview" class="toggleVisible">
+			<div class="collapsed">
+				<h2 class="toggleButton" title="Click to show Overview section">Overview ▹</h2>
+			</div>
+			<div class="expanded">
+				<h2 class="toggleButton" title="Click to hide Overview section">Overview ▾</h2>
+				
+				
+			</div>
+		</div>
+
+		<div id="pkg-index" class="toggleVisible">
+		<div class="collapsed">
+			<h2 class="toggleButton" title="Click to show Index section">Index ▹</h2>
+		</div>
+		<div class="expanded">
+			<h2 class="toggleButton" title="Click to hide Index section">Index ▾</h2>
+
+		<!-- Table of contents for API; must be named manual-nav to turn off auto nav. -->
+			<div id="manual-nav">
+			<dl>
+			
+			
+			
+				
+				<dd><a href="index.html#CreateServer">func CreateServer(coreInfo *pb.CoreInfo) (manager *IbeamParameterManager, registry *IbeamParameterRegistry, settoManager chan *pb.Parameter, getfromManager chan *pb.Parameter)</a></dd>
+			
+				
+				<dd><a href="index.html#CreateServerWithDefaultModel">func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelInfo) (manager *IbeamParameterManager, registry *IbeamParameterRegistry, settoManager chan *pb.Parameter, getfromManager chan *pb.Parameter)</a></dd>
+			
+				
+				<dd><a href="index.html#GenerateOptionList">func GenerateOptionList(options ...string) (optionList *pb.OptionList)</a></dd>
+			
+				
+				<dd><a href="index.html#GetNameOfParameter">func GetNameOfParameter(parameterID uint32, paramIDs map[string]uint32) (string, error)</a></dd>
+			
+				
+				<dd><a href="index.html#GetNameOfParameterOfModel">func GetNameOfParameterOfModel(parameterID, modelID uint32, paramIDs []map[string]uint32) (string, error)</a></dd>
+			
+			
+				
+				<dd><a href="index.html#DimensionDetails">type DimensionDetails</a></dd>
+				
+				
+			
+				
+				<dd><a href="index.html#IbeamParameterDimension">type IbeamParameterDimension</a></dd>
+				
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamParameterDimension.MultiIndex">func (pd *IbeamParameterDimension) MultiIndex(dimensionID []uint32) (*IbeamParameterDimension, error)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamParameterDimension.MultiIndexHasValue">func (pd *IbeamParameterDimension) MultiIndexHasValue(dimensionID []uint32) bool</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamParameterDimension.Subdimensions">func (pd *IbeamParameterDimension) Subdimensions() ([]*IbeamParameterDimension, error)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamParameterDimension.Value">func (pd *IbeamParameterDimension) Value() (*ibeamParameterValueBuffer, error)</a></dd>
+				
+			
+				
+				<dd><a href="index.html#IbeamParameterManager">type IbeamParameterManager</a></dd>
+				
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamParameterManager.Start">func (m *IbeamParameterManager) Start()</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamParameterManager.StartWithServer">func (m *IbeamParameterManager) StartWithServer(network, address string)</a></dd>
+				
+			
+				
+				<dd><a href="index.html#IbeamParameterRegistry">type IbeamParameterRegistry</a></dd>
+				
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamParameterRegistry.AllowAutoIDs">func (r *IbeamParameterRegistry) AllowAutoIDs()</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamParameterRegistry.GetIDMaps">func (r *IbeamParameterRegistry) GetIDMaps() []map[string]uint32</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamParameterRegistry.GetModelIDByDeviceID">func (r *IbeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamParameterRegistry.GetParameterNameOfModel">func (r *IbeamParameterRegistry) GetParameterNameOfModel(parameterID, modelID uint32) (string, error)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamParameterRegistry.ReRegisterDevice">func (r *IbeamParameterRegistry) ReRegisterDevice(deviceID, modelID uint32) error</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamParameterRegistry.RegisterDevice">func (r *IbeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint32, error)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamParameterRegistry.RegisterDeviceWithModelName">func (r *IbeamParameterRegistry) RegisterDeviceWithModelName(deviceID uint32, modelName string) (deviceIndex uint32, err error)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamParameterRegistry.RegisterModel">func (r *IbeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamParameterRegistry.RegisterParameter">func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (paramID uint32)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamParameterRegistry.RegisterParameterForModel">func (r *IbeamParameterRegistry) RegisterParameterForModel(modelID uint32, detail *pb.ParameterDetail) (parameterIndex uint32)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamParameterRegistry.RegisterParameterForModels">func (r *IbeamParameterRegistry) RegisterParameterForModels(modelIDs []uint32, detail *pb.ParameterDetail)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamParameterRegistry.UnregisterParameterForModel">func (r *IbeamParameterRegistry) UnregisterParameterForModel(modelID uint32, parameterName string)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamParameterRegistry.UnregisterParameterForModels">func (r *IbeamParameterRegistry) UnregisterParameterForModels(modelIDs []uint32, parameterName string)</a></dd>
+				
+			
+				
+				<dd><a href="index.html#IbeamServer">type IbeamServer</a></dd>
+				
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamServer.Get">func (s *IbeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rParameters *pb.Parameters, err error)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamServer.GetCoreInfo">func (s *IbeamServer) GetCoreInfo(_ context.Context, _ *pb.Empty) (*pb.CoreInfo, error)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamServer.GetDeviceInfo">func (s *IbeamServer) GetDeviceInfo(_ context.Context, deviceIDs *pb.DeviceIDs) (*pb.DeviceInfos, error)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamServer.GetModelInfo">func (s *IbeamServer) GetModelInfo(_ context.Context, mIDs *pb.ModelIDs) (*pb.ModelInfos, error)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamServer.GetParameterDetails">func (s *IbeamServer) GetParameterDetails(c context.Context, mpIDs *pb.ModelParameterIDs) (*pb.ParameterDetails, error)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamServer.Set">func (s *IbeamServer) Set(_ context.Context, ps *pb.Parameters) (*pb.Empty, error)</a></dd>
+				
+					
+					<dd>&nbsp; &nbsp; <a href="index.html#IbeamServer.Subscribe">func (s *IbeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCore_SubscribeServer) error</a></dd>
+				
+			
+				
+				<dd><a href="index.html#MetaElements">type MetaElements</a></dd>
+				
+				
+			
+			
+			</dl>
+			</div><!-- #manual-nav -->
+
+		
+
+		
+			<h3>Package files</h3>
+			<p>
+			<span style="font-size:90%">
+			
+				<a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/genProto.go.html">genProto.go</a>
+			
+				<a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core-lib-helpers.go.html">ibeam-core-lib-helpers.go</a>
+			
+				<a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/ibeam-corelib.go.html">ibeam-corelib.go</a>
+			
+				<a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-buffer.go.html">parameter-buffer.go</a>
+			
+				<a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-dimension.go.html">parameter-dimension.go</a>
+			
+				<a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-manager-ingest-current.go.html">parameter-manager-ingest-current.go</a>
+			
+				<a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-manager-ingest-target.go.html">parameter-manager-ingest-target.go</a>
+			
+				<a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-manager-loop.go.html">parameter-manager-loop.go</a>
+			
+				<a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-manager.go.html">parameter-manager.go</a>
+			
+				<a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-registry.go.html">parameter-registry.go</a>
+			
+			</span>
+			</p>
+		
+		</div><!-- .expanded -->
+		</div><!-- #pkg-index -->
+
+		
+
+		
+		
+		
+			
+			
+			<h2 id="CreateServer">func <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/ibeam-corelib.go%3Fs=10033:10208.html#L297">CreateServer</a>
+				<a class="permalink" href="index.html#CreateServer">&#xb6;</a>
+				
+				
+			</h2>
+			<pre>func CreateServer(coreInfo *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#CoreInfo">CoreInfo</a>) (manager *<a href="index.html#IbeamParameterManager">IbeamParameterManager</a>, registry *<a href="index.html#IbeamParameterRegistry">IbeamParameterRegistry</a>, settoManager chan *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#Parameter">Parameter</a>, getfromManager chan *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#Parameter">Parameter</a>)</pre>
+			<p>
+CreateServer sets up the ibeam server, parameter manager and parameter registry
+</p>
+
+			
+			
+
+		
+			
+			
+			<h2 id="CreateServerWithDefaultModel">func <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/ibeam-corelib.go%3Fs=10541:10760.html#L306">CreateServerWithDefaultModel</a>
+				<a class="permalink" href="index.html#CreateServerWithDefaultModel">&#xb6;</a>
+				
+				
+			</h2>
+			<pre>func CreateServerWithDefaultModel(coreInfo *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#CoreInfo">CoreInfo</a>, defaultModel *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#ModelInfo">ModelInfo</a>) (manager *<a href="index.html#IbeamParameterManager">IbeamParameterManager</a>, registry *<a href="index.html#IbeamParameterRegistry">IbeamParameterRegistry</a>, settoManager chan *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#Parameter">Parameter</a>, getfromManager chan *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#Parameter">Parameter</a>)</pre>
+			<p>
+CreateServerWithDefaultModel sets up the ibeam server, parameter manager and parameter registry and allows to specify a default model
+</p>
+
+			
+			
+
+		
+			
+			
+			<h2 id="GenerateOptionList">func <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core-lib-helpers.go%3Fs=386:456.html#L6">GenerateOptionList</a>
+				<a class="permalink" href="index.html#GenerateOptionList">&#xb6;</a>
+				
+				
+			</h2>
+			<pre>func GenerateOptionList(options ...<a href="http://localhost:6060/pkg/builtin/#string">string</a>) (optionList *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#OptionList">OptionList</a>)</pre>
+			<p>
+GenerateOptionList returns a new OptionList with ascending IDs
+</p>
+
+			
+			
+
+		
+			
+			
+			<h2 id="GetNameOfParameter">func <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core-lib-helpers.go%3Fs=1432:1519.html#L36">GetNameOfParameter</a>
+				<a class="permalink" href="index.html#GetNameOfParameter">&#xb6;</a>
+				
+				
+			</h2>
+			<pre>func GetNameOfParameter(parameterID <a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>, paramIDs map[<a href="http://localhost:6060/pkg/builtin/#string">string</a>]<a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>) (<a href="http://localhost:6060/pkg/builtin/#string">string</a>, <a href="http://localhost:6060/pkg/builtin/#error">error</a>)</pre>
+			<p>
+GetNameOfParameter returns the Name of a Parameter with a given id in a given ParameterDetail Map
+</p>
+<p>
+Deprecated: please use the registry function GetParameterNameOfModel
+</p>
+
+			
+			
+
+		
+			
+			
+			<h2 id="GetNameOfParameterOfModel">func <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core-lib-helpers.go%3Fs=853:958.html#L20">GetNameOfParameterOfModel</a>
+				<a class="permalink" href="index.html#GetNameOfParameterOfModel">&#xb6;</a>
+				
+				
+			</h2>
+			<pre>func GetNameOfParameterOfModel(parameterID, modelID <a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>, paramIDs []map[<a href="http://localhost:6060/pkg/builtin/#string">string</a>]<a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>) (<a href="http://localhost:6060/pkg/builtin/#string">string</a>, <a href="http://localhost:6060/pkg/builtin/#error">error</a>)</pre>
+			<p>
+GetNameOfParameterOfModel returns the Name of a Parameter with a given id in a given ParameterDetail Map
+</p>
+<p>
+Deprecated: please use the registry function GetParameterNameOfModel
+</p>
+
+			
+			
+
+		
+		
+			
+			
+			<h2 id="DimensionDetails">type <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core-lib-helpers.go%3Fs=275:318.html#L3">DimensionDetails</a>
+				<a class="permalink" href="index.html#DimensionDetails">&#xb6;</a>
+				
+				
+			</h2>
+			<p>
+DimensionDetails Type alias to make parameter definition nicer
+</p>
+
+			<pre>type DimensionDetails []*<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#DimensionDetail">DimensionDetail</a></pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+		
+			
+			
+			<h2 id="IbeamParameterDimension">type <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-dimension.go%3Fs=263:386.html#L2">IbeamParameterDimension</a>
+				<a class="permalink" href="index.html#IbeamParameterDimension">&#xb6;</a>
+				
+				
+			</h2>
+			<p>
+IbeamParameterDimension is a recursive structure to enable the state management of parameters with several dimensions
+</p>
+
+			<pre>type IbeamParameterDimension struct {
+    <span class="comment">// contains filtered or unexported fields</span>
+}
+</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+				
+				<h3 id="IbeamParameterDimension.MultiIndex">func (*IbeamParameterDimension) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-dimension.go%3Fs=1585:1686.html#L56">MultiIndex</a>
+					<a class="permalink" href="index.html#IbeamParameterDimension.MultiIndex">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (pd *<a href="index.html#IbeamParameterDimension">IbeamParameterDimension</a>) MultiIndex(dimensionID []<a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>) (*<a href="index.html#IbeamParameterDimension">IbeamParameterDimension</a>, <a href="http://localhost:6060/pkg/builtin/#error">error</a>)</pre>
+				<p>
+MultiIndex gets a specific dimension by dimensionID
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamParameterDimension.MultiIndexHasValue">func (*IbeamParameterDimension) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-dimension.go%3Fs=1008:1088.html#L31">MultiIndexHasValue</a>
+					<a class="permalink" href="index.html#IbeamParameterDimension.MultiIndexHasValue">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (pd *<a href="index.html#IbeamParameterDimension">IbeamParameterDimension</a>) MultiIndexHasValue(dimensionID []<a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>) <a href="http://localhost:6060/pkg/builtin/#bool">bool</a></pre>
+				<p>
+MultiIndexHasValue checks for a specific dimension ids existence
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamParameterDimension.Subdimensions">func (*IbeamParameterDimension) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-dimension.go%3Fs=737:823.html#L23">Subdimensions</a>
+					<a class="permalink" href="index.html#IbeamParameterDimension.Subdimensions">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (pd *<a href="index.html#IbeamParameterDimension">IbeamParameterDimension</a>) Subdimensions() ([]*<a href="index.html#IbeamParameterDimension">IbeamParameterDimension</a>, <a href="http://localhost:6060/pkg/builtin/#error">error</a>)</pre>
+				<p>
+Subdimensions of the Dimension
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamParameterDimension.Value">func (*IbeamParameterDimension) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-dimension.go%3Fs=522:600.html#L15">Value</a>
+					<a class="permalink" href="index.html#IbeamParameterDimension.Value">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (pd *<a href="index.html#IbeamParameterDimension">IbeamParameterDimension</a>) Value() (*ibeamParameterValueBuffer, <a href="http://localhost:6060/pkg/builtin/#error">error</a>)</pre>
+				<p>
+Value of the Dimension
+</p>
+
+				
+				
+				
+			
+		
+			
+			
+			<h2 id="IbeamParameterManager">type <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-manager.go%3Fs=218:494.html#L3">IbeamParameterManager</a>
+				<a class="permalink" href="index.html#IbeamParameterManager">&#xb6;</a>
+				
+				
+			</h2>
+			<p>
+IbeamParameterManager manages parameter changes.
+</p>
+
+			<pre>type IbeamParameterManager struct {
+    <span class="comment">// contains filtered or unexported fields</span>
+}
+</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+				
+				<h3 id="IbeamParameterManager.Start">func (*IbeamParameterManager) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-manager.go%3Fs=3793:3832.html#L98">Start</a>
+					<a class="permalink" href="index.html#IbeamParameterManager.Start">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (m *<a href="index.html#IbeamParameterManager">IbeamParameterManager</a>) Start()</pre>
+				<p>
+Start the communication between client and server.
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamParameterManager.StartWithServer">func (*IbeamParameterManager) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-manager.go%3Fs=711:783.html#L14">StartWithServer</a>
+					<a class="permalink" href="index.html#IbeamParameterManager.StartWithServer">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (m *<a href="index.html#IbeamParameterManager">IbeamParameterManager</a>) StartWithServer(network, address <a href="http://localhost:6060/pkg/builtin/#string">string</a>)</pre>
+				<p>
+StartWithServer Starts the ibeam parameter routine and the GRPC server in one call. This is blocking and should be called at the end of main.
+The network must be &#34;tcp&#34;, &#34;tcp4&#34;, &#34;tcp6&#34;, &#34;unix&#34; or &#34;unixpacket&#34;.
+</p>
+
+				
+				
+				
+			
+		
+			
+			
+			<h2 id="IbeamParameterRegistry">type <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-registry.go%3Fs=576:1271.html#L8">IbeamParameterRegistry</a>
+				<a class="permalink" href="index.html#IbeamParameterRegistry">&#xb6;</a>
+				
+				
+			</h2>
+			<p>
+IbeamParameterRegistry is the storage of the core.
+It saves all Infos about the Core, Device and Models and stores the Details and current Values of the Parameter.
+</p>
+
+			<pre>type IbeamParameterRegistry struct {
+<span id="IbeamParameterRegistry.DeviceInfos"></span>    DeviceInfos     map[<a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>]*<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#DeviceInfo">DeviceInfo</a>
+<span id="IbeamParameterRegistry.ModelInfos"></span>    ModelInfos      map[<a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>]*<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#ModelInfo">ModelInfo</a>
+<span id="IbeamParameterRegistry.ParameterDetail"></span>    ParameterDetail parameterDetails <span class="comment">//Parameter Details: model, parameter // TODO: Both need to be private! with getters, but no setters</span>
+<span id="IbeamParameterRegistry.ParameterValue"></span>    ParameterValue  parameterStates  <span class="comment">//Parameter States: device,parameter,dimension</span>
+    <span class="comment">// contains filtered or unexported fields</span>
+}
+</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+				
+				<h3 id="IbeamParameterRegistry.AllowAutoIDs">func (*IbeamParameterRegistry) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-registry.go%3Fs=1371:1418.html#L23">AllowAutoIDs</a>
+					<a class="permalink" href="index.html#IbeamParameterRegistry.AllowAutoIDs">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (r *<a href="index.html#IbeamParameterRegistry">IbeamParameterRegistry</a>) AllowAutoIDs()</pre>
+				<p>
+AllowAutoIDs Allowing Automatic IDs for parameters, this is only meant for initial development
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamParameterRegistry.GetIDMaps">func (*IbeamParameterRegistry) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-registry.go%3Fs=14012:14076.html#L419">GetIDMaps</a>
+					<a class="permalink" href="index.html#IbeamParameterRegistry.GetIDMaps">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (r *<a href="index.html#IbeamParameterRegistry">IbeamParameterRegistry</a>) GetIDMaps() []map[<a href="http://localhost:6060/pkg/builtin/#string">string</a>]<a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a></pre>
+				<p>
+GetIDMaps returns a Map witch maps the Name of all Parameters with their ID for each model
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamParameterRegistry.GetModelIDByDeviceID">func (*IbeamParameterRegistry) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-registry.go%3Fs=8891:8968.html#L265">GetModelIDByDeviceID</a>
+					<a class="permalink" href="index.html#IbeamParameterRegistry.GetModelIDByDeviceID">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (r *<a href="index.html#IbeamParameterRegistry">IbeamParameterRegistry</a>) GetModelIDByDeviceID(deviceID <a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>) <a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a></pre>
+				<p>
+GetModelIDByDeviceID is a helper to get the modelid for a specific device
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamParameterRegistry.GetParameterNameOfModel">func (*IbeamParameterRegistry) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-registry.go%3Fs=8334:8435.html#L247">GetParameterNameOfModel</a>
+					<a class="permalink" href="index.html#IbeamParameterRegistry.GetParameterNameOfModel">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (r *<a href="index.html#IbeamParameterRegistry">IbeamParameterRegistry</a>) GetParameterNameOfModel(parameterID, modelID <a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>) (<a href="http://localhost:6060/pkg/builtin/#string">string</a>, <a href="http://localhost:6060/pkg/builtin/#error">error</a>)</pre>
+				<p>
+GetParameterNameOfModel gets the name of a parameter by id and model id
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamParameterRegistry.ReRegisterDevice">func (*IbeamParameterRegistry) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-registry.go%3Fs=9990:10071.html#L294">ReRegisterDevice</a>
+					<a class="permalink" href="index.html#IbeamParameterRegistry.ReRegisterDevice">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (r *<a href="index.html#IbeamParameterRegistry">IbeamParameterRegistry</a>) ReRegisterDevice(deviceID, modelID <a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>) <a href="http://localhost:6060/pkg/builtin/#error">error</a></pre>
+				<p>
+ReRegisterDevice registers an existing device again. This allows to reset it&#39;s state and change the type of model if necessary
+Make sure to handle the error properly
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamParameterRegistry.RegisterDevice">func (*IbeamParameterRegistry) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-registry.go%3Fs=10960:11049.html#L326">RegisterDevice</a>
+					<a class="permalink" href="index.html#IbeamParameterRegistry.RegisterDevice">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (r *<a href="index.html#IbeamParameterRegistry">IbeamParameterRegistry</a>) RegisterDevice(deviceID, modelID <a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>) (<a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>, <a href="http://localhost:6060/pkg/builtin/#error">error</a>)</pre>
+				<p>
+RegisterDevice registers a new Device in the Registry with given DeviceID and ModelID. If the DeviceID is 0 it will be picked automatically
+Make sure to handle the error properly
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamParameterRegistry.RegisterDeviceWithModelName">func (*IbeamParameterRegistry) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-registry.go%3Fs=9369:9496.html#L278">RegisterDeviceWithModelName</a>
+					<a class="permalink" href="index.html#IbeamParameterRegistry.RegisterDeviceWithModelName">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (r *<a href="index.html#IbeamParameterRegistry">IbeamParameterRegistry</a>) RegisterDeviceWithModelName(deviceID <a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>, modelName <a href="http://localhost:6060/pkg/builtin/#string">string</a>) (deviceIndex <a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>, err <a href="http://localhost:6060/pkg/builtin/#error">error</a>)</pre>
+				<p>
+RegisterDeviceWithModelName registers a new Device in the Registry with given Modelname, if there is no it uses the generic one. If the DeviceID is 0 it will be picked automatically
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamParameterRegistry.RegisterModel">func (*IbeamParameterRegistry) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-registry.go%3Fs=7264:7338.html#L210">RegisterModel</a>
+					<a class="permalink" href="index.html#IbeamParameterRegistry.RegisterModel">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (r *<a href="index.html#IbeamParameterRegistry">IbeamParameterRegistry</a>) RegisterModel(model *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#ModelInfo">ModelInfo</a>) <a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a></pre>
+				<p>
+RegisterModel registers a new Model in the Registry with given ModelInfo
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamParameterRegistry.RegisterParameter">func (*IbeamParameterRegistry) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-registry.go%3Fs=3922:4017.html#L91">RegisterParameter</a>
+					<a class="permalink" href="index.html#IbeamParameterRegistry.RegisterParameter">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (r *<a href="index.html#IbeamParameterRegistry">IbeamParameterRegistry</a>) RegisterParameter(detail *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#ParameterDetail">ParameterDetail</a>) (paramID <a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>)</pre>
+				<p>
+RegisterParameter registers a parameter and its detail struct in the registry.
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamParameterRegistry.RegisterParameterForModel">func (*IbeamParameterRegistry) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-registry.go%3Fs=3580:3706.html#L82">RegisterParameterForModel</a>
+					<a class="permalink" href="index.html#IbeamParameterRegistry.RegisterParameterForModel">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (r *<a href="index.html#IbeamParameterRegistry">IbeamParameterRegistry</a>) RegisterParameterForModel(modelID <a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>, detail *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#ParameterDetail">ParameterDetail</a>) (parameterIndex <a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>)</pre>
+				<p>
+RegisterParameterForModel registers a parameter and its detail struct in the registry for a single specified model and the default model if the id does not exist there yet.
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamParameterRegistry.RegisterParameterForModels">func (*IbeamParameterRegistry) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-registry.go%3Fs=3059:3165.html#L71">RegisterParameterForModels</a>
+					<a class="permalink" href="index.html#IbeamParameterRegistry.RegisterParameterForModels">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (r *<a href="index.html#IbeamParameterRegistry">IbeamParameterRegistry</a>) RegisterParameterForModels(modelIDs []<a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>, detail *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#ParameterDetail">ParameterDetail</a>)</pre>
+				<p>
+RegisterParameterForModels registers a parameter and its detail struct in the registry for multiple models.
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamParameterRegistry.UnregisterParameterForModel">func (*IbeamParameterRegistry) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-registry.go%3Fs=6559:6657.html#L187">UnregisterParameterForModel</a>
+					<a class="permalink" href="index.html#IbeamParameterRegistry.UnregisterParameterForModel">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (r *<a href="index.html#IbeamParameterRegistry">IbeamParameterRegistry</a>) UnregisterParameterForModel(modelID <a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>, parameterName <a href="http://localhost:6060/pkg/builtin/#string">string</a>)</pre>
+				<p>
+UnregisterParameterForModel removes a specific parameter for a specific model.
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamParameterRegistry.UnregisterParameterForModels">func (*IbeamParameterRegistry) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/parameter-registry.go%3Fs=6284:6386.html#L180">UnregisterParameterForModels</a>
+					<a class="permalink" href="index.html#IbeamParameterRegistry.UnregisterParameterForModels">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (r *<a href="index.html#IbeamParameterRegistry">IbeamParameterRegistry</a>) UnregisterParameterForModels(modelIDs []<a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>, parameterName <a href="http://localhost:6060/pkg/builtin/#string">string</a>)</pre>
+				<p>
+UnregisterParameterForModels removes a specific parameter for a list of models.
+</p>
+
+				
+				
+				
+			
+		
+			
+			
+			<h2 id="IbeamServer">type <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/ibeam-corelib.go%3Fs=328:588.html#L7">IbeamServer</a>
+				<a class="permalink" href="index.html#IbeamServer">&#xb6;</a>
+				
+				
+			</h2>
+			<p>
+IbeamServer implements the IbeamCoreServer interface of the generated protofile library.
+</p>
+
+			<pre>type IbeamServer struct {
+    <span class="comment">// contains filtered or unexported fields</span>
+}
+</pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+				
+				<h3 id="IbeamServer.Get">func (*IbeamServer) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/ibeam-corelib.go%3Fs=2968:3082.html#L86">Get</a>
+					<a class="permalink" href="index.html#IbeamServer.Get">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (s *<a href="index.html#IbeamServer">IbeamServer</a>) Get(_ <a href="http://localhost:6060/pkg/context/">context</a>.<a href="http://localhost:6060/pkg/context/#Context">Context</a>, dpIDs *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#DeviceParameterIDs">DeviceParameterIDs</a>) (rParameters *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#Parameters">Parameters</a>, err <a href="http://localhost:6060/pkg/builtin/#error">error</a>)</pre>
+				<p>
+Get returns the Parameters with their current state for given DeviceParameterIDs.
+If no IDs are given, all Parameters will be returned.
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamServer.GetCoreInfo">func (*IbeamServer) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/ibeam-corelib.go%3Fs=644:731.html#L16">GetCoreInfo</a>
+					<a class="permalink" href="index.html#IbeamServer.GetCoreInfo">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (s *<a href="index.html#IbeamServer">IbeamServer</a>) GetCoreInfo(_ <a href="http://localhost:6060/pkg/context/">context</a>.<a href="http://localhost:6060/pkg/context/#Context">Context</a>, _ *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#Empty">Empty</a>) (*<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#CoreInfo">CoreInfo</a>, <a href="http://localhost:6060/pkg/builtin/#error">error</a>)</pre>
+				<p>
+GetCoreInfo returns the CoreInfo of the Ibeam-Core
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamServer.GetDeviceInfo">func (*IbeamServer) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/ibeam-corelib.go%3Fs=1070:1174.html#L26">GetDeviceInfo</a>
+					<a class="permalink" href="index.html#IbeamServer.GetDeviceInfo">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (s *<a href="index.html#IbeamServer">IbeamServer</a>) GetDeviceInfo(_ <a href="http://localhost:6060/pkg/context/">context</a>.<a href="http://localhost:6060/pkg/context/#Context">Context</a>, deviceIDs *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#DeviceIDs">DeviceIDs</a>) (*<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#DeviceInfos">DeviceInfos</a>, <a href="http://localhost:6060/pkg/builtin/#error">error</a>)</pre>
+				<p>
+GetDeviceInfo returns the DeviceInfos for given DeviceIDs.
+If no IDs are given, all DeviceInfos will be returned.
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamServer.GetModelInfo">func (*IbeamServer) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/ibeam-corelib.go%3Fs=2006:2102.html#L54">GetModelInfo</a>
+					<a class="permalink" href="index.html#IbeamServer.GetModelInfo">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (s *<a href="index.html#IbeamServer">IbeamServer</a>) GetModelInfo(_ <a href="http://localhost:6060/pkg/context/">context</a>.<a href="http://localhost:6060/pkg/context/#Context">Context</a>, mIDs *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#ModelIDs">ModelIDs</a>) (*<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#ModelInfos">ModelInfos</a>, <a href="http://localhost:6060/pkg/builtin/#error">error</a>)</pre>
+				<p>
+GetModelInfo returns the ModelInfos for given ModelIDs.
+If no IDs are given, all ModelInfos will be returned.
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamServer.GetParameterDetails">func (*IbeamServer) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/ibeam-corelib.go%3Fs=5305:5424.html#L164">GetParameterDetails</a>
+					<a class="permalink" href="index.html#IbeamServer.GetParameterDetails">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (s *<a href="index.html#IbeamServer">IbeamServer</a>) GetParameterDetails(c <a href="http://localhost:6060/pkg/context/">context</a>.<a href="http://localhost:6060/pkg/context/#Context">Context</a>, mpIDs *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#ModelParameterIDs">ModelParameterIDs</a>) (*<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#ParameterDetails">ParameterDetails</a>, <a href="http://localhost:6060/pkg/builtin/#error">error</a>)</pre>
+				<p>
+GetParameterDetails returns the Details for given ModelParameterIDs.
+If no IDs are given, the Details from all Parameters will be returned.
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamServer.Set">func (*IbeamServer) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/ibeam-corelib.go%3Fs=7386:7468.html#L219">Set</a>
+					<a class="permalink" href="index.html#IbeamServer.Set">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (s *<a href="index.html#IbeamServer">IbeamServer</a>) Set(_ <a href="http://localhost:6060/pkg/context/">context</a>.<a href="http://localhost:6060/pkg/context/#Context">Context</a>, ps *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#Parameters">Parameters</a>) (*<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#Empty">Empty</a>, <a href="http://localhost:6060/pkg/builtin/#error">error</a>)</pre>
+				<p>
+Set will change the Value for the given Parameter.
+</p>
+
+				
+				
+				
+			
+				
+				<h3 id="IbeamServer.Subscribe">func (*IbeamServer) <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/ibeam-corelib.go%3Fs=7768:7872.html#L229">Subscribe</a>
+					<a class="permalink" href="index.html#IbeamServer.Subscribe">&#xb6;</a>
+					
+					
+				</h3>
+				<pre>func (s *<a href="index.html#IbeamServer">IbeamServer</a>) Subscribe(dpIDs *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#DeviceParameterIDs">DeviceParameterIDs</a>, stream <a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#IbeamCore_SubscribeServer">IbeamCore_SubscribeServer</a>) <a href="http://localhost:6060/pkg/builtin/#error">error</a></pre>
+				<p>
+Subscribe starts a ServerStream and send updates if a Parameter changes.
+On subscribe all current values should be sent back.
+If no IDs are given, subscribe to every Parameter.
+</p>
+
+				
+				
+				
+			
+		
+			
+			
+			<h2 id="MetaElements">type <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core-lib-helpers.go%3Fs=158:207.html#L1">MetaElements</a>
+				<a class="permalink" href="index.html#MetaElements">&#xb6;</a>
+				
+				
+			</h2>
+			<p>
+MetaElements Type alias to make parameter definition nicer
+</p>
+
+			<pre>type MetaElements map[<a href="http://localhost:6060/pkg/builtin/#string">string</a>]<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#ParameterMetaType">ParameterMetaType</a></pre>
+
+			
+
+			
+
+			
+			
+			
+
+			
+
+			
+		
+	
+
+	
+
+
+
+
+
+	
+	
+		<h2 id="pkg-subdirectories">Subdirectories</h2>
+	
+	<div class="pkg-dir">
+		<table>
+			<tr>
+				<th class="pkg-name">Name</th>
+				<th class="pkg-synopsis">Synopsis</th>
+			</tr>
+
+			
+			<tr>
+				<td colspan="2"><a href="http://localhost:6060/pkg/github.com/SKAARHOJ/">..</a></td>
+			</tr>
+			
+
+			
+				<tr>
+				
+					<td class="pkg-name" style="padding-left: 0px;">
+						<a href="ibeam-core.html">ibeam-core</a>
+					</td>
+				
+					<td class="pkg-synopsis">
+						
+					</td>
+				</tr>
+			
+		</table>
+	</div>
+
+
+
+<div id="footer">
+Build version go1.15.6.<br>
+Except as <a href="https://developers.google.com/site-policies#restrictions">noted</a>,
+the content of this page is licensed under the
+Creative Commons Attribution 3.0 License,
+and code is licensed under a <a href="http://localhost:6060/LICENSE">BSD license</a>.<br>
+<a href="http://localhost:6060/doc/tos.html">Terms of Service</a> |
+<a href="http://www.google.com/intl/en/policies/privacy/">Privacy Policy</a>
+</div>
+
+</div><!-- .container -->
+</div><!-- #page -->
+</body>
+</html>
