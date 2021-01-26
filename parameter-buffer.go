@@ -7,9 +7,9 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// IBeamParameterValueBuffer is used for updating a ParameterValue.
+// ibeamParameterValueBuffer is used for updating a ParameterValue.
 // It holds a current and a target Value.
-type IBeamParameterValueBuffer struct {
+type ibeamParameterValueBuffer struct {
 	dimensionID    []uint32
 	available      bool
 	isAssumedState bool
@@ -20,7 +20,7 @@ type IBeamParameterValueBuffer struct {
 	metaValues     []pb.ParameterMetaValue
 }
 
-func (b *IBeamParameterValueBuffer) getParameterValue() *pb.ParameterValue {
+func (b *ibeamParameterValueBuffer) getParameterValue() *pb.ParameterValue {
 	b.isAssumedState = !proto.Equal(b.targetValue, b.currentValue)
 	return &pb.ParameterValue{
 		DimensionID:    b.dimensionID,
@@ -32,7 +32,7 @@ func (b *IBeamParameterValueBuffer) getParameterValue() *pb.ParameterValue {
 	}
 }
 
-func (b *IBeamParameterValueBuffer) incrementParameterValue() *pb.ParameterValue {
+func (b *ibeamParameterValueBuffer) incrementParameterValue() *pb.ParameterValue {
 	return &pb.ParameterValue{
 		DimensionID:    b.dimensionID,
 		Available:      b.available,
@@ -44,7 +44,7 @@ func (b *IBeamParameterValueBuffer) incrementParameterValue() *pb.ParameterValue
 	}
 }
 
-func (b *IBeamParameterValueBuffer) decrementParameterValue() *pb.ParameterValue {
+func (b *ibeamParameterValueBuffer) decrementParameterValue() *pb.ParameterValue {
 	return &pb.ParameterValue{
 		DimensionID:    b.dimensionID,
 		Available:      b.available,

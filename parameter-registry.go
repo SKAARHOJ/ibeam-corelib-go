@@ -11,7 +11,7 @@ import (
 )
 
 type parameterDetails map[uint32]map[uint32]*pb.ParameterDetail     //Parameter Details: model, parameter
-type parameterStates map[uint32]map[uint32]*IbeamParameterDimension //Parameter States: device,parameter,dimension
+type parameterStates map[uint32]map[uint32]*IBeamParameterDimension //Parameter States: device,parameter,dimension
 
 // IbeamParameterRegistry is the storage of the core.
 // It saves all Infos about the Core, Device and Models and stores the Details and current Values of the Parameter.
@@ -54,7 +54,7 @@ func (r *IbeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID) (
 	return getValues(r.ParameterValue[deviceID][parameterIndex])
 }
 
-func getValues(dimension *IbeamParameterDimension) (values []*pb.ParameterValue) {
+func getValues(dimension *IBeamParameterDimension) (values []*pb.ParameterValue) {
 	if dimension.isValue() {
 		value, err := dimension.Value()
 		if err != nil {
@@ -356,7 +356,7 @@ func (r *IbeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 	// take all params from model and generate a value buffer array for all instances
 	// add value buffers to the state array
 
-	parameterDimensions := map[uint32]*IbeamParameterDimension{}
+	parameterDimensions := map[uint32]*IBeamParameterDimension{}
 	for _, parameterDetail := range modelConfig {
 		parameterID := parameterDetail.Id.Parameter
 
@@ -388,8 +388,8 @@ func (r *IbeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 		}
 
 		dimensionConfig := []uint32{}
-		initialValueDimension := IbeamParameterDimension{
-			value: &IBeamParameterValueBuffer{
+		initialValueDimension := IBeamParameterDimension{
+			value: &ibeamParameterValueBuffer{
 				dimensionID:    make([]uint32, 0),
 				available:      true,
 				isAssumedState: true,
