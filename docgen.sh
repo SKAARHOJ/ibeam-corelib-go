@@ -49,7 +49,7 @@ wget \
     "$URL"
 
 # Generate a simple redirect
-echo "<script>window.location.href = '/pkg/$GO_MODULE';</script>" > ${GO_DOC_HTML_OUTPUT:-godoc}/index.html
+echo "<script>window.location.href = 'pkg/$GO_MODULE';</script>" > ${GO_DOC_HTML_OUTPUT:-godoc}/index.html
 
 # Stop godoc server
 kill -9 "$PID"
