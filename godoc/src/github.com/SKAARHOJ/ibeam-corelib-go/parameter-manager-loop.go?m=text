@@ -8,7 +8,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func (m *IbeamParameterManager) parameterLoop() {
+func (m *IBeamParameterManager) parameterLoop() {
 
 	m.parameterRegistry.muInfo.RLock()
 	defer m.parameterRegistry.muInfo.RUnlock()
@@ -41,7 +41,7 @@ func (m *IbeamParameterManager) parameterLoop() {
 	}
 }
 
-func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameterDimension, parameterDetail *pb.ParameterDetail, deviceID uint32) {
+func (m *IBeamParameterManager) loopDimension(parameterDimension *IBeamParameterDimension, parameterDetail *pb.ParameterDetail, deviceID uint32) {
 	if !parameterDimension.isValue() {
 		subdimensions, err := parameterDimension.Subdimensions()
 		if err != nil {

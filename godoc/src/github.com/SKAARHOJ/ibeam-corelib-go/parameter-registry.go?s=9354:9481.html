@@ -26,7 +26,7 @@
 <div id="topbar" class="wide"><div class="container">
 <div class="top-heading" id="heading-wide"><a href="http://localhost:6060/pkg/">Go Documentation Server</a></div>
 <div class="top-heading" id="heading-narrow"><a href="http://localhost:6060/pkg/">GoDoc</a></div>
-<a href="./parameter-registry.go%3Fs=14012:14076.html#" id="menu-button"><span id="menu-button-arrow">&#9661;</span></a>
+<a href="./parameter-registry.go%3Fs=9354:9481.html#" id="menu-button"><span id="menu-button-arrow">&#9661;</span></a>
 <form method="GET" action="http://localhost:6060/search">
 <div id="menu">
 
@@ -74,11 +74,11 @@
 <span id="L11" class="ln">    11&nbsp;&nbsp;</span>)
 <span id="L12" class="ln">    12&nbsp;&nbsp;</span>
 <span id="L13" class="ln">    13&nbsp;&nbsp;</span>type parameterDetails map[uint32]map[uint32]*pb.ParameterDetail     <span class="comment">//Parameter Details: model, parameter</span>
-<span id="L14" class="ln">    14&nbsp;&nbsp;</span>type parameterStates map[uint32]map[uint32]*IbeamParameterDimension <span class="comment">//Parameter States: device,parameter,dimension</span>
+<span id="L14" class="ln">    14&nbsp;&nbsp;</span>type parameterStates map[uint32]map[uint32]*IBeamParameterDimension <span class="comment">//Parameter States: device,parameter,dimension</span>
 <span id="L15" class="ln">    15&nbsp;&nbsp;</span>
-<span id="L16" class="ln">    16&nbsp;&nbsp;</span><span class="comment">// IbeamParameterRegistry is the storage of the core.</span>
+<span id="L16" class="ln">    16&nbsp;&nbsp;</span><span class="comment">// IBeamParameterRegistry is the storage of the core.</span>
 <span id="L17" class="ln">    17&nbsp;&nbsp;</span><span class="comment">// It saves all Infos about the Core, Device and Models and stores the Details and current Values of the Parameter.</span>
-<span id="L18" class="ln">    18&nbsp;&nbsp;</span>type IbeamParameterRegistry struct {
+<span id="L18" class="ln">    18&nbsp;&nbsp;</span>type IBeamParameterRegistry struct {
 <span id="L19" class="ln">    19&nbsp;&nbsp;</span>	muInfo          sync.RWMutex <span class="comment">// Protects both Model and DeviceInfos</span>
 <span id="L20" class="ln">    20&nbsp;&nbsp;</span>	muDetail        sync.RWMutex
 <span id="L21" class="ln">    21&nbsp;&nbsp;</span>	muValue         sync.RWMutex
@@ -93,13 +93,13 @@
 <span id="L30" class="ln">    30&nbsp;&nbsp;</span>}
 <span id="L31" class="ln">    31&nbsp;&nbsp;</span>
 <span id="L32" class="ln">    32&nbsp;&nbsp;</span><span class="comment">// AllowAutoIDs Allowing Automatic IDs for parameters, this is only meant for initial development</span>
-<span id="L33" class="ln">    33&nbsp;&nbsp;</span>func (r *IbeamParameterRegistry) AllowAutoIDs() {
+<span id="L33" class="ln">    33&nbsp;&nbsp;</span>func (r *IBeamParameterRegistry) AllowAutoIDs() {
 <span id="L34" class="ln">    34&nbsp;&nbsp;</span>	log.Warn(&#34;Allowing Automatic IDs for parameters, this is only meant for initial development!!!&#34;)
 <span id="L35" class="ln">    35&nbsp;&nbsp;</span>	r.allowAutoIDs = true
 <span id="L36" class="ln">    36&nbsp;&nbsp;</span>}
 <span id="L37" class="ln">    37&nbsp;&nbsp;</span>
 <span id="L38" class="ln">    38&nbsp;&nbsp;</span><span class="comment">// device,parameter,instance</span>
-<span id="L39" class="ln">    39&nbsp;&nbsp;</span>func (r *IbeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID) (values []*pb.ParameterValue) {
+<span id="L39" class="ln">    39&nbsp;&nbsp;</span>func (r *IBeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID) (values []*pb.ParameterValue) {
 <span id="L40" class="ln">    40&nbsp;&nbsp;</span>	deviceID := dpID.Device
 <span id="L41" class="ln">    41&nbsp;&nbsp;</span>	parameterIndex := dpID.Parameter
 <span id="L42" class="ln">    42&nbsp;&nbsp;</span>	_, dExists := r.ParameterValue[deviceID]
@@ -117,7 +117,7 @@
 <span id="L54" class="ln">    54&nbsp;&nbsp;</span>	return getValues(r.ParameterValue[deviceID][parameterIndex])
 <span id="L55" class="ln">    55&nbsp;&nbsp;</span>}
 <span id="L56" class="ln">    56&nbsp;&nbsp;</span>
-<span id="L57" class="ln">    57&nbsp;&nbsp;</span>func getValues(dimension *IbeamParameterDimension) (values []*pb.ParameterValue) {
+<span id="L57" class="ln">    57&nbsp;&nbsp;</span>func getValues(dimension *IBeamParameterDimension) (values []*pb.ParameterValue) {
 <span id="L58" class="ln">    58&nbsp;&nbsp;</span>	if dimension.isValue() {
 <span id="L59" class="ln">    59&nbsp;&nbsp;</span>		value, err := dimension.Value()
 <span id="L60" class="ln">    60&nbsp;&nbsp;</span>		if err != nil {
@@ -132,7 +132,7 @@
 <span id="L69" class="ln">    69&nbsp;&nbsp;</span>	return values
 <span id="L70" class="ln">    70&nbsp;&nbsp;</span>}
 <span id="L71" class="ln">    71&nbsp;&nbsp;</span>
-<span id="L72" class="ln">    72&nbsp;&nbsp;</span>func (r *IbeamParameterRegistry) getModelIndex(deviceID uint32) uint32 {
+<span id="L72" class="ln">    72&nbsp;&nbsp;</span>func (r *IBeamParameterRegistry) getModelIndex(deviceID uint32) uint32 {
 <span id="L73" class="ln">    73&nbsp;&nbsp;</span>	_, dExists := r.DeviceInfos[deviceID]
 <span id="L74" class="ln">    74&nbsp;&nbsp;</span>	if !dExists || deviceID == 0 {
 <span id="L75" class="ln">    75&nbsp;&nbsp;</span>		log.Fatalf(&#34;Could not get model for device with id %v.&#34;, deviceID)
@@ -141,7 +141,7 @@
 <span id="L78" class="ln">    78&nbsp;&nbsp;</span>}
 <span id="L79" class="ln">    79&nbsp;&nbsp;</span>
 <span id="L80" class="ln">    80&nbsp;&nbsp;</span><span class="comment">// RegisterParameterForModels registers a parameter and its detail struct in the registry for multiple models.</span>
-<span id="L81" class="ln">    81&nbsp;&nbsp;</span>func (r *IbeamParameterRegistry) RegisterParameterForModels(modelIDs []uint32, detail *pb.ParameterDetail) {
+<span id="L81" class="ln">    81&nbsp;&nbsp;</span>func (r *IBeamParameterRegistry) RegisterParameterForModels(modelIDs []uint32, detail *pb.ParameterDetail) {
 <span id="L82" class="ln">    82&nbsp;&nbsp;</span>	for _, id := range modelIDs {
 <span id="L83" class="ln">    83&nbsp;&nbsp;</span>		if id == 0 {
 <span id="L84" class="ln">    84&nbsp;&nbsp;</span>			log.Fatal(&#34;RegisterParameterForModels: do not use this function with the generic model&#34;)
@@ -152,7 +152,7 @@
 <span id="L89" class="ln">    89&nbsp;&nbsp;</span>}
 <span id="L90" class="ln">    90&nbsp;&nbsp;</span>
 <span id="L91" class="ln">    91&nbsp;&nbsp;</span><span class="comment">// RegisterParameterForModel registers a parameter and its detail struct in the registry for a single specified model and the default model if the id does not exist there yet.</span>
-<span id="L92" class="ln">    92&nbsp;&nbsp;</span>func (r *IbeamParameterRegistry) RegisterParameterForModel(modelID uint32, detail *pb.ParameterDetail) (parameterIndex uint32) {
+<span id="L92" class="ln">    92&nbsp;&nbsp;</span>func (r *IBeamParameterRegistry) RegisterParameterForModel(modelID uint32, detail *pb.ParameterDetail) (parameterIndex uint32) {
 <span id="L93" class="ln">    93&nbsp;&nbsp;</span>	if detail.Id == nil {
 <span id="L94" class="ln">    94&nbsp;&nbsp;</span>		detail.Id = new(pb.ModelParameterID)
 <span id="L95" class="ln">    95&nbsp;&nbsp;</span>	}
@@ -161,7 +161,7 @@
 <span id="L98" class="ln">    98&nbsp;&nbsp;</span>}
 <span id="L99" class="ln">    99&nbsp;&nbsp;</span>
 <span id="L100" class="ln">   100&nbsp;&nbsp;</span><span class="comment">// RegisterParameter registers a parameter and its detail struct in the registry.</span>
-<span id="L101" class="ln">   101&nbsp;&nbsp;</span>func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (paramID uint32) {
+<span id="L101" class="ln">   101&nbsp;&nbsp;</span>func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (paramID uint32) {
 <span id="L102" class="ln">   102&nbsp;&nbsp;</span>	r.modelsDone = true
 <span id="L103" class="ln">   103&nbsp;&nbsp;</span>	if r.parametersDone {
 <span id="L104" class="ln">   104&nbsp;&nbsp;</span>		log.Fatal(&#34;Can not unregister a parameter after registering the first device&#34;)
@@ -177,8 +177,8 @@
 <span id="L114" class="ln">   114&nbsp;&nbsp;</span>	if modelID == 0 {
 <span id="L115" class="ln">   115&nbsp;&nbsp;</span>		<span class="comment">// append to all models, need to check for ids</span>
 <span id="L116" class="ln">   116&nbsp;&nbsp;</span>
-<span id="L117" class="ln">   117&nbsp;&nbsp;</span>		_, found := r.findParameterByName(modelID, detail.Name)
-<span id="L118" class="ln">   118&nbsp;&nbsp;</span>		if found {
+<span id="L117" class="ln">   117&nbsp;&nbsp;</span>		id := r.ParameterIDByName(detail.Name, modelID)
+<span id="L118" class="ln">   118&nbsp;&nbsp;</span>		if id != 0 {
 <span id="L119" class="ln">   119&nbsp;&nbsp;</span>			log.Fatal(&#34;Duplicate parameter name for &#34;, detail.Name)
 <span id="L120" class="ln">   120&nbsp;&nbsp;</span>		}
 <span id="L121" class="ln">   121&nbsp;&nbsp;</span>
@@ -206,8 +206,8 @@
 <span id="L143" class="ln">   143&nbsp;&nbsp;</span>		r.muDetail.Unlock()
 <span id="L144" class="ln">   144&nbsp;&nbsp;</span>
 <span id="L145" class="ln">   145&nbsp;&nbsp;</span>	} else {
-<span id="L146" class="ln">   146&nbsp;&nbsp;</span>		pid, found := r.findParameterByName(0, detail.Name)
-<span id="L147" class="ln">   147&nbsp;&nbsp;</span>		if found {
+<span id="L146" class="ln">   146&nbsp;&nbsp;</span>		pid := r.ParameterIDByName(detail.Name, 0)
+<span id="L147" class="ln">   147&nbsp;&nbsp;</span>		if pid != 0 {
 <span id="L148" class="ln">   148&nbsp;&nbsp;</span>			paramID = pid
 <span id="L149" class="ln">   149&nbsp;&nbsp;</span>		}
 <span id="L150" class="ln">   150&nbsp;&nbsp;</span>
@@ -233,13 +233,13 @@
 <span id="L170" class="ln">   170&nbsp;&nbsp;</span>		modelconfig[paramID] = detail
 <span id="L171" class="ln">   171&nbsp;&nbsp;</span>
 <span id="L172" class="ln">   172&nbsp;&nbsp;</span>		<span class="comment">// if the default model does not have the param it still needs to be added there too!</span>
-<span id="L173" class="ln">   173&nbsp;&nbsp;</span>		if !found {
+<span id="L173" class="ln">   173&nbsp;&nbsp;</span>		if pid == 0 {
 <span id="L174" class="ln">   174&nbsp;&nbsp;</span>			dt := proto.Clone(detail).(*pb.ParameterDetail)
 <span id="L175" class="ln">   175&nbsp;&nbsp;</span>			dt.Id.Model = 0
 <span id="L176" class="ln">   176&nbsp;&nbsp;</span>			r.ParameterDetail[0][paramID] = dt
 <span id="L177" class="ln">   177&nbsp;&nbsp;</span>		}
 <span id="L178" class="ln">   178&nbsp;&nbsp;</span>		r.muDetail.Unlock()
-<span id="L179" class="ln">   179&nbsp;&nbsp;</span>		if found {
+<span id="L179" class="ln">   179&nbsp;&nbsp;</span>		if pid == 0 {
 <span id="L180" class="ln">   180&nbsp;&nbsp;</span>			log.Debugf(&#34;ParameterDetail &#39;%v&#39; with ID: %v was overridden for Model %v&#34;, detail.Name, detail.Id.Parameter, detail.Id.Model)
 <span id="L181" class="ln">   181&nbsp;&nbsp;</span>			return
 <span id="L182" class="ln">   182&nbsp;&nbsp;</span>		}
@@ -250,14 +250,14 @@
 <span id="L187" class="ln">   187&nbsp;&nbsp;</span>}
 <span id="L188" class="ln">   188&nbsp;&nbsp;</span>
 <span id="L189" class="ln">   189&nbsp;&nbsp;</span><span class="comment">// UnregisterParameterForModels removes a specific parameter for a list of models.</span>
-<span id="L190" class="ln">   190&nbsp;&nbsp;</span>func (r *IbeamParameterRegistry) UnregisterParameterForModels(modelIDs []uint32, parameterName string) {
+<span id="L190" class="ln">   190&nbsp;&nbsp;</span>func (r *IBeamParameterRegistry) UnregisterParameterForModels(modelIDs []uint32, parameterName string) {
 <span id="L191" class="ln">   191&nbsp;&nbsp;</span>	for _, id := range modelIDs {
 <span id="L192" class="ln">   192&nbsp;&nbsp;</span>		r.UnregisterParameterForModel(id, parameterName)
 <span id="L193" class="ln">   193&nbsp;&nbsp;</span>	}
 <span id="L194" class="ln">   194&nbsp;&nbsp;</span>}
 <span id="L195" class="ln">   195&nbsp;&nbsp;</span>
 <span id="L196" class="ln">   196&nbsp;&nbsp;</span><span class="comment">// UnregisterParameterForModel removes a specific parameter for a specific model.</span>
-<span id="L197" class="ln">   197&nbsp;&nbsp;</span>func (r *IbeamParameterRegistry) UnregisterParameterForModel(modelID uint32, parameterName string) {
+<span id="L197" class="ln">   197&nbsp;&nbsp;</span>func (r *IBeamParameterRegistry) UnregisterParameterForModel(modelID uint32, parameterName string) {
 <span id="L198" class="ln">   198&nbsp;&nbsp;</span>	if r.parametersDone {
 <span id="L199" class="ln">   199&nbsp;&nbsp;</span>		log.Fatal(&#34;Can not unregister a parameter after registering the first device&#34;)
 <span id="L200" class="ln">   200&nbsp;&nbsp;</span>	}
@@ -267,9 +267,9 @@
 <span id="L204" class="ln">   204&nbsp;&nbsp;</span>	}
 <span id="L205" class="ln">   205&nbsp;&nbsp;</span>
 <span id="L206" class="ln">   206&nbsp;&nbsp;</span>	r.muDetail.Lock()
-<span id="L207" class="ln">   207&nbsp;&nbsp;</span>	id, found := r.findParameterByName(modelID, parameterName)
+<span id="L207" class="ln">   207&nbsp;&nbsp;</span>	id := r.ParameterIDByName(parameterName, modelID)
 <span id="L208" class="ln">   208&nbsp;&nbsp;</span>
-<span id="L209" class="ln">   209&nbsp;&nbsp;</span>	if !found {
+<span id="L209" class="ln">   209&nbsp;&nbsp;</span>	if id == 0 {
 <span id="L210" class="ln">   210&nbsp;&nbsp;</span>		log.Fatalf(&#34;Unknown parameter %s to be unregistered for model %d&#34;, parameterName, modelID)
 <span id="L211" class="ln">   211&nbsp;&nbsp;</span>	}
 <span id="L212" class="ln">   212&nbsp;&nbsp;</span>
@@ -280,7 +280,7 @@
 <span id="L217" class="ln">   217&nbsp;&nbsp;</span>}
 <span id="L218" class="ln">   218&nbsp;&nbsp;</span>
 <span id="L219" class="ln">   219&nbsp;&nbsp;</span><span class="comment">// RegisterModel registers a new Model in the Registry with given ModelInfo</span>
-<span id="L220" class="ln">   220&nbsp;&nbsp;</span>func (r *IbeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32 {
+<span id="L220" class="ln">   220&nbsp;&nbsp;</span>func (r *IBeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32 {
 <span id="L221" class="ln">   221&nbsp;&nbsp;</span>	if r.modelsDone {
 <span id="L222" class="ln">   222&nbsp;&nbsp;</span>		log.Fatal(&#34;Can not register a new model after registering parameters&#34;)
 <span id="L223" class="ln">   223&nbsp;&nbsp;</span>	}
@@ -317,7 +317,7 @@
 <span id="L254" class="ln">   254&nbsp;&nbsp;</span>}
 <span id="L255" class="ln">   255&nbsp;&nbsp;</span>
 <span id="L256" class="ln">   256&nbsp;&nbsp;</span><span class="comment">// GetParameterNameOfModel gets the name of a parameter by id and model id</span>
-<span id="L257" class="ln">   257&nbsp;&nbsp;</span>func (r *IbeamParameterRegistry) GetParameterNameOfModel(parameterID, modelID uint32) (string, error) {
+<span id="L257" class="ln">   257&nbsp;&nbsp;</span>func (r *IBeamParameterRegistry) GetParameterNameOfModel(parameterID, modelID uint32) (string, error) {
 <span id="L258" class="ln">   258&nbsp;&nbsp;</span>	r.muDetail.RLock()
 <span id="L259" class="ln">   259&nbsp;&nbsp;</span>	defer r.muDetail.RUnlock()
 <span id="L260" class="ln">   260&nbsp;&nbsp;</span>
@@ -335,7 +335,7 @@
 <span id="L272" class="ln">   272&nbsp;&nbsp;</span>}
 <span id="L273" class="ln">   273&nbsp;&nbsp;</span>
 <span id="L274" class="ln">   274&nbsp;&nbsp;</span><span class="comment">// GetModelIDByDeviceID is a helper to get the modelid for a specific device</span>
-<span id="L275" class="ln">   275&nbsp;&nbsp;</span>func (r *IbeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32 {
+<span id="L275" class="ln">   275&nbsp;&nbsp;</span>func (r *IBeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32 {
 <span id="L276" class="ln">   276&nbsp;&nbsp;</span>	r.muInfo.RLock()
 <span id="L277" class="ln">   277&nbsp;&nbsp;</span>	defer r.muInfo.RUnlock()
 <span id="L278" class="ln">   278&nbsp;&nbsp;</span>
@@ -348,7 +348,7 @@
 <span id="L285" class="ln">   285&nbsp;&nbsp;</span>}
 <span id="L286" class="ln">   286&nbsp;&nbsp;</span>
 <span id="L287" class="ln">   287&nbsp;&nbsp;</span><span class="comment">// RegisterDeviceWithModelName registers a new Device in the Registry with given Modelname, if there is no it uses the generic one. If the DeviceID is 0 it will be picked automatically</span>
-<span id="L288" class="ln">   288&nbsp;&nbsp;</span>func (r *IbeamParameterRegistry) RegisterDeviceWithModelName(deviceID uint32, modelName string) (deviceIndex uint32, err error) {
+<span id="L288" class="ln">   288&nbsp;&nbsp;</span><span class="selection">func (r *IBeamParameterRegistry) RegisterDeviceWithModelName(deviceID uint32, modelName string) (deviceIndex uint32, err error)</span> {
 <span id="L289" class="ln">   289&nbsp;&nbsp;</span>	modelID := uint32(0)
 <span id="L290" class="ln">   290&nbsp;&nbsp;</span>	r.muInfo.RLock()
 <span id="L291" class="ln">   291&nbsp;&nbsp;</span>	for _, m := range r.ModelInfos {
@@ -364,7 +364,7 @@
 <span id="L301" class="ln">   301&nbsp;&nbsp;</span>
 <span id="L302" class="ln">   302&nbsp;&nbsp;</span><span class="comment">// ReRegisterDevice registers an existing device again. This allows to reset it&#39;s state and change the type of model if necessary</span>
 <span id="L303" class="ln">   303&nbsp;&nbsp;</span><span class="comment">// Make sure to handle the error properly</span>
-<span id="L304" class="ln">   304&nbsp;&nbsp;</span>func (r *IbeamParameterRegistry) ReRegisterDevice(deviceID, modelID uint32) error {
+<span id="L304" class="ln">   304&nbsp;&nbsp;</span>func (r *IBeamParameterRegistry) ReRegisterDevice(deviceID, modelID uint32) error {
 <span id="L305" class="ln">   305&nbsp;&nbsp;</span>	<span class="comment">// Check for device exists</span>
 <span id="L306" class="ln">   306&nbsp;&nbsp;</span>	r.muInfo.RLock()
 <span id="L307" class="ln">   307&nbsp;&nbsp;</span>	if _, exists := r.DeviceInfos[deviceID]; exists {
@@ -396,7 +396,7 @@
 <span id="L333" class="ln">   333&nbsp;&nbsp;</span>
 <span id="L334" class="ln">   334&nbsp;&nbsp;</span><span class="comment">// RegisterDevice registers a new Device in the Registry with given DeviceID and ModelID. If the DeviceID is 0 it will be picked automatically</span>
 <span id="L335" class="ln">   335&nbsp;&nbsp;</span><span class="comment">// Make sure to handle the error properly</span>
-<span id="L336" class="ln">   336&nbsp;&nbsp;</span>func (r *IbeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint32, error) {
+<span id="L336" class="ln">   336&nbsp;&nbsp;</span>func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint32, error) {
 <span id="L337" class="ln">   337&nbsp;&nbsp;</span>	r.parametersDone = true
 <span id="L338" class="ln">   338&nbsp;&nbsp;</span>
 <span id="L339" class="ln">   339&nbsp;&nbsp;</span>	r.muDetail.RLock()
@@ -419,7 +419,7 @@
 <span id="L356" class="ln">   356&nbsp;&nbsp;</span>	<span class="comment">// take all params from model and generate a value buffer array for all instances</span>
 <span id="L357" class="ln">   357&nbsp;&nbsp;</span>	<span class="comment">// add value buffers to the state array</span>
 <span id="L358" class="ln">   358&nbsp;&nbsp;</span>
-<span id="L359" class="ln">   359&nbsp;&nbsp;</span>	parameterDimensions := map[uint32]*IbeamParameterDimension{}
+<span id="L359" class="ln">   359&nbsp;&nbsp;</span>	parameterDimensions := map[uint32]*IBeamParameterDimension{}
 <span id="L360" class="ln">   360&nbsp;&nbsp;</span>	for _, parameterDetail := range modelConfig {
 <span id="L361" class="ln">   361&nbsp;&nbsp;</span>		parameterID := parameterDetail.Id.Parameter
 <span id="L362" class="ln">   362&nbsp;&nbsp;</span>
@@ -451,7 +451,7 @@
 <span id="L388" class="ln">   388&nbsp;&nbsp;</span>		}
 <span id="L389" class="ln">   389&nbsp;&nbsp;</span>
 <span id="L390" class="ln">   390&nbsp;&nbsp;</span>		dimensionConfig := []uint32{}
-<span id="L391" class="ln">   391&nbsp;&nbsp;</span>		initialValueDimension := IbeamParameterDimension{
+<span id="L391" class="ln">   391&nbsp;&nbsp;</span>		initialValueDimension := IBeamParameterDimension{
 <span id="L392" class="ln">   392&nbsp;&nbsp;</span>			value: &amp;ibeamParameterValueBuffer{
 <span id="L393" class="ln">   393&nbsp;&nbsp;</span>				dimensionID:    make([]uint32, 0),
 <span id="L394" class="ln">   394&nbsp;&nbsp;</span>				available:      true,
@@ -472,7 +472,7 @@
 <span id="L409" class="ln">   409&nbsp;&nbsp;</span>	r.muInfo.Lock()
 <span id="L410" class="ln">   410&nbsp;&nbsp;</span>	if deviceID == 0 {
 <span id="L411" class="ln">   411&nbsp;&nbsp;</span>		deviceID = uint32(len(r.DeviceInfos) + 1)
-<span id="L412" class="ln">   412&nbsp;&nbsp;</span>		log.Warn(&#34;Automatically assigning DeviceID %d to device with model %d&#34;, deviceID, modelID)
+<span id="L412" class="ln">   412&nbsp;&nbsp;</span>		log.Warnf(&#34;Automatically assigning DeviceID %d to device with model %d&#34;, deviceID, modelID)
 <span id="L413" class="ln">   413&nbsp;&nbsp;</span>	}
 <span id="L414" class="ln">   414&nbsp;&nbsp;</span>	r.DeviceInfos[deviceID] = &amp;pb.DeviceInfo{
 <span id="L415" class="ln">   415&nbsp;&nbsp;</span>		DeviceID: deviceID,
@@ -489,7 +489,7 @@
 <span id="L426" class="ln">   426&nbsp;&nbsp;</span>}
 <span id="L427" class="ln">   427&nbsp;&nbsp;</span>
 <span id="L428" class="ln">   428&nbsp;&nbsp;</span><span class="comment">// GetIDMaps returns a Map witch maps the Name of all Parameters with their ID for each model</span>
-<span id="L429" class="ln">   429&nbsp;&nbsp;</span><span class="selection">func (r *IbeamParameterRegistry) GetIDMaps() []map[string]uint32</span> {
+<span id="L429" class="ln">   429&nbsp;&nbsp;</span>func (r *IBeamParameterRegistry) GetIDMaps() []map[string]uint32 {
 <span id="L430" class="ln">   430&nbsp;&nbsp;</span>	idMaps := make([]map[string]uint32, 0)
 <span id="L431" class="ln">   431&nbsp;&nbsp;</span>	r.muDetail.RLock()
 <span id="L432" class="ln">   432&nbsp;&nbsp;</span>
@@ -504,76 +504,84 @@
 <span id="L441" class="ln">   441&nbsp;&nbsp;</span>	return idMaps
 <span id="L442" class="ln">   442&nbsp;&nbsp;</span>}
 <span id="L443" class="ln">   443&nbsp;&nbsp;</span>
-<span id="L444" class="ln">   444&nbsp;&nbsp;</span>func (r *IbeamParameterRegistry) findParameterByName(modelID uint32, parameterName string) (id uint32, found bool) {
-<span id="L445" class="ln">   445&nbsp;&nbsp;</span>	<span class="comment">// Function requires mutex to be fully locked before invocation</span>
-<span id="L446" class="ln">   446&nbsp;&nbsp;</span>	if uint32(len(r.ParameterDetail)) &lt;= (modelID) {
-<span id="L447" class="ln">   447&nbsp;&nbsp;</span>		log.Fatalln(&#34;Could not register parameter for nonexistent model&#34;, modelID)
-<span id="L448" class="ln">   448&nbsp;&nbsp;</span>	}
-<span id="L449" class="ln">   449&nbsp;&nbsp;</span>
-<span id="L450" class="ln">   450&nbsp;&nbsp;</span>	for id, param := range r.ParameterDetail[modelID] {
-<span id="L451" class="ln">   451&nbsp;&nbsp;</span>		if param.Name == parameterName {
-<span id="L452" class="ln">   452&nbsp;&nbsp;</span>			return id, true
-<span id="L453" class="ln">   453&nbsp;&nbsp;</span>		}
-<span id="L454" class="ln">   454&nbsp;&nbsp;</span>	}
-<span id="L455" class="ln">   455&nbsp;&nbsp;</span>	return id, false
-<span id="L456" class="ln">   456&nbsp;&nbsp;</span>}
+<span id="L444" class="ln">   444&nbsp;&nbsp;</span><span class="comment">// ParameterNameByID Get a parameterID by name, returns &#34;&#34; if not found, always uses model 0</span>
+<span id="L445" class="ln">   445&nbsp;&nbsp;</span>func (r *IBeamParameterRegistry) ParameterNameByID(modelID uint32) string {
+<span id="L446" class="ln">   446&nbsp;&nbsp;</span>	<span class="comment">// check for device registered</span>
+<span id="L447" class="ln">   447&nbsp;&nbsp;</span>	<span class="comment">// use cached id map of model 0</span>
+<span id="L448" class="ln">   448&nbsp;&nbsp;</span>	return &#34;&#34;
+<span id="L449" class="ln">   449&nbsp;&nbsp;</span>}
+<span id="L450" class="ln">   450&nbsp;&nbsp;</span>
+<span id="L451" class="ln">   451&nbsp;&nbsp;</span><span class="comment">// ParameterIDByName Get a parameterID by name, returns 0 if not found</span>
+<span id="L452" class="ln">   452&nbsp;&nbsp;</span>func (r *IBeamParameterRegistry) ParameterIDByName(parameterName string, modelID uint32) uint32 {
+<span id="L453" class="ln">   453&nbsp;&nbsp;</span>	<span class="comment">// Function requires mutex to be fully locked before invocation</span>
+<span id="L454" class="ln">   454&nbsp;&nbsp;</span>	if uint32(len(r.ParameterDetail)) &lt;= (modelID) {
+<span id="L455" class="ln">   455&nbsp;&nbsp;</span>		log.Fatalln(&#34;Could not register parameter for nonexistent model&#34;, modelID)
+<span id="L456" class="ln">   456&nbsp;&nbsp;</span>	}
 <span id="L457" class="ln">   457&nbsp;&nbsp;</span>
-<span id="L458" class="ln">   458&nbsp;&nbsp;</span>func validateParameter(detail *pb.ParameterDetail) {
-<span id="L459" class="ln">   459&nbsp;&nbsp;</span>	<span class="comment">// Fatals</span>
-<span id="L460" class="ln">   460&nbsp;&nbsp;</span>	if detail.Name == &#34;&#34; {
-<span id="L461" class="ln">   461&nbsp;&nbsp;</span>		log.Fatalf(&#34;Could not validate parameter ID %v: No name set&#34;, detail.Id)
+<span id="L458" class="ln">   458&nbsp;&nbsp;</span>	for id, param := range r.ParameterDetail[modelID] {
+<span id="L459" class="ln">   459&nbsp;&nbsp;</span>		if param.Name == parameterName {
+<span id="L460" class="ln">   460&nbsp;&nbsp;</span>			return id
+<span id="L461" class="ln">   461&nbsp;&nbsp;</span>		}
 <span id="L462" class="ln">   462&nbsp;&nbsp;</span>	}
-<span id="L463" class="ln">   463&nbsp;&nbsp;</span>	if detail.ControlStyle == pb.ControlStyle_NoControl &amp;&amp; detail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
-<span id="L464" class="ln">   464&nbsp;&nbsp;</span>		log.Fatalf(&#34;Could not validate parameter &#39;%v&#39;: Can not have no control and no feedback&#34;, detail.Name)
-<span id="L465" class="ln">   465&nbsp;&nbsp;</span>	}
-<span id="L466" class="ln">   466&nbsp;&nbsp;</span>	if detail.ControlStyle == pb.ControlStyle_ControlledIncremental &amp;&amp; detail.ValueType != pb.ValueType_Integer {
-<span id="L467" class="ln">   467&nbsp;&nbsp;</span>		log.Fatalf(&#34;Could not validate parameter &#39;%v&#39;: Controlled Incremental only supported on integers right now&#34;, detail.Name)
-<span id="L468" class="ln">   468&nbsp;&nbsp;</span>	}
-<span id="L469" class="ln">   469&nbsp;&nbsp;</span>	if detail.ControlStyle == pb.ControlStyle_Incremental &amp;&amp; detail.IncDecStepsLowerLimit == 0 &amp;&amp; detail.IncDecStepsUpperLimit == 0 {
-<span id="L470" class="ln">   470&nbsp;&nbsp;</span>		log.Fatalf(&#34;Could not validate parameter &#39;%v&#39;: Incremental: please provide lower and upper range for incDecSteps&#34;, detail.Name)
-<span id="L471" class="ln">   471&nbsp;&nbsp;</span>	}
-<span id="L472" class="ln">   472&nbsp;&nbsp;</span>	if detail.ControlStyle != pb.ControlStyle_Incremental &amp;&amp;
-<span id="L473" class="ln">   473&nbsp;&nbsp;</span>		detail.ControlStyle != pb.ControlStyle_ControlledIncremental &amp;&amp;
-<span id="L474" class="ln">   474&nbsp;&nbsp;</span>		(detail.IncDecStepsLowerLimit != 0 || detail.IncDecStepsUpperLimit != 0) {
-<span id="L475" class="ln">   475&nbsp;&nbsp;</span>		log.Fatalf(&#34;Could not validate parameter &#39;%v&#39;: Lower and upper limit are only valid on Incremental Control Mode&#34;, detail.Name)
+<span id="L463" class="ln">   463&nbsp;&nbsp;</span>	return 0
+<span id="L464" class="ln">   464&nbsp;&nbsp;</span>}
+<span id="L465" class="ln">   465&nbsp;&nbsp;</span>
+<span id="L466" class="ln">   466&nbsp;&nbsp;</span>func validateParameter(detail *pb.ParameterDetail) {
+<span id="L467" class="ln">   467&nbsp;&nbsp;</span>	<span class="comment">// Fatals</span>
+<span id="L468" class="ln">   468&nbsp;&nbsp;</span>	if detail.Name == &#34;&#34; {
+<span id="L469" class="ln">   469&nbsp;&nbsp;</span>		log.Fatalf(&#34;Could not validate parameter ID %v: No name set&#34;, detail.Id)
+<span id="L470" class="ln">   470&nbsp;&nbsp;</span>	}
+<span id="L471" class="ln">   471&nbsp;&nbsp;</span>	if detail.ControlStyle == pb.ControlStyle_NoControl &amp;&amp; detail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
+<span id="L472" class="ln">   472&nbsp;&nbsp;</span>		log.Fatalf(&#34;Could not validate parameter &#39;%v&#39;: Can not have no control and no feedback&#34;, detail.Name)
+<span id="L473" class="ln">   473&nbsp;&nbsp;</span>	}
+<span id="L474" class="ln">   474&nbsp;&nbsp;</span>	if detail.ControlStyle == pb.ControlStyle_ControlledIncremental &amp;&amp; detail.ValueType != pb.ValueType_Integer {
+<span id="L475" class="ln">   475&nbsp;&nbsp;</span>		log.Fatalf(&#34;Could not validate parameter &#39;%v&#39;: Controlled Incremental only supported on integers right now&#34;, detail.Name)
 <span id="L476" class="ln">   476&nbsp;&nbsp;</span>	}
-<span id="L477" class="ln">   477&nbsp;&nbsp;</span>	if detail.Label == &#34;&#34; {
-<span id="L478" class="ln">   478&nbsp;&nbsp;</span>		log.Fatalf(&#34;Could not validate parameter &#39;%v&#39;: No label set&#34;, detail.Name)
+<span id="L477" class="ln">   477&nbsp;&nbsp;</span>	if detail.ControlStyle == pb.ControlStyle_Incremental &amp;&amp; detail.IncDecStepsLowerLimit == 0 &amp;&amp; detail.IncDecStepsUpperLimit == 0 {
+<span id="L478" class="ln">   478&nbsp;&nbsp;</span>		log.Fatalf(&#34;Could not validate parameter &#39;%v&#39;: Incremental: please provide lower and upper range for incDecSteps&#34;, detail.Name)
 <span id="L479" class="ln">   479&nbsp;&nbsp;</span>	}
-<span id="L480" class="ln">   480&nbsp;&nbsp;</span>	if detail.ControlStyle != pb.ControlStyle_NoControl &amp;&amp; detail.FeedbackStyle != pb.FeedbackStyle_NoFeedback &amp;&amp; detail.RetryCount == 0 {
-<span id="L481" class="ln">   481&nbsp;&nbsp;</span>		log.Fatalf(&#34;Parameter &#39;%v&#39;: Any non assumed value (FeedbackStyle_NoFeedback) needs to have RetryCount set&#34;, detail.Name)
-<span id="L482" class="ln">   482&nbsp;&nbsp;</span>	}
-<span id="L483" class="ln">   483&nbsp;&nbsp;</span>
-<span id="L484" class="ln">   484&nbsp;&nbsp;</span>	<span class="comment">// ValueType Checks</span>
-<span id="L485" class="ln">   485&nbsp;&nbsp;</span>	switch detail.ValueType {
-<span id="L486" class="ln">   486&nbsp;&nbsp;</span>	case pb.ValueType_Floating:
-<span id="L487" class="ln">   487&nbsp;&nbsp;</span>		fallthrough
-<span id="L488" class="ln">   488&nbsp;&nbsp;</span>	case pb.ValueType_Integer:
-<span id="L489" class="ln">   489&nbsp;&nbsp;</span>		if detail.Minimum == 0 &amp;&amp; detail.Maximum == 0 {
-<span id="L490" class="ln">   490&nbsp;&nbsp;</span>			log.Fatalf(&#34;Could not validate parameter &#39;%v&#39;: Integer needs min/max set&#34;, detail.Name)
-<span id="L491" class="ln">   491&nbsp;&nbsp;</span>		}
-<span id="L492" class="ln">   492&nbsp;&nbsp;</span>	case pb.ValueType_Binary:
-<span id="L493" class="ln">   493&nbsp;&nbsp;</span>		if detail.ControlStyle == pb.ControlStyle_Incremental {
-<span id="L494" class="ln">   494&nbsp;&nbsp;</span>			log.Fatalf(&#34;Could not validate parameter &#39;%v&#39;: Binary can not have incremental control&#34;, detail.Name)
-<span id="L495" class="ln">   495&nbsp;&nbsp;</span>		}
-<span id="L496" class="ln">   496&nbsp;&nbsp;</span>	case pb.ValueType_NoValue:
-<span id="L497" class="ln">   497&nbsp;&nbsp;</span>		if detail.FeedbackStyle != pb.FeedbackStyle_NoFeedback {
-<span id="L498" class="ln">   498&nbsp;&nbsp;</span>			log.Fatalf(&#34;Could not validate parameter &#39;%v&#39;: NoValue can not have Feedback&#34;, detail.Name)
+<span id="L480" class="ln">   480&nbsp;&nbsp;</span>	if detail.ControlStyle != pb.ControlStyle_Incremental &amp;&amp;
+<span id="L481" class="ln">   481&nbsp;&nbsp;</span>		detail.ControlStyle != pb.ControlStyle_ControlledIncremental &amp;&amp;
+<span id="L482" class="ln">   482&nbsp;&nbsp;</span>		(detail.IncDecStepsLowerLimit != 0 || detail.IncDecStepsUpperLimit != 0) {
+<span id="L483" class="ln">   483&nbsp;&nbsp;</span>		log.Fatalf(&#34;Could not validate parameter &#39;%v&#39;: Lower and upper limit are only valid on Incremental Control Mode&#34;, detail.Name)
+<span id="L484" class="ln">   484&nbsp;&nbsp;</span>	}
+<span id="L485" class="ln">   485&nbsp;&nbsp;</span>	if detail.Label == &#34;&#34; {
+<span id="L486" class="ln">   486&nbsp;&nbsp;</span>		log.Fatalf(&#34;Could not validate parameter &#39;%v&#39;: No label set&#34;, detail.Name)
+<span id="L487" class="ln">   487&nbsp;&nbsp;</span>	}
+<span id="L488" class="ln">   488&nbsp;&nbsp;</span>	if detail.ControlStyle != pb.ControlStyle_NoControl &amp;&amp; detail.FeedbackStyle != pb.FeedbackStyle_NoFeedback &amp;&amp; detail.RetryCount == 0 {
+<span id="L489" class="ln">   489&nbsp;&nbsp;</span>		log.Fatalf(&#34;Parameter &#39;%v&#39;: Any non assumed value (FeedbackStyle_NoFeedback) needs to have RetryCount set&#34;, detail.Name)
+<span id="L490" class="ln">   490&nbsp;&nbsp;</span>	}
+<span id="L491" class="ln">   491&nbsp;&nbsp;</span>
+<span id="L492" class="ln">   492&nbsp;&nbsp;</span>	<span class="comment">// ValueType Checks</span>
+<span id="L493" class="ln">   493&nbsp;&nbsp;</span>	switch detail.ValueType {
+<span id="L494" class="ln">   494&nbsp;&nbsp;</span>	case pb.ValueType_Floating:
+<span id="L495" class="ln">   495&nbsp;&nbsp;</span>		fallthrough
+<span id="L496" class="ln">   496&nbsp;&nbsp;</span>	case pb.ValueType_Integer:
+<span id="L497" class="ln">   497&nbsp;&nbsp;</span>		if detail.Minimum == 0 &amp;&amp; detail.Maximum == 0 {
+<span id="L498" class="ln">   498&nbsp;&nbsp;</span>			log.Fatalf(&#34;Could not validate parameter &#39;%v&#39;: Integer needs min/max set&#34;, detail.Name)
 <span id="L499" class="ln">   499&nbsp;&nbsp;</span>		}
-<span id="L500" class="ln">   500&nbsp;&nbsp;</span>		if detail.Minimum != 0 || detail.Maximum != 0 {
-<span id="L501" class="ln">   501&nbsp;&nbsp;</span>			log.Fatalf(&#34;Could not validate parameter &#39;%v&#39;: NoValue can not min/max&#34;, detail.Name)
-<span id="L502" class="ln">   502&nbsp;&nbsp;</span>		}
-<span id="L503" class="ln">   503&nbsp;&nbsp;</span>	}
-<span id="L504" class="ln">   504&nbsp;&nbsp;</span>
-<span id="L505" class="ln">   505&nbsp;&nbsp;</span>	<span class="comment">// Warnings</span>
-<span id="L506" class="ln">   506&nbsp;&nbsp;</span>	if detail.ShortLabel == &#34;&#34; {
-<span id="L507" class="ln">   507&nbsp;&nbsp;</span>		log.Warnf(&#34;Parameter &#39;%v&#39;: No short label set&#34;, detail.Name)
-<span id="L508" class="ln">   508&nbsp;&nbsp;</span>	}
-<span id="L509" class="ln">   509&nbsp;&nbsp;</span>	if detail.Description == &#34;&#34; {
-<span id="L510" class="ln">   510&nbsp;&nbsp;</span>		log.Warnf(&#34;Parameter &#39;%v&#39;: No description set&#34;, detail.Name)
+<span id="L500" class="ln">   500&nbsp;&nbsp;</span>	case pb.ValueType_Binary:
+<span id="L501" class="ln">   501&nbsp;&nbsp;</span>		if detail.ControlStyle == pb.ControlStyle_Incremental {
+<span id="L502" class="ln">   502&nbsp;&nbsp;</span>			log.Fatalf(&#34;Could not validate parameter &#39;%v&#39;: Binary can not have incremental control&#34;, detail.Name)
+<span id="L503" class="ln">   503&nbsp;&nbsp;</span>		}
+<span id="L504" class="ln">   504&nbsp;&nbsp;</span>	case pb.ValueType_NoValue:
+<span id="L505" class="ln">   505&nbsp;&nbsp;</span>		if detail.FeedbackStyle != pb.FeedbackStyle_NoFeedback {
+<span id="L506" class="ln">   506&nbsp;&nbsp;</span>			log.Fatalf(&#34;Could not validate parameter &#39;%v&#39;: NoValue can not have Feedback&#34;, detail.Name)
+<span id="L507" class="ln">   507&nbsp;&nbsp;</span>		}
+<span id="L508" class="ln">   508&nbsp;&nbsp;</span>		if detail.Minimum != 0 || detail.Maximum != 0 {
+<span id="L509" class="ln">   509&nbsp;&nbsp;</span>			log.Fatalf(&#34;Could not validate parameter &#39;%v&#39;: NoValue can not min/max&#34;, detail.Name)
+<span id="L510" class="ln">   510&nbsp;&nbsp;</span>		}
 <span id="L511" class="ln">   511&nbsp;&nbsp;</span>	}
-<span id="L512" class="ln">   512&nbsp;&nbsp;</span>}
-<span id="L513" class="ln">   513&nbsp;&nbsp;</span>
+<span id="L512" class="ln">   512&nbsp;&nbsp;</span>
+<span id="L513" class="ln">   513&nbsp;&nbsp;</span>	<span class="comment">// Warnings</span>
+<span id="L514" class="ln">   514&nbsp;&nbsp;</span>	if detail.ShortLabel == &#34;&#34; {
+<span id="L515" class="ln">   515&nbsp;&nbsp;</span>		log.Warnf(&#34;Parameter &#39;%v&#39;: No short label set&#34;, detail.Name)
+<span id="L516" class="ln">   516&nbsp;&nbsp;</span>	}
+<span id="L517" class="ln">   517&nbsp;&nbsp;</span>	if detail.Description == &#34;&#34; {
+<span id="L518" class="ln">   518&nbsp;&nbsp;</span>		log.Warnf(&#34;Parameter &#39;%v&#39;: No description set&#34;, detail.Name)
+<span id="L519" class="ln">   519&nbsp;&nbsp;</span>	}
+<span id="L520" class="ln">   520&nbsp;&nbsp;</span>}
+<span id="L521" class="ln">   521&nbsp;&nbsp;</span>
 </pre><p><a href="parameter-registry.go%3Fm=text">View as plain text</a></p>
 
 <div id="footer">

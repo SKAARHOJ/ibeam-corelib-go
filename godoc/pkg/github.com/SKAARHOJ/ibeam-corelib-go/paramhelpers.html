@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#375EAB">
+
+  <title>paramhelpers - Go Documentation Server</title>
+
+<link type="text/css" rel="stylesheet" href="../../../../lib/godoc/style.css">
+
+<script>window.initFuncs = [];</script>
+<script src="../../../../lib/godoc/jquery.js" defer></script>
+
+
+
+<script>var goVersion = "go1.15.6";</script>
+<script src="../../../../lib/godoc/godocs.js" defer></script>
+</head>
+<body>
+
+<div id='lowframe' style="position: fixed; bottom: 0; left: 0; height: 0; width: 100%; border-top: thin solid grey; background-color: white; overflow: auto;">
+...
+</div><!-- #lowframe -->
+
+<div id="topbar" class="wide"><div class="container">
+<div class="top-heading" id="heading-wide"><a href="http://localhost:6060/pkg/">Go Documentation Server</a></div>
+<div class="top-heading" id="heading-narrow"><a href="http://localhost:6060/pkg/">GoDoc</a></div>
+<a href="paramhelpers.html#" id="menu-button"><span id="menu-button-arrow">&#9661;</span></a>
+<form method="GET" action="http://localhost:6060/search">
+<div id="menu">
+
+<span class="search-box"><input type="search" id="search" name="q" placeholder="Search" aria-label="Search" required><button type="submit"><span><!-- magnifying glass: --><svg width="24" height="24" viewBox="0 0 24 24"><title>submit search</title><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/><path d="M0 0h24v24H0z" fill="none"/></svg></span></button></span>
+</div>
+</form>
+
+</div></div>
+
+
+
+<div id="page" class="wide">
+<div class="container">
+
+
+  <h1>
+    Package paramhelpers
+    <span class="text-muted"></span>
+  </h1>
+
+
+
+
+
+
+
+<div id="nav"></div>
+
+
+<!--
+	Copyright 2009 The Go Authors. All rights reserved.
+	Use of this source code is governed by a BSD-style
+	license that can be found in the LICENSE file.
+-->
+<!--
+	Note: Static (i.e., not template-generated) href and id
+	attributes start with "pkg-" to make it impossible for
+	them to conflict with generated attributes (some of which
+	correspond to Go identifiers).
+-->
+
+	<script>
+	document.ANALYSIS_DATA = null;
+	document.CALLGRAPH = null;
+	</script>
+
+	
+		
+		<div id="short-nav">
+			<dl>
+			<dd><code>import "github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers"</code></dd>
+			</dl>
+			<dl>
+			<dd><a href="paramhelpers.html#pkg-overview" class="overviewLink">Overview</a></dd>
+			<dd><a href="paramhelpers.html#pkg-index" class="indexLink">Index</a></dd>
+			
+			
+			</dl>
+		</div>
+		<!-- The package's Name is printed as title by the top-level template -->
+		<div id="pkg-overview" class="toggleVisible">
+			<div class="collapsed">
+				<h2 class="toggleButton" title="Click to show Overview section">Overview ▹</h2>
+			</div>
+			<div class="expanded">
+				<h2 class="toggleButton" title="Click to hide Overview section">Overview ▾</h2>
+				
+				
+			</div>
+		</div>
+
+		<div id="pkg-index" class="toggleVisible">
+		<div class="collapsed">
+			<h2 class="toggleButton" title="Click to show Index section">Index ▹</h2>
+		</div>
+		<div class="expanded">
+			<h2 class="toggleButton" title="Click to hide Index section">Index ▾</h2>
+
+		<!-- Table of contents for API; must be named manual-nav to turn off auto nav. -->
+			<div id="manual-nav">
+			<dl>
+			
+			
+			
+				
+				<dd><a href="paramhelpers.html#Avail">func Avail(available bool, dimensionID ...uint32) *pb.ParameterValue</a></dd>
+			
+				
+				<dd><a href="paramhelpers.html#Bool">func Bool(val bool, dimensionID ...uint32) *pb.ParameterValue</a></dd>
+			
+				
+				<dd><a href="paramhelpers.html#Int">func Int(val int, dimensionID ...uint32) *pb.ParameterValue</a></dd>
+			
+				
+				<dd><a href="paramhelpers.html#Invalid">func Invalid(dimensionID ...uint32) *pb.ParameterValue</a></dd>
+			
+				
+				<dd><a href="paramhelpers.html#OptIndex">func OptIndex(val int, dimensionID ...uint32) *pb.ParameterValue</a></dd>
+			
+				
+				<dd><a href="paramhelpers.html#OptList">func OptList(val *pb.OptionList, dimensionID ...uint32) *pb.ParameterValue</a></dd>
+			
+				
+				<dd><a href="paramhelpers.html#Param">func Param(pid uint32, did uint32, vals ...*pb.ParameterValue) *pb.Parameter</a></dd>
+			
+				
+				<dd><a href="paramhelpers.html#String">func String(val string, dimensionID ...uint32) *pb.ParameterValue</a></dd>
+			
+			
+			
+			</dl>
+			</div><!-- #manual-nav -->
+
+		
+
+		
+			<h3>Package files</h3>
+			<p>
+			<span style="font-size:90%">
+			
+				<a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers/paramhelpers.go.html">paramhelpers.go</a>
+			
+			</span>
+			</p>
+		
+		</div><!-- .expanded -->
+		</div><!-- #pkg-index -->
+
+		
+
+		
+		
+		
+			
+			
+			<h2 id="Avail">func <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers/paramhelpers.go%3Fs=2021:2089.html#L34">Avail</a>
+				<a class="permalink" href="paramhelpers.html#Avail">&#xb6;</a>
+				
+				
+			</h2>
+			<pre>func Avail(available <a href="http://localhost:6060/pkg/builtin/#bool">bool</a>, dimensionID ...<a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>) *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#ParameterValue">ParameterValue</a></pre>
+			<p>
+Avail is used to set a specific dimension values available flag
+</p>
+
+			
+			
+
+		
+			
+			
+			<h2 id="Bool">func <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers/paramhelpers.go%3Fs=954:1015.html#L12">Bool</a>
+				<a class="permalink" href="paramhelpers.html#Bool">&#xb6;</a>
+				
+				
+			</h2>
+			<pre>func Bool(val <a href="http://localhost:6060/pkg/builtin/#bool">bool</a>, dimensionID ...<a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>) *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#ParameterValue">ParameterValue</a></pre>
+			<p>
+Bool just returns a parameter value of type ParameterValue_Binary
+</p>
+
+			
+			
+
+		
+			
+			
+			<h2 id="Int">func <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers/paramhelpers.go%3Fs=711:770.html#L7">Int</a>
+				<a class="permalink" href="paramhelpers.html#Int">&#xb6;</a>
+				
+				
+			</h2>
+			<pre>func Int(val <a href="http://localhost:6060/pkg/builtin/#int">int</a>, dimensionID ...<a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>) *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#ParameterValue">ParameterValue</a></pre>
+			<p>
+Int just returns a parameter value of type ParameterValue_Integer
+</p>
+
+			
+			
+
+		
+			
+			
+			<h2 id="Invalid">func <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers/paramhelpers.go%3Fs=2227:2281.html#L39">Invalid</a>
+				<a class="permalink" href="paramhelpers.html#Invalid">&#xb6;</a>
+				
+				
+			</h2>
+			<pre>func Invalid(dimensionID ...<a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>) *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#ParameterValue">ParameterValue</a></pre>
+			<p>
+Invalid is used to set a specific values invalid flag
+</p>
+
+			
+			
+
+		
+			
+			
+			<h2 id="OptIndex">func <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers/paramhelpers.go%3Fs=1434:1498.html#L22">OptIndex</a>
+				<a class="permalink" href="paramhelpers.html#OptIndex">&#xb6;</a>
+				
+				
+			</h2>
+			<pre>func OptIndex(val <a href="http://localhost:6060/pkg/builtin/#int">int</a>, dimensionID ...<a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>) *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#ParameterValue">ParameterValue</a></pre>
+			<p>
+OptIndex just returns a parameter value of type ParameterValue_CurrentOption
+</p>
+
+			
+			
+
+		
+			
+			
+			<h2 id="OptList">func <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers/paramhelpers.go%3Fs=1740:1814.html#L27">OptList</a>
+				<a class="permalink" href="paramhelpers.html#OptList">&#xb6;</a>
+				
+				
+			</h2>
+			<pre>func OptList(val *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#OptionList">OptionList</a>, dimensionID ...<a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>) *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#ParameterValue">ParameterValue</a></pre>
+			<p>
+OptList just returns a parameter value of type ParameterValue_OptionList, used to update a dynamic option list
+</p>
+
+			
+			
+
+		
+			
+			
+			<h2 id="Param">func <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers/paramhelpers.go%3Fs=399:475.html#L1">Param</a>
+				<a class="permalink" href="paramhelpers.html#Param">&#xb6;</a>
+				
+				
+			</h2>
+			<pre>func Param(pid <a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>, did <a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>, vals ...*<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#ParameterValue">ParameterValue</a>) *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#Parameter">Parameter</a></pre>
+			<p>
+Param is the main function of the parameter helpers suite. It is used to create a pb.Parameter with a specified id and device.
+After that you can add as many parameter values as needed for the specific parameter (usually onbly one, more for parameters with dimensions that you want to update at the same time)
+</p>
+
+			
+			
+
+		
+			
+			
+			<h2 id="String">func <a href="../../../../src/github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers/paramhelpers.go%3Fs=1189:1254.html#L17">String</a>
+				<a class="permalink" href="paramhelpers.html#String">&#xb6;</a>
+				
+				
+			</h2>
+			<pre>func String(val <a href="http://localhost:6060/pkg/builtin/#string">string</a>, dimensionID ...<a href="http://localhost:6060/pkg/builtin/#uint32">uint32</a>) *<a href="ibeam-core.html">pb</a>.<a href="ibeam-core.html#ParameterValue">ParameterValue</a></pre>
+			<p>
+String just returns a parameter value of type ParameterValue_Str
+</p>
+
+			
+			
+
+		
+		
+	
+
+	
+
+
+
+
+
+
+
+<div id="footer">
+Build version go1.15.6.<br>
+Except as <a href="https://developers.google.com/site-policies#restrictions">noted</a>,
+the content of this page is licensed under the
+Creative Commons Attribution 3.0 License,
+and code is licensed under a <a href="http://localhost:6060/LICENSE">BSD license</a>.<br>
+<a href="http://localhost:6060/doc/tos.html">Terms of Service</a> |
+<a href="http://www.google.com/intl/en/policies/privacy/">Privacy Policy</a>
+</div>
+
+</div><!-- .container -->
+</div><!-- #page -->
+</body>
+</html>

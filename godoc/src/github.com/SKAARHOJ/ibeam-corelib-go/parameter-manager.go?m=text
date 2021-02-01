@@ -9,19 +9,19 @@ import (
 	"google.golang.org/grpc"
 )
 
-// IbeamParameterManager manages parameter changes.
-type IbeamParameterManager struct {
-	parameterRegistry   *IbeamParameterRegistry
+// IBeamParameterManager manages parameter changes.
+type IBeamParameterManager struct {
+	parameterRegistry   *IBeamParameterRegistry
 	out                 chan *pb.Parameter
 	in                  chan *pb.Parameter
 	clientsSetterStream chan *pb.Parameter
 	serverClientsStream chan *pb.Parameter
-	server              *IbeamServer
+	server              *IBeamServer
 }
 
 // StartWithServer Starts the ibeam parameter routine and the GRPC server in one call. This is blocking and should be called at the end of main.
 // The network must be "tcp", "tcp4", "tcp6", "unix" or "unixpacket".
-func (m *IbeamParameterManager) StartWithServer(network, address string) {
+func (m *IBeamParameterManager) StartWithServer(network, address string) {
 	// Start parameter management routine
 	m.Start()
 
@@ -37,7 +37,7 @@ func (m *IbeamParameterManager) StartWithServer(network, address string) {
 	}
 }
 
-func (m *IbeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb.Parameter {
+func (m *IBeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb.Parameter {
 	// Check if given Parameter has an DeviceParameterID
 	if parameter.Id == nil {
 		// Client sees what he has send
@@ -105,7 +105,7 @@ func (m *IbeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb
 }
 
 // Start the communication between client and server.
-func (m *IbeamParameterManager) Start() {
+func (m *IBeamParameterManager) Start() {
 	go func() {
 		for {
 			// ***************

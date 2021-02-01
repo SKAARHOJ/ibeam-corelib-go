@@ -69,7 +69,7 @@
 <span id="L6" class="ln">     6&nbsp;&nbsp;</span>	&#34;google.golang.org/protobuf/proto&#34;
 <span id="L7" class="ln">     7&nbsp;&nbsp;</span>)
 <span id="L8" class="ln">     8&nbsp;&nbsp;</span>
-<span id="L9" class="ln">     9&nbsp;&nbsp;</span>func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
+<span id="L9" class="ln">     9&nbsp;&nbsp;</span>func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 <span id="L10" class="ln">    10&nbsp;&nbsp;</span>	if errorParam := m.checkValidParameter(parameter); errorParam != nil {
 <span id="L11" class="ln">    11&nbsp;&nbsp;</span>		m.serverClientsStream &lt;- errorParam
 <span id="L12" class="ln">    12&nbsp;&nbsp;</span>		return

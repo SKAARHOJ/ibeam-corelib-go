@@ -13,9 +13,9 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// IbeamServer implements the IbeamCoreServer interface of the generated protofile library.
-type IbeamServer struct {
-	parameterRegistry        *IbeamParameterRegistry
+// IBeamServer implements the IbeamCoreServer interface of the generated protofile library.
+type IBeamServer struct {
+	parameterRegistry        *IBeamParameterRegistry
 	clientsSetterStream      chan *pb.Parameter
 	serverClientsStream      chan *pb.Parameter
 	serverClientsDistributor map[chan *pb.Parameter]bool
@@ -23,7 +23,7 @@ type IbeamServer struct {
 }
 
 // GetCoreInfo returns the CoreInfo of the Ibeam-Core
-func (s *IbeamServer) GetCoreInfo(_ context.Context, _ *pb.Empty) (*pb.CoreInfo, error) {
+func (s *IBeamServer) GetCoreInfo(_ context.Context, _ *pb.Empty) (*pb.CoreInfo, error) {
 	coreInfo := proto.Clone(s.parameterRegistry.coreInfo).(*pb.CoreInfo)
 	s.muDistributor.RLock()
 	coreInfo.ConnectedClients = uint32(len(s.serverClientsDistributor))
@@ -33,7 +33,7 @@ func (s *IbeamServer) GetCoreInfo(_ context.Context, _ *pb.Empty) (*pb.CoreInfo,
 
 // GetDeviceInfo returns the DeviceInfos for given DeviceIDs.
 // If no IDs are given, all DeviceInfos will be returned.
-func (s *IbeamServer) GetDeviceInfo(_ context.Context, deviceIDs *pb.DeviceIDs) (*pb.DeviceInfos, error) {
+func (s *IBeamServer) GetDeviceInfo(_ context.Context, deviceIDs *pb.DeviceIDs) (*pb.DeviceInfos, error) {
 
 	log.Debugf("Client asks for DeviceInfo with ids %v", deviceIDs.Ids)
 	s.parameterRegistry.muInfo.RLock()
@@ -61,7 +61,7 @@ func (s *IbeamServer) GetDeviceInfo(_ context.Context, deviceIDs *pb.DeviceIDs) 
 
 // GetModelInfo returns the ModelInfos for given ModelIDs.
 // If no IDs are given, all ModelInfos will be returned.
-func (s *IbeamServer) GetModelInfo(_ context.Context, mIDs *pb.ModelIDs) (*pb.ModelInfos, error) {
+func (s *IBeamServer) GetModelInfo(_ context.Context, mIDs *pb.ModelIDs) (*pb.ModelInfos, error) {
 	s.parameterRegistry.muInfo.RLock()
 	defer s.parameterRegistry.muInfo.RUnlock()
 
@@ -82,7 +82,7 @@ func (s *IbeamServer) GetModelInfo(_ context.Context, mIDs *pb.ModelIDs) (*pb.Mo
 	return &rModelInfos, nil
 }
 
-func getModelWithID(s *IbeamServer, mID uint32) *pb.ModelInfo {
+func getModelWithID(s *IBeamServer, mID uint32) *pb.ModelInfo {
 	for _, model := range s.parameterRegistry.ModelInfos {
 		if model.Id == mID {
 			return model
@@ -93,7 +93,7 @@ func getModelWithID(s *IbeamServer, mID uint32) *pb.ModelInfo {
 
 // Get returns the Parameters with their current state for given DeviceParameterIDs.
 // If no IDs are given, all Parameters will be returned.
-func (s *IbeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rParameters *pb.Parameters, err error) {
+func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rParameters *pb.Parameters, err error) {
 	rParameters = &pb.Parameters{}
 	s.parameterRegistry.muValue.RLock()
 	defer s.parameterRegistry.muValue.RUnlock()
@@ -171,7 +171,7 @@ func (s *IbeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 
 // GetParameterDetails returns the Details for given ModelParameterIDs.
 // If no IDs are given, the Details from all Parameters will be returned.
-func (s *IbeamServer) GetParameterDetails(c context.Context, mpIDs *pb.ModelParameterIDs) (*pb.ParameterDetails, error) {
+func (s *IBeamServer) GetParameterDetails(c context.Context, mpIDs *pb.ModelParameterIDs) (*pb.ParameterDetails, error) {
 	p, _ := peer.FromContext(c)
 	clientIP := p.Addr.String()
 
@@ -210,7 +210,7 @@ func (s *IbeamServer) GetParameterDetails(c context.Context, mpIDs *pb.ModelPara
 	return rParameterDetails, nil
 }
 
-func (s *IbeamServer) getParameterDetail(mpID *pb.ModelParameterID) (*pb.ParameterDetail, error) {
+func (s *IBeamServer) getParameterDetail(mpID *pb.ModelParameterID) (*pb.ParameterDetail, error) {
 	if mpID.Parameter == 0 {
 		return nil, errors.New("Failed to get instance values " + mpID.String())
 	}
@@ -226,7 +226,7 @@ func (s *IbeamServer) getParameterDetail(mpID *pb.ModelParameterID) (*pb.Paramet
 }
 
 // Set will change the Value for the given Parameter.
-func (s *IbeamServer) Set(_ context.Context, ps *pb.Parameters) (*pb.Empty, error) {
+func (s *IBeamServer) Set(_ context.Context, ps *pb.Parameters) (*pb.Empty, error) {
 	for _, parameter := range ps.Parameters {
 		s.clientsSetterStream <- parameter
 	}
@@ -236,7 +236,7 @@ func (s *IbeamServer) Set(_ context.Context, ps *pb.Parameters) (*pb.Empty, erro
 // Subscribe starts a ServerStream and send updates if a Parameter changes.
 // On subscribe all current values should be sent back.
 // If no IDs are given, subscribe to every Parameter.
-func (s *IbeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCore_SubscribeServer) error {
+func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCore_SubscribeServer) error {
 	p, _ := peer.FromContext(stream.Context())
 	clientIP := p.Addr.String()
 	log.Debug("New Client subscribed from ", clientIP)
@@ -304,7 +304,7 @@ func containsDeviceParameter(dpID *pb.DeviceParameterID, dpIDs *pb.DeviceParamet
 }
 
 // CreateServer sets up the ibeam server, parameter manager and parameter registry
-func CreateServer(coreInfo *pb.CoreInfo) (manager *IbeamParameterManager, registry *IbeamParameterRegistry, settoManager chan *pb.Parameter, getfromManager chan *pb.Parameter) {
+func CreateServer(coreInfo *pb.CoreInfo) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan *pb.Parameter, getfromManager chan *pb.Parameter) {
 	defaultModelInfo := &pb.ModelInfo{
 		Name:        "Generic Model",
 		Description: "default model of the implementation",
@@ -313,7 +313,7 @@ func CreateServer(coreInfo *pb.CoreInfo) (manager *IbeamParameterManager, regist
 }
 
 // CreateServerWithDefaultModel sets up the ibeam server, parameter manager and parameter registry and allows to specify a default model
-func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelInfo) (manager *IbeamParameterManager, registry *IbeamParameterRegistry, settoManager chan *pb.Parameter, getfromManager chan *pb.Parameter) {
+func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelInfo) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan *pb.Parameter, getfromManager chan *pb.Parameter) {
 	clientsSetter := make(chan *pb.Parameter, 100)
 	getfromManager = make(chan *pb.Parameter, 100)
 	settoManager = make(chan *pb.Parameter, 100)
@@ -328,22 +328,22 @@ func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelI
 
 	coreInfo.IbeamVersion = pb.File_ibeam_core_proto.Options().ProtoReflect().Get(pb.E_IbeamVersion.TypeDescriptor()).String()
 
-	registry = &IbeamParameterRegistry{
+	registry = &IBeamParameterRegistry{
 		coreInfo:        proto.Clone(coreInfo).(*pb.CoreInfo),
 		DeviceInfos:     map[uint32]*pb.DeviceInfo{},
 		ModelInfos:      map[uint32]*pb.ModelInfo{},
 		ParameterDetail: map[uint32]map[uint32]*pb.ParameterDetail{},
-		ParameterValue:  map[uint32]map[uint32]*IbeamParameterDimension{},
+		ParameterValue:  map[uint32]map[uint32]*IBeamParameterDimension{},
 	}
 
-	server := IbeamServer{
+	server := IBeamServer{
 		parameterRegistry:        registry,
 		clientsSetterStream:      clientsSetter,
 		serverClientsStream:      watcher,
 		serverClientsDistributor: make(map[chan *pb.Parameter]bool),
 	}
 
-	manager = &IbeamParameterManager{
+	manager = &IBeamParameterManager{
 		parameterRegistry:   registry,
 		out:                 getfromManager,
 		in:                  settoManager,

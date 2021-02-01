@@ -71,7 +71,7 @@
 <span id="L8" class="ln">     8&nbsp;&nbsp;</span>	&#34;google.golang.org/protobuf/proto&#34;
 <span id="L9" class="ln">     9&nbsp;&nbsp;</span>)
 <span id="L10" class="ln">    10&nbsp;&nbsp;</span>
-<span id="L11" class="ln">    11&nbsp;&nbsp;</span>func (m *IbeamParameterManager) parameterLoop() {
+<span id="L11" class="ln">    11&nbsp;&nbsp;</span>func (m *IBeamParameterManager) parameterLoop() {
 <span id="L12" class="ln">    12&nbsp;&nbsp;</span>
 <span id="L13" class="ln">    13&nbsp;&nbsp;</span>	m.parameterRegistry.muInfo.RLock()
 <span id="L14" class="ln">    14&nbsp;&nbsp;</span>	defer m.parameterRegistry.muInfo.RUnlock()
@@ -104,7 +104,7 @@
 <span id="L41" class="ln">    41&nbsp;&nbsp;</span>	}
 <span id="L42" class="ln">    42&nbsp;&nbsp;</span>}
 <span id="L43" class="ln">    43&nbsp;&nbsp;</span>
-<span id="L44" class="ln">    44&nbsp;&nbsp;</span>func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameterDimension, parameterDetail *pb.ParameterDetail, deviceID uint32) {
+<span id="L44" class="ln">    44&nbsp;&nbsp;</span>func (m *IBeamParameterManager) loopDimension(parameterDimension *IBeamParameterDimension, parameterDetail *pb.ParameterDetail, deviceID uint32) {
 <span id="L45" class="ln">    45&nbsp;&nbsp;</span>	if !parameterDimension.isValue() {
 <span id="L46" class="ln">    46&nbsp;&nbsp;</span>		subdimensions, err := parameterDimension.Subdimensions()
 <span id="L47" class="ln">    47&nbsp;&nbsp;</span>		if err != nil {

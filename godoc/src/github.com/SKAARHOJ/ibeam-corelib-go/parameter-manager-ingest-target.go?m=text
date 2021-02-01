@@ -6,7 +6,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func (m *IbeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
+func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 	if errorParam := m.checkValidParameter(parameter); errorParam != nil {
 		m.serverClientsStream <- errorParam
 		return

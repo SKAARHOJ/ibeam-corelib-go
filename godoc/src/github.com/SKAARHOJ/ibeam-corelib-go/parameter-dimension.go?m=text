@@ -8,13 +8,13 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// IbeamParameterDimension is a recursive structure to enable the state management of parameters with several dimensions
-type IbeamParameterDimension struct {
-	subDimensions []*IbeamParameterDimension
+// IBeamParameterDimension is a recursive structure to enable the state management of parameters with several dimensions
+type IBeamParameterDimension struct {
+	subDimensions []*IBeamParameterDimension
 	value         *ibeamParameterValueBuffer
 }
 
-func (pd *IbeamParameterDimension) isValue() bool {
+func (pd *IBeamParameterDimension) isValue() bool {
 	if pd.value == nil {
 		return false
 	}
@@ -22,7 +22,7 @@ func (pd *IbeamParameterDimension) isValue() bool {
 }
 
 // Value of the Dimension
-func (pd *IbeamParameterDimension) Value() (*ibeamParameterValueBuffer, error) {
+func (pd *IBeamParameterDimension) Value() (*ibeamParameterValueBuffer, error) {
 	if pd.isValue() {
 		return pd.value, nil
 	}
@@ -30,7 +30,7 @@ func (pd *IbeamParameterDimension) Value() (*ibeamParameterValueBuffer, error) {
 }
 
 // Subdimensions of the Dimension
-func (pd *IbeamParameterDimension) Subdimensions() ([]*IbeamParameterDimension, error) {
+func (pd *IBeamParameterDimension) Subdimensions() ([]*IBeamParameterDimension, error) {
 	if !pd.isValue() {
 		return pd.subDimensions, nil
 	}
@@ -38,7 +38,7 @@ func (pd *IbeamParameterDimension) Subdimensions() ([]*IbeamParameterDimension, 
 }
 
 // MultiIndexHasValue checks for a specific dimension ids existence
-func (pd *IbeamParameterDimension) MultiIndexHasValue(dimensionID []uint32) bool {
+func (pd *IBeamParameterDimension) MultiIndexHasValue(dimensionID []uint32) bool {
 	valuePointer := pd
 
 	if len(dimensionID) == 0 {
@@ -63,7 +63,7 @@ func (pd *IbeamParameterDimension) MultiIndexHasValue(dimensionID []uint32) bool
 }
 
 // MultiIndex gets a specific dimension by dimensionID
-func (pd *IbeamParameterDimension) MultiIndex(dimensionID []uint32) (*IbeamParameterDimension, error) {
+func (pd *IBeamParameterDimension) MultiIndex(dimensionID []uint32) (*IBeamParameterDimension, error) {
 	valuePointer := pd
 	if len(dimensionID) == 0 {
 		return valuePointer, nil
@@ -82,22 +82,22 @@ func (pd *IbeamParameterDimension) MultiIndex(dimensionID []uint32) (*IbeamParam
 	return nil, fmt.Errorf("DimensionID too short")
 }
 
-func (pd *IbeamParameterDimension) index(index uint32) (*IbeamParameterDimension, error) {
+func (pd *IBeamParameterDimension) index(index uint32) (*IBeamParameterDimension, error) {
 	if len(pd.subDimensions) <= int(index) {
 		return nil, fmt.Errorf("Parameter Dimension Index out of range: wanted: %v length: %v", index, len(pd.subDimensions))
 	}
 	return pd.subDimensions[int(index)], nil
 }
 
-func generateDimensions(dimensionConfig []uint32, initialValueDimension *IbeamParameterDimension) *IbeamParameterDimension {
+func generateDimensions(dimensionConfig []uint32, initialValueDimension *IBeamParameterDimension) *IBeamParameterDimension {
 	if len(dimensionConfig) == 0 {
 		return initialValueDimension
 	}
 
-	dimensions := make([]*IbeamParameterDimension, 0)
+	dimensions := make([]*IBeamParameterDimension, 0)
 
 	for count := 0; count < int(dimensionConfig[0]); count++ {
-		valueWithID := IbeamParameterDimension{}
+		valueWithID := IBeamParameterDimension{}
 		dimValue := initialValueDimension.value
 
 		valueWithID.value = &ibeamParameterValueBuffer{
@@ -118,7 +118,7 @@ func generateDimensions(dimensionConfig []uint32, initialValueDimension *IbeamPa
 			dimensions = append(dimensions, subDim)
 		}
 	}
-	return &IbeamParameterDimension{
+	return &IBeamParameterDimension{
 		subDimensions: dimensions,
 	}
 }

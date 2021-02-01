@@ -111,14 +111,12 @@
 <span id="L49" class="ln">    49</span>    &#34;$URL&#34;
 <span id="L50" class="ln">    50</span>
 <span id="L51" class="ln">    51</span># Generate a simple redirect
-<span id="L52" class="ln">    52</span>#echo &#34;&lt;script&gt;window.location.href = &#39;/pkg/$GO_MODULE&#39;;&lt;/script&gt;&#34; &gt; ${GO_DOC_HTML_OUTPUT:-godoc}/index.html
-<span id="L53" class="ln">    53</span># For skaarhoj server
-<span id="L54" class="ln">    54</span>echo &#34;&lt;script&gt;window.location.href = &#39;ibeam-corelib-go/pkg/$GO_MODULE&#39;;&lt;/script&gt;&#34; &gt; ${GO_DOC_HTML_OUTPUT:-godoc}/index.html
-<span id="L55" class="ln">    55</span>
-<span id="L56" class="ln">    56</span># Stop godoc server
-<span id="L57" class="ln">    57</span>kill -9 &#34;$PID&#34;
-<span id="L58" class="ln">    58</span>echo &#34;Stopped godoc server&#34;
-<span id="L59" class="ln">    59</span>echo &#34;Go source code documentation generated under ${GO_DOC_HTML_OUTPUT:-godoc}&#34;
+<span id="L52" class="ln">    52</span>echo &#34;&lt;script&gt;window.location.href = &#39;pkg/$GO_MODULE&#39;;&lt;/script&gt;&#34; &gt; ${GO_DOC_HTML_OUTPUT:-godoc}/index.html
+<span id="L53" class="ln">    53</span>
+<span id="L54" class="ln">    54</span># Stop godoc server
+<span id="L55" class="ln">    55</span>kill -9 &#34;$PID&#34;
+<span id="L56" class="ln">    56</span>echo &#34;Stopped godoc server&#34;
+<span id="L57" class="ln">    57</span>echo &#34;Go source code documentation generated under ${GO_DOC_HTML_OUTPUT:-godoc}&#34;
 </pre><p><a href="http://localhost:6060/src/github.com/SKAARHOJ/ibeam-corelib-go/docgen.sh?m=text">View as plain text</a></p>
 
 <div id="footer">

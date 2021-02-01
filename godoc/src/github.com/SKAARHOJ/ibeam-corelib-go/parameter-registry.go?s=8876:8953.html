@@ -26,7 +26,7 @@
 <div id="topbar" class="wide"><div class="container">
 <div class="top-heading" id="heading-wide"><a href="http://localhost:6060/pkg/">Go Documentation Server</a></div>
 <div class="top-heading" id="heading-narrow"><a href="http://localhost:6060/pkg/">GoDoc</a></div>
-<a href="./parameter-registry.go%3Fs=3580:3706.html#" id="menu-button"><span id="menu-button-arrow">&#9661;</span></a>
+<a href="./parameter-registry.go%3Fs=8876:8953.html#" id="menu-button"><span id="menu-button-arrow">&#9661;</span></a>
 <form method="GET" action="http://localhost:6060/search">
 <div id="menu">
 
@@ -152,7 +152,7 @@
 <span id="L89" class="ln">    89&nbsp;&nbsp;</span>}
 <span id="L90" class="ln">    90&nbsp;&nbsp;</span>
 <span id="L91" class="ln">    91&nbsp;&nbsp;</span><span class="comment">// RegisterParameterForModel registers a parameter and its detail struct in the registry for a single specified model and the default model if the id does not exist there yet.</span>
-<span id="L92" class="ln">    92&nbsp;&nbsp;</span><span class="selection">func (r *IBeamParameterRegistry) RegisterParameterForModel(modelID uint32, detail *pb.ParameterDetail) (parameterIndex uint32)</span> {
+<span id="L92" class="ln">    92&nbsp;&nbsp;</span>func (r *IBeamParameterRegistry) RegisterParameterForModel(modelID uint32, detail *pb.ParameterDetail) (parameterIndex uint32) {
 <span id="L93" class="ln">    93&nbsp;&nbsp;</span>	if detail.Id == nil {
 <span id="L94" class="ln">    94&nbsp;&nbsp;</span>		detail.Id = new(pb.ModelParameterID)
 <span id="L95" class="ln">    95&nbsp;&nbsp;</span>	}
@@ -335,7 +335,7 @@
 <span id="L272" class="ln">   272&nbsp;&nbsp;</span>}
 <span id="L273" class="ln">   273&nbsp;&nbsp;</span>
 <span id="L274" class="ln">   274&nbsp;&nbsp;</span><span class="comment">// GetModelIDByDeviceID is a helper to get the modelid for a specific device</span>
-<span id="L275" class="ln">   275&nbsp;&nbsp;</span>func (r *IBeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32 {
+<span id="L275" class="ln">   275&nbsp;&nbsp;</span><span class="selection">func (r *IBeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32</span> {
 <span id="L276" class="ln">   276&nbsp;&nbsp;</span>	r.muInfo.RLock()
 <span id="L277" class="ln">   277&nbsp;&nbsp;</span>	defer r.muInfo.RUnlock()
 <span id="L278" class="ln">   278&nbsp;&nbsp;</span>
