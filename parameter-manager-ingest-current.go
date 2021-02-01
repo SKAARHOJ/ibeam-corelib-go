@@ -51,6 +51,15 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			continue
 		}
 		if newParameterValue.Value == nil {
+			// Got empty value, need to update available or invalid
+			if newParameterValue.Invalid {
+				// if invalid is true set it
+				parameterBuffer.currentValue.Invalid = newParameterValue.Invalid
+			} else {
+				// else set available
+				parameterBuffer.available = newParameterValue.Available
+			}
+
 			if values := m.parameterRegistry.getInstanceValues(parameter.GetId()); values != nil {
 				m.serverClientsStream <- &pb.Parameter{Value: values, Id: parameter.Id, Error: 0}
 			}
@@ -168,7 +177,6 @@ func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 		if parameterBuffer.isAssumedState != assumed {
 			shouldSend = true
 		}
-
 	}
 
 	if !shouldSend {
