@@ -41,7 +41,7 @@ func (m *IbeamParameterManager) parameterLoop() {
 	}
 }
 
-func (m *IbeamParameterManager) loopDimension(parameterDimension *IbeamParameterDimension, parameterDetail *pb.ParameterDetail, deviceID uint32) {
+func (m *IbeamParameterManager) loopDimension(parameterDimension *IBeamParameterDimension, parameterDetail *pb.ParameterDetail, deviceID uint32) {
 	if !parameterDimension.isValue() {
 		subdimensions, err := parameterDimension.Subdimensions()
 		if err != nil {
