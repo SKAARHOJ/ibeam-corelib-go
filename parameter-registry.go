@@ -409,7 +409,7 @@ func (r *IbeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 	r.muInfo.Lock()
 	if deviceID == 0 {
 		deviceID = uint32(len(r.DeviceInfos) + 1)
-		log.Warn("Automatically assigning DeviceID %d to device with model %d", deviceID, modelID)
+		log.Warnf("Automatically assigning DeviceID %d to device with model %d", deviceID, modelID)
 	}
 	r.DeviceInfos[deviceID] = &pb.DeviceInfo{
 		DeviceID: deviceID,
