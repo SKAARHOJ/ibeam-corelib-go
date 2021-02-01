@@ -40,12 +40,13 @@ func OptList(val *pb.OptionList, dimensionID ...uint32) *pb.ParameterValue {
 
 // Available and Invalid
 
-// Avail is used to sent a specific dimension values available flag
+// Avail is used to set a specific dimension values available flag
 func Avail(available bool, dimensionID ...uint32) *pb.ParameterValue {
 	return &pb.ParameterValue{DimensionID: dimensionID, Available: available}
 }
 
-// Invalid is used to sent a specific values invalid flag
-func Invalid(invalid bool, dimensionID ...uint32) *pb.ParameterValue {
-	return &pb.ParameterValue{DimensionID: dimensionID, Invalid: invalid}
+// Invalid is used to set a specific values invalid flag
+func Invalid(dimensionID ...uint32) *pb.ParameterValue {
+	// This is only evaluated when set to true, to clear this send a valid value
+	return &pb.ParameterValue{DimensionID: dimensionID, Invalid: true}
 }
