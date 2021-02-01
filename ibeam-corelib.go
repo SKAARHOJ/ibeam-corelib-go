@@ -126,8 +126,6 @@ func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 			})
 			return
 		}
-		_, exists := s.parameterRegistry.ParameterValue[did][0]
-		log.Info(exists)
 		for pid := range s.parameterRegistry.ParameterValue[did] {
 			dpID := pb.DeviceParameterID{
 				Parameter: pid,

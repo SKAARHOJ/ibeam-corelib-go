@@ -114,7 +114,7 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 	if modelID == 0 {
 		// append to all models, need to check for ids
 
-		id := r.ParameterIDByName(detail.Name, modelID)
+		id := r.parameterIDByName(detail.Name, modelID)
 		if id != 0 {
 			log.Fatal("Duplicate parameter name for ", detail.Name)
 		}
@@ -143,7 +143,7 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 		r.muDetail.Unlock()
 
 	} else {
-		pid := r.ParameterIDByName(detail.Name, 0)
+		pid := r.parameterIDByName(detail.Name, 0)
 		if pid != 0 {
 			paramID = pid
 		}
@@ -204,7 +204,7 @@ func (r *IBeamParameterRegistry) UnregisterParameterForModel(modelID uint32, par
 	}
 
 	r.muDetail.Lock()
-	id := r.ParameterIDByName(parameterName, modelID)
+	id := r.parameterIDByName(parameterName, modelID)
 
 	if id == 0 {
 		log.Fatalf("Unknown parameter %s to be unregistered for model %d", parameterName, modelID)
@@ -448,8 +448,8 @@ func (r *IBeamParameterRegistry) ParameterNameByID(modelID uint32) string {
 	return ""
 }
 
-// ParameterIDByName Get a parameterID by name, returns 0 if not found
-func (r *IBeamParameterRegistry) ParameterIDByName(parameterName string, modelID uint32) uint32 {
+// parameterIDByName Get a parameterID by name, returns 0 if not found
+func (r *IBeamParameterRegistry) parameterIDByName(parameterName string, modelID uint32) uint32 {
 	// Function requires mutex to be fully locked before invocation
 	if uint32(len(r.ParameterDetail)) <= (modelID) {
 		log.Fatalln("Could not register parameter for nonexistent model", modelID)

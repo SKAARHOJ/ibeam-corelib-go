@@ -10,6 +10,9 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+var cachedIDMap map[uint32]map[uint32]string
+var cachedIDMapMu sync.RWMutex
+
 type parameterDetails map[uint32]map[uint32]*pb.ParameterDetail     //Parameter Details: model, parameter
 type parameterStates map[uint32]map[uint32]*IBeamParameterDimension //Parameter States: device,parameter,dimension
 
@@ -114,7 +117,7 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 	if modelID == 0 {
 		// append to all models, need to check for ids
 
-		id := r.ParameterIDByName(detail.Name, modelID)
+		id := r.parameterIDByName(detail.Name, modelID)
 		if id != 0 {
 			log.Fatal("Duplicate parameter name for ", detail.Name)
 		}
@@ -143,7 +146,7 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 		r.muDetail.Unlock()
 
 	} else {
-		pid := r.ParameterIDByName(detail.Name, 0)
+		pid := r.parameterIDByName(detail.Name, 0)
 		if pid != 0 {
 			paramID = pid
 		}
@@ -204,7 +207,7 @@ func (r *IBeamParameterRegistry) UnregisterParameterForModel(modelID uint32, par
 	}
 
 	r.muDetail.Lock()
-	id := r.ParameterIDByName(parameterName, modelID)
+	id := r.parameterIDByName(parameterName, modelID)
 
 	if id == 0 {
 		log.Fatalf("Unknown parameter %s to be unregistered for model %d", parameterName, modelID)
@@ -425,31 +428,53 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 	return deviceID, nil
 }
 
-// GetIDMaps returns a Map witch maps the Name of all Parameters with their ID for each model
-func (r *IBeamParameterRegistry) GetIDMaps() []map[string]uint32 {
-	idMaps := make([]map[string]uint32, 0)
+func (r *IBeamParameterRegistry) cacheIDMaps() {
+	if cachedIDMap != nil {
+		return
+	}
+
+	idMaps := make(map[uint32]map[uint32]string, 0)
 	r.muDetail.RLock()
 
 	for mIndex := range r.ModelInfos {
-		idMap := make(map[string]uint32)
+		idMap := make(map[uint32]string)
 		for _, parameter := range r.ParameterDetail[mIndex] {
-			idMap[parameter.Name] = parameter.Id.Parameter
+			idMap[parameter.Id.Parameter] = parameter.Name
 		}
-		idMaps = append(idMaps, idMap)
+		idMaps[mIndex] = idMap
 	}
 	r.muDetail.RUnlock()
-	return idMaps
+
+	cachedIDMapMu.Lock()
+	cachedIDMap = idMaps
+	cachedIDMapMu.Unlock()
 }
 
 // ParameterNameByID Get a parameterID by name, returns "" if not found, always uses model 0
-func (r *IBeamParameterRegistry) ParameterNameByID(modelID uint32) string {
+func (r *IBeamParameterRegistry) ParameterNameByID(parameterID uint32) string {
 	// check for device registered
+	if !r.parametersDone {
+		log.Error("ParameterNameByID: only call after registering the first device")
+		return ""
+	}
+
+	if cachedIDMap == nil {
+		r.cacheIDMaps() // make sure cachedIDMap is initialized
+	}
+	cachedIDMapMu.RLock()
+	defer cachedIDMapMu.RUnlock()
+
 	// use cached id map of model 0
+	name, exists := cachedIDMap[0][parameterID]
+	if exists {
+		return name
+	}
+
 	return ""
 }
 
-// ParameterIDByName Get a parameterID by name, returns 0 if not found
-func (r *IBeamParameterRegistry) ParameterIDByName(parameterName string, modelID uint32) uint32 {
+// parameterIDByName get a parameterID by name, returns 0 if not found, not allowed to be public because it needs the mutexlock
+func (r *IBeamParameterRegistry) parameterIDByName(parameterName string, modelID uint32) uint32 {
 	// Function requires mutex to be fully locked before invocation
 	if uint32(len(r.ParameterDetail)) <= (modelID) {
 		log.Fatalln("Could not register parameter for nonexistent model", modelID)
