@@ -6,9 +6,9 @@ import (
 	"time"
 )
 
-func TestIbeamParameterDimension_isValue(t *testing.T) {
+func TestIBeamParameterDimension_isValue(t *testing.T) {
 	type fields struct {
-		subDimensions []*IbeamParameterDimension
+		subDimensions []*IBeamParameterDimension
 		value         *IBeamParameterValueBuffer
 	}
 	tests := []struct {
@@ -21,20 +21,20 @@ func TestIbeamParameterDimension_isValue(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pd := &IbeamParameterDimension{
+			pd := &IBeamParameterDimension{
 				subDimensions: tt.fields.subDimensions,
 				value:         tt.fields.value,
 			}
 			if got := pd.isValue(); got != tt.want {
-				t.Errorf("IbeamParameterDimension.isValue() = %v, want %v", got, tt.want)
+				t.Errorf("IBeamParameterDimension.isValue() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestIbeamParameterDimension_Value(t *testing.T) {
+func TestIBeamParameterDimension_Value(t *testing.T) {
 	type fields struct {
-		subDimensions []*IbeamParameterDimension
+		subDimensions []*IBeamParameterDimension
 		value         *IBeamParameterValueBuffer
 	}
 	buffer := &IBeamParameterValueBuffer{}
@@ -50,35 +50,35 @@ func TestIbeamParameterDimension_Value(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pd := &IbeamParameterDimension{
+			pd := &IBeamParameterDimension{
 				subDimensions: tt.fields.subDimensions,
 				value:         tt.fields.value,
 			}
 			got, err := pd.Value()
 			if (err != nil) != tt.wantErr {
-				t.Errorf("IbeamParameterDimension.Value() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("IBeamParameterDimension.Value() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("IbeamParameterDimension.Value() = %v, want %v", got, tt.want)
+				t.Errorf("IBeamParameterDimension.Value() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestIbeamParameterDimension_Subdimensions(t *testing.T) {
+func TestIBeamParameterDimension_Subdimensions(t *testing.T) {
 	type fields struct {
-		subDimensions []*IbeamParameterDimension
+		subDimensions []*IBeamParameterDimension
 		value         *IBeamParameterValueBuffer
 	}
 	buffer := &IBeamParameterValueBuffer{}
-	dim := &IbeamParameterDimension{}
-	dimRay := []*IbeamParameterDimension{dim}
+	dim := &IBeamParameterDimension{}
+	dimRay := []*IBeamParameterDimension{dim}
 
 	tests := []struct {
 		name    string
 		fields  fields
-		want    []*IbeamParameterDimension
+		want    []*IBeamParameterDimension
 		wantErr bool
 	}{
 		{name: "Test Subdimensions with subdim", fields: fields{subDimensions: dimRay}, want: dimRay},
@@ -86,32 +86,32 @@ func TestIbeamParameterDimension_Subdimensions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pd := &IbeamParameterDimension{
+			pd := &IBeamParameterDimension{
 				subDimensions: tt.fields.subDimensions,
 				value:         tt.fields.value,
 			}
 			got, err := pd.Subdimensions()
 			if (err != nil) != tt.wantErr {
-				t.Errorf("IbeamParameterDimension.Subdimensions() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("IBeamParameterDimension.Subdimensions() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("IbeamParameterDimension.Subdimensions() = %v, want %v", got, tt.want)
+				t.Errorf("IBeamParameterDimension.Subdimensions() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestIbeamParameterDimension_MultiIndexHasValue(t *testing.T) {
+func TestIBeamParameterDimension_MultiIndexHasValue(t *testing.T) {
 	type fields struct {
-		subDimensions []*IbeamParameterDimension
+		subDimensions []*IBeamParameterDimension
 		value         *IBeamParameterValueBuffer
 	}
 	type args struct {
 		dimensionID []uint32
 	}
 
-	initialValueDimension := &IbeamParameterDimension{
+	initialValueDimension := &IBeamParameterDimension{
 		value: &IBeamParameterValueBuffer{
 			dimensionID:    make([]uint32, 0),
 			available:      true,
@@ -155,27 +155,27 @@ func TestIbeamParameterDimension_MultiIndexHasValue(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pd := &IbeamParameterDimension{
+			pd := &IBeamParameterDimension{
 				subDimensions: tt.fields.subDimensions,
 				value:         tt.fields.value,
 			}
 			if got := pd.MultiIndexHasValue(tt.args.dimensionID); got != tt.want {
-				t.Errorf("IbeamParameterDimension.MultiIndexHasValue() = %v, want %v", got, tt.want)
+				t.Errorf("IBeamParameterDimension.MultiIndexHasValue() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestIbeamParameterDimension_MultiIndex(t *testing.T) {
+func TestIBeamParameterDimension_MultiIndex(t *testing.T) {
 	type fields struct {
-		subDimensions []*IbeamParameterDimension
+		subDimensions []*IBeamParameterDimension
 		value         *IBeamParameterValueBuffer
 	}
 	type args struct {
 		dimensionID []uint32
 	}
 
-	initialValueDimension := &IbeamParameterDimension{
+	initialValueDimension := &IBeamParameterDimension{
 		value: &IBeamParameterValueBuffer{
 			dimensionID:    make([]uint32, 0),
 			available:      true,
@@ -189,7 +189,7 @@ func TestIbeamParameterDimension_MultiIndex(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    *IbeamParameterDimension
+		want    *IBeamParameterDimension
 		wantErr bool
 	}{
 		{
@@ -220,32 +220,32 @@ func TestIbeamParameterDimension_MultiIndex(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pd := &IbeamParameterDimension{
+			pd := &IBeamParameterDimension{
 				subDimensions: tt.fields.subDimensions,
 				value:         tt.fields.value,
 			}
 			got, err := pd.MultiIndex(tt.args.dimensionID)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("IbeamParameterDimension.MultiIndex() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("IBeamParameterDimension.MultiIndex() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !tt.wantErr && got == nil {
-				t.Errorf("IbeamParameterDimension.MultiIndex() = %v, want %v", got, tt.want)
+				t.Errorf("IBeamParameterDimension.MultiIndex() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestIbeamParameterDimension_index(t *testing.T) {
+func TestIBeamParameterDimension_index(t *testing.T) {
 	type fields struct {
-		subDimensions []*IbeamParameterDimension
+		subDimensions []*IBeamParameterDimension
 		value         *IBeamParameterValueBuffer
 	}
 	type args struct {
 		index uint32
 	}
 
-	initialValueDimension := &IbeamParameterDimension{
+	initialValueDimension := &IBeamParameterDimension{
 		value: &IBeamParameterValueBuffer{
 			dimensionID:    make([]uint32, 0),
 			available:      true,
@@ -259,7 +259,7 @@ func TestIbeamParameterDimension_index(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    *IbeamParameterDimension
+		want    *IBeamParameterDimension
 		wantErr bool
 	}{
 		{
@@ -281,17 +281,17 @@ func TestIbeamParameterDimension_index(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pd := &IbeamParameterDimension{
+			pd := &IBeamParameterDimension{
 				subDimensions: tt.fields.subDimensions,
 				value:         tt.fields.value,
 			}
 			got, err := pd.index(tt.args.index)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("IbeamParameterDimension.index() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("IBeamParameterDimension.index() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !tt.wantErr && got == nil {
-				t.Errorf("IbeamParameterDimension.index() = %v, want %v", got, tt.want)
+				t.Errorf("IBeamParameterDimension.index() = %v, want %v", got, tt.want)
 			}
 		})
 	}

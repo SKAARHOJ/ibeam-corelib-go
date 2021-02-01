@@ -8,7 +8,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func (m *IbeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) {
+func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) {
 	if err := m.checkValidParameter(parameter); err != nil {
 		log.Error(err)
 		return

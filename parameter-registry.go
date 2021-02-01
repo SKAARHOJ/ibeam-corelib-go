@@ -13,9 +13,9 @@ import (
 type parameterDetails map[uint32]map[uint32]*pb.ParameterDetail     //Parameter Details: model, parameter
 type parameterStates map[uint32]map[uint32]*IBeamParameterDimension //Parameter States: device,parameter,dimension
 
-// IbeamParameterRegistry is the storage of the core.
+// IBeamParameterRegistry is the storage of the core.
 // It saves all Infos about the Core, Device and Models and stores the Details and current Values of the Parameter.
-type IbeamParameterRegistry struct {
+type IBeamParameterRegistry struct {
 	muInfo          sync.RWMutex // Protects both Model and DeviceInfos
 	muDetail        sync.RWMutex
 	muValue         sync.RWMutex
@@ -30,13 +30,13 @@ type IbeamParameterRegistry struct {
 }
 
 // AllowAutoIDs Allowing Automatic IDs for parameters, this is only meant for initial development
-func (r *IbeamParameterRegistry) AllowAutoIDs() {
+func (r *IBeamParameterRegistry) AllowAutoIDs() {
 	log.Warn("Allowing Automatic IDs for parameters, this is only meant for initial development!!!")
 	r.allowAutoIDs = true
 }
 
 // device,parameter,instance
-func (r *IbeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID) (values []*pb.ParameterValue) {
+func (r *IBeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID) (values []*pb.ParameterValue) {
 	deviceID := dpID.Device
 	parameterIndex := dpID.Parameter
 	_, dExists := r.ParameterValue[deviceID]
@@ -69,7 +69,7 @@ func getValues(dimension *IBeamParameterDimension) (values []*pb.ParameterValue)
 	return values
 }
 
-func (r *IbeamParameterRegistry) getModelIndex(deviceID uint32) uint32 {
+func (r *IBeamParameterRegistry) getModelIndex(deviceID uint32) uint32 {
 	_, dExists := r.DeviceInfos[deviceID]
 	if !dExists || deviceID == 0 {
 		log.Fatalf("Could not get model for device with id %v.", deviceID)
@@ -78,7 +78,7 @@ func (r *IbeamParameterRegistry) getModelIndex(deviceID uint32) uint32 {
 }
 
 // RegisterParameterForModels registers a parameter and its detail struct in the registry for multiple models.
-func (r *IbeamParameterRegistry) RegisterParameterForModels(modelIDs []uint32, detail *pb.ParameterDetail) {
+func (r *IBeamParameterRegistry) RegisterParameterForModels(modelIDs []uint32, detail *pb.ParameterDetail) {
 	for _, id := range modelIDs {
 		if id == 0 {
 			log.Fatal("RegisterParameterForModels: do not use this function with the generic model")
@@ -89,7 +89,7 @@ func (r *IbeamParameterRegistry) RegisterParameterForModels(modelIDs []uint32, d
 }
 
 // RegisterParameterForModel registers a parameter and its detail struct in the registry for a single specified model and the default model if the id does not exist there yet.
-func (r *IbeamParameterRegistry) RegisterParameterForModel(modelID uint32, detail *pb.ParameterDetail) (parameterIndex uint32) {
+func (r *IBeamParameterRegistry) RegisterParameterForModel(modelID uint32, detail *pb.ParameterDetail) (parameterIndex uint32) {
 	if detail.Id == nil {
 		detail.Id = new(pb.ModelParameterID)
 	}
@@ -98,7 +98,7 @@ func (r *IbeamParameterRegistry) RegisterParameterForModel(modelID uint32, detai
 }
 
 // RegisterParameter registers a parameter and its detail struct in the registry.
-func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (paramID uint32) {
+func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (paramID uint32) {
 	r.modelsDone = true
 	if r.parametersDone {
 		log.Fatal("Can not unregister a parameter after registering the first device")
@@ -114,8 +114,8 @@ func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 	if modelID == 0 {
 		// append to all models, need to check for ids
 
-		_, found := r.findParameterByName(modelID, detail.Name)
-		if found {
+		id := r.ParameterIDByName(detail.Name, modelID)
+		if id != 0 {
 			log.Fatal("Duplicate parameter name for ", detail.Name)
 		}
 
@@ -143,8 +143,8 @@ func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 		r.muDetail.Unlock()
 
 	} else {
-		pid, found := r.findParameterByName(0, detail.Name)
-		if found {
+		pid := r.ParameterIDByName(detail.Name, 0)
+		if pid != 0 {
 			paramID = pid
 		}
 
@@ -170,13 +170,13 @@ func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 		modelconfig[paramID] = detail
 
 		// if the default model does not have the param it still needs to be added there too!
-		if !found {
+		if pid == 0 {
 			dt := proto.Clone(detail).(*pb.ParameterDetail)
 			dt.Id.Model = 0
 			r.ParameterDetail[0][paramID] = dt
 		}
 		r.muDetail.Unlock()
-		if found {
+		if pid == 0 {
 			log.Debugf("ParameterDetail '%v' with ID: %v was overridden for Model %v", detail.Name, detail.Id.Parameter, detail.Id.Model)
 			return
 		}
@@ -187,14 +187,14 @@ func (r *IbeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 }
 
 // UnregisterParameterForModels removes a specific parameter for a list of models.
-func (r *IbeamParameterRegistry) UnregisterParameterForModels(modelIDs []uint32, parameterName string) {
+func (r *IBeamParameterRegistry) UnregisterParameterForModels(modelIDs []uint32, parameterName string) {
 	for _, id := range modelIDs {
 		r.UnregisterParameterForModel(id, parameterName)
 	}
 }
 
 // UnregisterParameterForModel removes a specific parameter for a specific model.
-func (r *IbeamParameterRegistry) UnregisterParameterForModel(modelID uint32, parameterName string) {
+func (r *IBeamParameterRegistry) UnregisterParameterForModel(modelID uint32, parameterName string) {
 	if r.parametersDone {
 		log.Fatal("Can not unregister a parameter after registering the first device")
 	}
@@ -204,9 +204,9 @@ func (r *IbeamParameterRegistry) UnregisterParameterForModel(modelID uint32, par
 	}
 
 	r.muDetail.Lock()
-	id, found := r.findParameterByName(modelID, parameterName)
+	id := r.ParameterIDByName(parameterName, modelID)
 
-	if !found {
+	if id == 0 {
 		log.Fatalf("Unknown parameter %s to be unregistered for model %d", parameterName, modelID)
 	}
 
@@ -217,7 +217,7 @@ func (r *IbeamParameterRegistry) UnregisterParameterForModel(modelID uint32, par
 }
 
 // RegisterModel registers a new Model in the Registry with given ModelInfo
-func (r *IbeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32 {
+func (r *IBeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32 {
 	if r.modelsDone {
 		log.Fatal("Can not register a new model after registering parameters")
 	}
@@ -254,7 +254,7 @@ func (r *IbeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32 {
 }
 
 // GetParameterNameOfModel gets the name of a parameter by id and model id
-func (r *IbeamParameterRegistry) GetParameterNameOfModel(parameterID, modelID uint32) (string, error) {
+func (r *IBeamParameterRegistry) GetParameterNameOfModel(parameterID, modelID uint32) (string, error) {
 	r.muDetail.RLock()
 	defer r.muDetail.RUnlock()
 
@@ -272,7 +272,7 @@ func (r *IbeamParameterRegistry) GetParameterNameOfModel(parameterID, modelID ui
 }
 
 // GetModelIDByDeviceID is a helper to get the modelid for a specific device
-func (r *IbeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32 {
+func (r *IBeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32 {
 	r.muInfo.RLock()
 	defer r.muInfo.RUnlock()
 
@@ -285,7 +285,7 @@ func (r *IbeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32 {
 }
 
 // RegisterDeviceWithModelName registers a new Device in the Registry with given Modelname, if there is no it uses the generic one. If the DeviceID is 0 it will be picked automatically
-func (r *IbeamParameterRegistry) RegisterDeviceWithModelName(deviceID uint32, modelName string) (deviceIndex uint32, err error) {
+func (r *IBeamParameterRegistry) RegisterDeviceWithModelName(deviceID uint32, modelName string) (deviceIndex uint32, err error) {
 	modelID := uint32(0)
 	r.muInfo.RLock()
 	for _, m := range r.ModelInfos {
@@ -301,7 +301,7 @@ func (r *IbeamParameterRegistry) RegisterDeviceWithModelName(deviceID uint32, mo
 
 // ReRegisterDevice registers an existing device again. This allows to reset it's state and change the type of model if necessary
 // Make sure to handle the error properly
-func (r *IbeamParameterRegistry) ReRegisterDevice(deviceID, modelID uint32) error {
+func (r *IBeamParameterRegistry) ReRegisterDevice(deviceID, modelID uint32) error {
 	// Check for device exists
 	r.muInfo.RLock()
 	if _, exists := r.DeviceInfos[deviceID]; exists {
@@ -333,7 +333,7 @@ func (r *IbeamParameterRegistry) ReRegisterDevice(deviceID, modelID uint32) erro
 
 // RegisterDevice registers a new Device in the Registry with given DeviceID and ModelID. If the DeviceID is 0 it will be picked automatically
 // Make sure to handle the error properly
-func (r *IbeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint32, error) {
+func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint32, error) {
 	r.parametersDone = true
 
 	r.muDetail.RLock()
@@ -426,7 +426,7 @@ func (r *IbeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 }
 
 // GetIDMaps returns a Map witch maps the Name of all Parameters with their ID for each model
-func (r *IbeamParameterRegistry) GetIDMaps() []map[string]uint32 {
+func (r *IBeamParameterRegistry) GetIDMaps() []map[string]uint32 {
 	idMaps := make([]map[string]uint32, 0)
 	r.muDetail.RLock()
 
@@ -441,7 +441,15 @@ func (r *IbeamParameterRegistry) GetIDMaps() []map[string]uint32 {
 	return idMaps
 }
 
-func (r *IbeamParameterRegistry) findParameterByName(modelID uint32, parameterName string) (id uint32, found bool) {
+// ParameterNameByID Get a parameterID by name, returns "" if not found, always uses model 0
+func (r *IBeamParameterRegistry) ParameterNameByID(modelID uint32) string {
+	// check for device registered
+	// use cached id map of model 0
+	return ""
+}
+
+// ParameterIDByName Get a parameterID by name, returns 0 if not found
+func (r *IBeamParameterRegistry) ParameterIDByName(parameterName string, modelID uint32) uint32 {
 	// Function requires mutex to be fully locked before invocation
 	if uint32(len(r.ParameterDetail)) <= (modelID) {
 		log.Fatalln("Could not register parameter for nonexistent model", modelID)
@@ -449,10 +457,10 @@ func (r *IbeamParameterRegistry) findParameterByName(modelID uint32, parameterNa
 
 	for id, param := range r.ParameterDetail[modelID] {
 		if param.Name == parameterName {
-			return id, true
+			return id
 		}
 	}
-	return id, false
+	return 0
 }
 
 func validateParameter(detail *pb.ParameterDetail) {
