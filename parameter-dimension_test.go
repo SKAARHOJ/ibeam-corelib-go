@@ -9,14 +9,14 @@ import (
 func TestIBeamParameterDimension_isValue(t *testing.T) {
 	type fields struct {
 		subDimensions []*IBeamParameterDimension
-		value         *IBeamParameterValueBuffer
+		value         *ibeamParameterValueBuffer
 	}
 	tests := []struct {
 		name   string
 		fields fields
 		want   bool
 	}{
-		{name: "Test isValue with value", fields: fields{value: &IBeamParameterValueBuffer{}}, want: true},
+		{name: "Test isValue with value", fields: fields{value: &ibeamParameterValueBuffer{}}, want: true},
 		{name: "Test isValue with dimension", fields: fields{value: nil}, want: false},
 	}
 	for _, tt := range tests {
@@ -35,14 +35,14 @@ func TestIBeamParameterDimension_isValue(t *testing.T) {
 func TestIBeamParameterDimension_Value(t *testing.T) {
 	type fields struct {
 		subDimensions []*IBeamParameterDimension
-		value         *IBeamParameterValueBuffer
+		value         *ibeamParameterValueBuffer
 	}
-	buffer := &IBeamParameterValueBuffer{}
+	buffer := &ibeamParameterValueBuffer{}
 
 	tests := []struct {
 		name    string
 		fields  fields
-		want    *IBeamParameterValueBuffer
+		want    *ibeamParameterValueBuffer
 		wantErr bool
 	}{
 		{name: "Test Value with value", fields: fields{value: buffer}, want: buffer},
@@ -69,9 +69,9 @@ func TestIBeamParameterDimension_Value(t *testing.T) {
 func TestIBeamParameterDimension_Subdimensions(t *testing.T) {
 	type fields struct {
 		subDimensions []*IBeamParameterDimension
-		value         *IBeamParameterValueBuffer
+		value         *ibeamParameterValueBuffer
 	}
-	buffer := &IBeamParameterValueBuffer{}
+	buffer := &ibeamParameterValueBuffer{}
 	dim := &IBeamParameterDimension{}
 	dimRay := []*IBeamParameterDimension{dim}
 
@@ -105,14 +105,14 @@ func TestIBeamParameterDimension_Subdimensions(t *testing.T) {
 func TestIBeamParameterDimension_MultiIndexHasValue(t *testing.T) {
 	type fields struct {
 		subDimensions []*IBeamParameterDimension
-		value         *IBeamParameterValueBuffer
+		value         *ibeamParameterValueBuffer
 	}
 	type args struct {
 		dimensionID []uint32
 	}
 
 	initialValueDimension := &IBeamParameterDimension{
-		value: &IBeamParameterValueBuffer{
+		value: &ibeamParameterValueBuffer{
 			dimensionID:    make([]uint32, 0),
 			available:      true,
 			isAssumedState: true,
@@ -169,14 +169,14 @@ func TestIBeamParameterDimension_MultiIndexHasValue(t *testing.T) {
 func TestIBeamParameterDimension_MultiIndex(t *testing.T) {
 	type fields struct {
 		subDimensions []*IBeamParameterDimension
-		value         *IBeamParameterValueBuffer
+		value         *ibeamParameterValueBuffer
 	}
 	type args struct {
 		dimensionID []uint32
 	}
 
 	initialValueDimension := &IBeamParameterDimension{
-		value: &IBeamParameterValueBuffer{
+		value: &ibeamParameterValueBuffer{
 			dimensionID:    make([]uint32, 0),
 			available:      true,
 			isAssumedState: true,
@@ -239,14 +239,14 @@ func TestIBeamParameterDimension_MultiIndex(t *testing.T) {
 func TestIBeamParameterDimension_index(t *testing.T) {
 	type fields struct {
 		subDimensions []*IBeamParameterDimension
-		value         *IBeamParameterValueBuffer
+		value         *ibeamParameterValueBuffer
 	}
 	type args struct {
 		index uint32
 	}
 
 	initialValueDimension := &IBeamParameterDimension{
-		value: &IBeamParameterValueBuffer{
+		value: &ibeamParameterValueBuffer{
 			dimensionID:    make([]uint32, 0),
 			available:      true,
 			isAssumedState: true,
