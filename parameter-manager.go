@@ -2,7 +2,6 @@ package ibeamcorelib
 
 import (
 	"net"
-	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
 	log "github.com/s00500/env_logger"
@@ -16,6 +15,7 @@ type IBeamParameterManager struct {
 	in                  chan *pb.Parameter
 	clientsSetterStream chan *pb.Parameter
 	serverClientsStream chan *pb.Parameter
+	parameterEvent      chan *pb.Parameter
 	server              *IBeamServer
 }
 
@@ -55,7 +55,7 @@ func (m *IBeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb
 	parameterID := parameter.Id.Parameter
 	parameterIndex := parameterID
 	deviceID := parameter.Id.Device
-	modelIndex := m.parameterRegistry.getModelIndex(deviceID)
+	modelIndex := m.parameterRegistry.getModelID(deviceID)
 
 	// Get State and the Configuration (Details) of the Parameter, assume mutex is locked in outer layers of parameterLoop
 	state := m.parameterRegistry.ParameterValue
@@ -107,42 +107,33 @@ func (m *IBeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb
 // Start the communication between client and server.
 func (m *IBeamParameterManager) Start() {
 	go func() {
+		var parameter *pb.Parameter
 		for {
-			// ***************
-			//  ClientToManagerLoop, inputs change request from GRPC SET to to manager
-			// ***************
-		clientToManagerLoop:
-			for {
-				var parameter *pb.Parameter
-				select {
-				case parameter = <-m.clientsSetterStream:
+			// TODO: evaluate if it is really necessary to
+			select {
+			case parameter = <-m.clientsSetterStream:
+				//				log.Info("Got set from client")
+				m.ingestTargetParameter(parameter)
+				for len(m.clientsSetterStream) > 0 {
+					parameter = <-m.clientsSetterStream
 					m.ingestTargetParameter(parameter)
-				default:
-					break clientToManagerLoop
 				}
-			}
 
-			// ***************
-			//    Param Ingest loop, inputs changes from a device (f.e. a camera) to manager
-			// ***************
-
-		deviceToManagerLoop:
-			for {
-				var parameter *pb.Parameter
-				select {
-				case parameter = <-m.in:
+			case parameter = <-m.in:
+				//				log.Info("Got result from device")
+				m.ingestCurrentParameter(parameter)
+				for len(m.in) > 0 {
+					parameter = <-m.in
 					m.ingestCurrentParameter(parameter)
-				default:
-					break deviceToManagerLoop
+				}
+			case parameter = <-m.parameterEvent:
+				//				log.Info("Gonna proccess param")
+				m.processParameter(parameter)
+				for len(m.parameterEvent) > 0 {
+					parameter = <-m.parameterEvent
+					m.processParameter(parameter)
 				}
 			}
-
-			// ***************
-			//    Main Parameter Loop, evaluates all parameter value buffers and sends out necessary changes
-			// ***************
-
-			m.parameterLoop()
-			time.Sleep(time.Microsecond * 800)
 		}
 	}()
 }

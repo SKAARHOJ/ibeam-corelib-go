@@ -267,7 +267,7 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 				s.muDistributor.Lock()
 				delete(s.serverClientsDistributor, distributor)
 				s.muDistributor.Unlock()
-				log.Warn("Connection to client for subscription lost")
+				log.Debug("Connection to client for subscription lost")
 				return nil
 			}
 		case parameter := <-distributor:
@@ -347,6 +347,7 @@ func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelI
 		in:                  settoManager,
 		clientsSetterStream: clientsSetter,
 		serverClientsStream: watcher,
+		parameterEvent:      make(chan *pb.Parameter, 100),
 		server:              &server,
 	}
 

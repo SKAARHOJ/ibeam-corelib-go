@@ -2,6 +2,7 @@ package ibeamcorelib
 
 import (
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
+	b "github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers"
 	log "github.com/s00500/env_logger"
 	"google.golang.org/protobuf/proto"
 )
@@ -15,7 +16,7 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 	// Get Index and ID for Device and Parameter and the actual state of all parameters
 	parameterID := parameter.Id.Parameter
 	deviceID := parameter.Id.Device
-	modelIndex := m.parameterRegistry.getModelIndex(deviceID)
+	modelIndex := m.parameterRegistry.getModelID(deviceID)
 
 	// Get State and the Configuration (Details) of the Parameter
 	m.parameterRegistry.muValue.Lock()
@@ -65,21 +66,14 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 		case *pb.ParameterValue_Integer:
 			if parameterConfig.ValueType != pb.ValueType_Integer {
 				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
-				m.serverClientsStream <- &pb.Parameter{
-					Id:    parameter.Id,
-					Error: pb.ParameterError_InvalidType,
-					Value: []*pb.ParameterValue{},
-				}
+				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
 				continue
 			}
 
 			if newValue.Integer > int32(parameterConfig.Maximum) {
 				log.Errorf("Max violation for parameter %v", parameterID)
-				m.serverClientsStream <- &pb.Parameter{
-					Id:    parameter.Id,
-					Error: pb.ParameterError_MaxViolation,
-					Value: []*pb.ParameterValue{},
-				}
+				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MaxViolation)
+
 				continue
 			}
 			if newValue.Integer < int32(parameterConfig.Minimum) {
@@ -95,21 +89,13 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 			// inc dec currently only works with integers or no values, float is kind of missing, action lists need to be evaluated
 			if parameterConfig.ValueType != pb.ValueType_Integer && parameterConfig.ValueType == pb.ValueType_NoValue {
 				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
-				m.serverClientsStream <- &pb.Parameter{
-					Id:    parameter.Id,
-					Error: pb.ParameterError_InvalidType,
-					Value: []*pb.ParameterValue{},
-				}
+				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
 				continue
 			}
 
 			if newValue.IncDecSteps > parameterConfig.IncDecStepsUpperLimit || newValue.IncDecSteps < parameterConfig.IncDecStepsLowerLimit {
 				log.Errorf("In- or Decrementation Step %v is outside of limits [%v,%v] of the parameter %v", newValue.IncDecSteps, parameterConfig.IncDecStepsLowerLimit, parameterConfig.IncDecStepsUpperLimit, parameterID)
-				m.serverClientsStream <- &pb.Parameter{
-					Id:    parameter.Id,
-					Error: pb.ParameterError_StepSizeViolation,
-					Value: []*pb.ParameterValue{},
-				}
+				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_StepSizeViolation)
 				continue
 			}
 
@@ -123,13 +109,7 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 						parameterBuffer.currentValue.Value = &pb.ParameterValue_Integer{Integer: newIntVal}
 					}
 					// send out right away
-					m.serverClientsStream <- &pb.Parameter{
-						Value: []*pb.ParameterValue{parameterBuffer.getParameterValue()},
-						Id: &pb.DeviceParameterID{
-							Device:    deviceID,
-							Parameter: uint32(parameterID),
-						},
-					}
+					m.serverClientsStream <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue())
 					continue // make sure we skip the rest of the logic :-)
 				}
 			}
@@ -137,40 +117,24 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 		case *pb.ParameterValue_Floating:
 			if parameterConfig.ValueType != pb.ValueType_Floating {
 				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
-				m.serverClientsStream <- &pb.Parameter{
-					Id:    parameter.Id,
-					Error: pb.ParameterError_InvalidType,
-					Value: []*pb.ParameterValue{},
-				}
+				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
 				continue
 			}
 
 			if newValue.Floating > parameterConfig.Maximum {
 				log.Errorf("Max violation for parameter %v", parameterID)
-				m.serverClientsStream <- &pb.Parameter{
-					Id:    parameter.Id,
-					Error: pb.ParameterError_MaxViolation,
-					Value: []*pb.ParameterValue{},
-				}
+				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MaxViolation)
 				continue
 			}
 			if newValue.Floating < parameterConfig.Minimum {
 				log.Errorf("Min violation for parameter %v", parameterID)
-				m.serverClientsStream <- &pb.Parameter{
-					Id:    parameter.Id,
-					Error: pb.ParameterError_MinViolation,
-					Value: []*pb.ParameterValue{},
-				}
+				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MinViolation)
 				continue
 			}
 		case *pb.ParameterValue_Str:
 			if parameterConfig.ValueType != pb.ValueType_String {
 				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
-				m.serverClientsStream <- &pb.Parameter{
-					Id:    parameter.Id,
-					Error: pb.ParameterError_InvalidType,
-					Value: []*pb.ParameterValue{},
-				}
+				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
 				continue
 			}
 
@@ -194,21 +158,13 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 
 			if !found {
 				log.Errorf("Invalid operation index for parameter %v", parameterID)
-				m.serverClientsStream <- &pb.Parameter{
-					Id:    parameter.Id,
-					Error: pb.ParameterError_UnknownID,
-					Value: []*pb.ParameterValue{},
-				}
+				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_UnknownID)
 				continue
 			}
 		case *pb.ParameterValue_Cmd:
 			if parameterConfig.ControlStyle == pb.ControlStyle_Normal {
 				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it has ControlStyle Normal and needs a Value", newValue, parameterID, parameterConfig.Name)
-				m.serverClientsStream <- &pb.Parameter{
-					Id:    parameter.Id,
-					Error: pb.ParameterError_InvalidType,
-					Value: []*pb.ParameterValue{},
-				}
+				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
 				continue
 			}
 			m.out <- &pb.Parameter{
@@ -220,11 +176,7 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 
 			if parameterConfig.ValueType != pb.ValueType_Binary {
 				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
-				m.serverClientsStream <- &pb.Parameter{
-					Id:    parameter.Id,
-					Error: pb.ParameterError_InvalidType,
-					Value: []*pb.ParameterValue{},
-				}
+				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
 				continue
 			}
 
@@ -240,11 +192,9 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 			log.Debugf("Set new TargetValue '%v', for Parameter %v (%v), Device: %v", newParameterValue.Value, parameterID, parameterConfig.Name, deviceID)
 			parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
 			parameterBuffer.tryCount = 0
-
 		} else {
 			log.Debugf("TargetValue %v is equal to CurrentValue", newParameterValue.Value)
 		}
-
 	}
-
+	m.parameterEvent <- parameter // Trigger processing of the main evaluation
 }

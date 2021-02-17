@@ -1,15 +1,16 @@
 package ibeamcorelib
 
 import (
+	"reflect"
 	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
+	b "github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers"
 	log "github.com/s00500/env_logger"
 	"google.golang.org/protobuf/proto"
 )
 
-func (m *IBeamParameterManager) parameterLoop() {
-
+func (m *IBeamParameterManager) processParameter(param *pb.Parameter) {
 	m.parameterRegistry.muInfo.RLock()
 	defer m.parameterRegistry.muInfo.RUnlock()
 
@@ -19,52 +20,44 @@ func (m *IBeamParameterManager) parameterLoop() {
 	m.parameterRegistry.muValue.Lock()
 	defer m.parameterRegistry.muValue.Unlock()
 
-	// Range over all Devices
-	for _, deviceInfo := range m.parameterRegistry.DeviceInfos {
+	// Get buffer and config
+	state := m.parameterRegistry.ParameterValue
+	deviceID := param.Id.Device
+	paramID := param.Id.Parameter
+	modelID := m.parameterRegistry.getModelID(deviceID)
+	rootDimension := state[deviceID][param.Id.Parameter]
+	parameterDetail := m.parameterRegistry.ParameterDetail[modelID][paramID]
 
-		deviceID := deviceInfo.DeviceID
-		modelID := deviceInfo.ModelID
+	for _, value := range param.Value {
 
-		for _, parameterDetail := range m.parameterRegistry.ParameterDetail[modelID] {
-			parameterID := parameterDetail.Id.Parameter
-			parameterIndex := parameterID
-
-			// Check if Parameter has a Control Style
-			if parameterDetail.ControlStyle == pb.ControlStyle_Undefined {
-				continue
-			}
-
-			state := m.parameterRegistry.ParameterValue
-			parameterDimension := state[deviceID][parameterIndex]
-			m.loopDimension(parameterDimension, parameterDetail, deviceID)
-		}
-	}
-}
-
-func (m *IBeamParameterManager) loopDimension(parameterDimension *IBeamParameterDimension, parameterDetail *pb.ParameterDetail, deviceID uint32) {
-	if !parameterDimension.isValue() {
-		subdimensions, err := parameterDimension.Subdimensions()
-		if err != nil {
-			log.Errorf("Dimension is No Value, but also have no Subdimension: %v", err.Error())
+		if !rootDimension.MultiIndexHasValue(value.DimensionID) {
+			log.Error("Invalid dimension ID %v for %d", value.DimensionID, param.Id)
 			return
 		}
-		for _, parameterDimension = range subdimensions {
-			m.loopDimension(parameterDimension, parameterDetail, deviceID)
+		parameterDimension, err := rootDimension.MultiIndex(value.DimensionID)
+		if err != nil {
+			log.Errorf("could not get parameter buffer for dimension %v of param %v: %v", value.DimensionID, param.Id, err)
+			return
 		}
-		return
+		parameterBuffer, err := parameterDimension.Value()
+		if err != nil {
+			log.Errorf("could not get parameter buffer value for dimension %v of param %v: %v", value.DimensionID, param.Id, err)
+			return
+		}
+		m.handleSingleParameterBuffer(parameterBuffer, parameterDetail, deviceID)
 	}
 
-	parameterBuffer, err := parameterDimension.Value()
-	if err != nil {
-		log.Errorln("ParameterDimension is Value but returns no Value: ", err.Error())
-		return
-	}
+}
 
+func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibeamParameterValueBuffer, parameterDetail *pb.ParameterDetail, deviceID uint32) {
+	// Function assumes mutexes are already locked
+
+	parameterID := parameterDetail.Id.Parameter
 	// ********************************************************************
 	// First Basic Check Pipeline if the Parameter Value can be send to out
 	// ********************************************************************
 
-	if proto.Equal(parameterBuffer.currentValue, parameterBuffer.targetValue) {
+	if reflect.DeepEqual(parameterBuffer.currentValue.Value, parameterBuffer.targetValue.Value) {
 		return
 	}
 
@@ -75,18 +68,13 @@ func (m *IBeamParameterManager) loopDimension(parameterDimension *IBeamParameter
 
 	// Is the Retry Limit reached
 	if parameterDetail.RetryCount != 0 && parameterDetail.FeedbackStyle != pb.FeedbackStyle_NoFeedback {
-		parameterBuffer.tryCount++
 		if parameterBuffer.tryCount > parameterDetail.RetryCount {
-			log.Errorf("Failed to set parameter %v '%v' in %v tries on device %v", parameterDetail.Id.Parameter, parameterDetail.Name, parameterDetail.RetryCount, deviceID)
+			log.Errorf("Failed to set parameter %v '%v' in %v tries on device %v", parameterID, parameterDetail.Name, parameterDetail.RetryCount, deviceID)
 			parameterBuffer.targetValue = proto.Clone(parameterBuffer.currentValue).(*pb.ParameterValue)
-			m.serverClientsStream <- &pb.Parameter{
-				Value: []*pb.ParameterValue{parameterBuffer.getParameterValue()},
-				Id: &pb.DeviceParameterID{
-					Device:    deviceID,
-					Parameter: parameterDetail.Id.Parameter,
-				},
-				Error: pb.ParameterError_MaxRetrys,
-			}
+
+			perr := paramError(parameterID, deviceID, pb.ParameterError_MaxRetrys)
+			perr.Value = []*pb.ParameterValue{parameterBuffer.getParameterValue()}
+			m.serverClientsStream <- perr
 			return
 		}
 	}
@@ -103,44 +91,24 @@ func (m *IBeamParameterManager) loopDimension(parameterDimension *IBeamParameter
 		// If we Have a current Option, get the Value for the option from the Option List
 		if parameterDetail.ValueType == pb.ValueType_Opt {
 			if value, ok := parameterBuffer.targetValue.Value.(*pb.ParameterValue_CurrentOption); ok {
-				name, err := getElementNameFromOptionListByID(parameterDetail.OptionList, *value)
-				if err != nil {
-					log.Error(err)
-					return
-				}
-				//parameterBuffer.targetValue.Value = &pb.ParameterValue_Str{Str: name} // TODO: evaluate if that is ok
-				_ = name
 				parameterBuffer.targetValue.Value = &pb.ParameterValue_CurrentOption{CurrentOption: value.CurrentOption}
 			}
 		}
 
-		m.out <- &pb.Parameter{
-			Value: []*pb.ParameterValue{parameterBuffer.getParameterValue()},
-			Id: &pb.DeviceParameterID{
-				Device:    deviceID,
-				Parameter: parameterDetail.Id.Parameter,
-			},
-		}
+		m.out <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue())
+		parameterBuffer.tryCount++
 
 		if parameterDetail.FeedbackStyle == pb.FeedbackStyle_DelayedFeedback ||
 			parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
-			// send out assumed value immediately
-			m.serverClientsStream <- &pb.Parameter{
-				Value: []*pb.ParameterValue{parameterBuffer.getParameterValue()},
-				Id: &pb.DeviceParameterID{
-					Device:    deviceID,
-					Parameter: parameterDetail.Id.Parameter,
-				},
-			}
+			// send out assumed value to clients immediately
+			m.serverClientsStream <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue())
+		} else {
+			m.reevaluateIn(time.Millisecond*time.Duration(parameterDetail.ControlDelayMs), parameterBuffer, parameterID, deviceID)
 		}
 	case pb.ControlStyle_Incremental:
-		m.out <- &pb.Parameter{
-			Value: []*pb.ParameterValue{parameterBuffer.getParameterValue()},
-			Id: &pb.DeviceParameterID{
-				Device:    deviceID,
-				Parameter: parameterDetail.Id.Parameter,
-			},
-		}
+		m.out <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue())
+		parameterBuffer.tryCount++
+		m.reevaluateIn(time.Millisecond*time.Duration(parameterDetail.ControlDelayMs), parameterBuffer, parameterID, deviceID)
 	case pb.ControlStyle_ControlledIncremental:
 		if parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
 			return
@@ -193,13 +161,13 @@ func (m *IBeamParameterManager) loopDimension(parameterDimension *IBeamParameter
 			log.Errorf("Could not match Valuetype %T", value)
 		}
 
-		var cmdValue []*pb.ParameterValue
+		var cmdValue *pb.ParameterValue
 
 		switch cmdAction {
 		case Increment:
-			cmdValue = append(cmdValue, parameterBuffer.incrementParameterValue())
+			cmdValue = parameterBuffer.incrementParameterValue()
 		case Decrement:
-			cmdValue = append(cmdValue, parameterBuffer.decrementParameterValue())
+			cmdValue = parameterBuffer.decrementParameterValue()
 		case NoOperation:
 			return
 		}
@@ -210,15 +178,9 @@ func (m *IBeamParameterManager) loopDimension(parameterDimension *IBeamParameter
 		}
 
 		log.Debugf("Send value '%v' to Device", cmdValue)
-
-		m.out <- &pb.Parameter{
-			Id: &pb.DeviceParameterID{
-				Device:    deviceID,
-				Parameter: parameterDetail.Id.Parameter,
-			},
-			Error: pb.ParameterError_NoError,
-			Value: cmdValue,
-		}
+		m.out <- b.Param(parameterID, deviceID, cmdValue)
+		parameterBuffer.tryCount++
+		m.reevaluateIn(time.Millisecond*time.Duration(parameterDetail.ControlDelayMs), parameterBuffer, parameterID, deviceID)
 	case pb.ControlStyle_NoControl, pb.ControlStyle_Oneshot:
 		if parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
 			parameterBuffer.targetValue = proto.Clone(parameterBuffer.currentValue).(*pb.ParameterValue)
@@ -228,4 +190,28 @@ func (m *IBeamParameterManager) loopDimension(parameterDimension *IBeamParameter
 		log.Errorf("Could not match controlltype")
 		return
 	}
+}
+
+func (m *IBeamParameterManager) reevaluateIn(t time.Duration, buffer *ibeamParameterValueBuffer, parameterID, deviceID uint32) {
+	if t == 0 {
+		t = time.Microsecond * 100 // This just ensures there is at least a little bit of time for the set of the system to catch up before triggering a reevaluation
+	}
+
+	if buffer.reEvaluationTimer != nil {
+		remainingDuration := buffer.reEvaluationTimer.end.Sub(time.Now())
+		if t > remainingDuration {
+			return
+		}
+
+		log.Trace("Resceduling in ", t.Milliseconds(), "milliseconds")
+		buffer.reEvaluationTimer.timer.Reset(t)
+		return
+	}
+
+	log.Trace("Sceduling reevaluation in ", t.Milliseconds(), "milliseconds")
+
+	buffer.reEvaluationTimer = &timeTimer{end: time.Now().Add(t), timer: time.AfterFunc(t, func() {
+		m.parameterEvent <- b.Param(parameterID, deviceID, buffer.getParameterValue())
+		buffer.reEvaluationTimer = nil
+	})}
 }

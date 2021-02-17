@@ -1,9 +1,11 @@
 package ibeamcorelib
 
 import (
+	"reflect"
 	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
+	b "github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers"
 	log "github.com/s00500/env_logger"
 	"google.golang.org/protobuf/proto"
 )
@@ -14,11 +16,9 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 		return
 	}
 
-	// Get Index and ID for Device and Parameter and the actual state of all parameters
 	parameterID := parameter.Id.Parameter
-	parameterIndex := parameterID
 	deviceID := parameter.Id.Device
-	modelIndex := m.parameterRegistry.getModelIndex(deviceID)
+	modelID := m.parameterRegistry.getModelID(deviceID)
 
 	// Get State and the Configuration (Details) of the Parameter
 	m.parameterRegistry.muValue.Lock()
@@ -26,7 +26,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 	state := m.parameterRegistry.ParameterValue
 	m.parameterRegistry.muDetail.RLock()
 	defer m.parameterRegistry.muDetail.RUnlock()
-	parameterConfig := m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex]
+	parameterConfig := m.parameterRegistry.ParameterDetail[modelID][parameterID]
 
 	shouldSend := false
 	for _, newParameterValue := range parameter.Value {
@@ -35,12 +35,12 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			continue
 		}
 		// Check if Dimension is Valid
-		if !state[deviceID][parameterIndex].MultiIndexHasValue(newParameterValue.DimensionID) {
+		if !state[deviceID][parameterID].MultiIndexHasValue(newParameterValue.DimensionID) {
 			log.Errorf("Received invalid dimension id  %v for parameter %d from device %d", newParameterValue.DimensionID, parameterID, deviceID)
 			continue
 		}
 
-		parameterDimension, err := state[deviceID][parameterIndex].MultiIndex(newParameterValue.DimensionID)
+		parameterDimension, err := state[deviceID][parameterID].MultiIndex(newParameterValue.DimensionID)
 		if err != nil {
 			log.Error(err)
 			continue
@@ -61,7 +61,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			}
 
 			if values := m.parameterRegistry.getInstanceValues(parameter.GetId()); values != nil {
-				m.serverClientsStream <- &pb.Parameter{Value: values, Id: parameter.Id, Error: 0}
+				m.serverClientsStream <- b.Param(parameterID, deviceID, values...)
 			}
 			continue
 		}
@@ -102,16 +102,11 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 
 			case *pb.ParameterValue_OptionList:
 				if !parameterConfig.OptionListIsDynamic {
-					log.Errorf("Parameter with ID %v has no Dynamic OptionList", parameter.Id.Parameter)
+					log.Errorf("Parameter with ID %v has no Dynamic OptionList", parameterID)
 					continue
 				}
-				m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex].OptionList = v.OptionList
-
-				m.serverClientsStream <- &pb.Parameter{
-					Value: []*pb.ParameterValue{newParameterValue},
-					Id:    parameter.Id,
-					Error: pb.ParameterError_NoError,
-				}
+				m.parameterRegistry.ParameterDetail[parameterID][parameterID].OptionList = v.OptionList
+				m.serverClientsStream <- b.Param(parameterID, deviceID, newParameterValue)
 				continue
 			case *pb.ParameterValue_CurrentOption:
 				// Handled below
@@ -121,12 +116,12 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			}
 		case pb.ValueType_Binary:
 			if _, ok := newParameterValue.Value.(*pb.ParameterValue_Binary); !ok {
-				log.Errorf("Parameter with ID %v is Type Binary but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
+				log.Errorf("Parameter with ID %v is Type Binary but got %T", parameterID, parameterConfig.ValueType)
 				continue
 			}
 		case pb.ValueType_Floating:
 			if _, ok := newParameterValue.Value.(*pb.ParameterValue_Floating); !ok {
-				log.Errorf("Parameter with ID %v is Type Float but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
+				log.Errorf("Parameter with ID %v is Type Float but got %T", parameterID, parameterConfig.ValueType)
 				continue
 			}
 			if newParameterValue.Value.(*pb.ParameterValue_Floating).Floating > parameterConfig.Maximum {
@@ -173,17 +168,27 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				shouldSend = true
 			}
 		}
-		assumed := !proto.Equal(parameterBuffer.currentValue, parameterBuffer.targetValue)
+		assumed := !reflect.DeepEqual(parameterBuffer.currentValue.Value, parameterBuffer.targetValue.Value)
 		if parameterBuffer.isAssumedState != assumed {
 			shouldSend = true
+		}
+
+		if !assumed {
+			parameterBuffer.tryCount = 0
+			if parameterBuffer.reEvaluationTimer != nil {
+				parameterBuffer.reEvaluationTimer.timer.Stop()
+				parameterBuffer.reEvaluationTimer = nil
+			}
 		}
 	}
 
 	if !shouldSend {
+		m.parameterEvent <- parameter // Trigger processing of the main evaluation
 		return
 	}
 
 	if values := m.parameterRegistry.getInstanceValues(parameter.GetId()); values != nil {
-		m.serverClientsStream <- &pb.Parameter{Value: values, Id: parameter.Id, Error: 0}
+		m.serverClientsStream <- b.Param(parameterID, deviceID, values...)
 	}
+	m.parameterEvent <- parameter // Trigger processing of the main evaluation
 }

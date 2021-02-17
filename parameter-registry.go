@@ -72,7 +72,8 @@ func getValues(dimension *IBeamParameterDimension) (values []*pb.ParameterValue)
 	return values
 }
 
-func (r *IBeamParameterRegistry) getModelIndex(deviceID uint32) uint32 {
+func (r *IBeamParameterRegistry) getModelID(deviceID uint32) uint32 {
+	// This function assumes that mutexes are already locked
 	_, dExists := r.DeviceInfos[deviceID]
 	if !dExists || deviceID == 0 {
 		log.Fatalf("Could not get model for device with id %v.", deviceID)

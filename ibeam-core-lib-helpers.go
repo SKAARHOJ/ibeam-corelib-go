@@ -41,3 +41,10 @@ func getIDFromOptionListByElementName(list *pb.OptionList, name string) (uint32,
 	}
 	return 0, fmt.Errorf("No ID found in OptionList '%v' for Name %v", list, name)
 }
+
+func paramError(pid uint32, did uint32, e pb.ParameterError) *pb.Parameter {
+	return &pb.Parameter{
+		Id:    &pb.DeviceParameterID{Device: uint32(did), Parameter: pid},
+		Error: e,
+	}
+}
