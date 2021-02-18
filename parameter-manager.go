@@ -109,30 +109,16 @@ func (m *IBeamParameterManager) Start() {
 	go func() {
 		var parameter *pb.Parameter
 		for {
-			// TODO: evaluate if it is really necessary to
 			select {
 			case parameter = <-m.clientsSetterStream:
 				//				log.Info("Got set from client")
 				m.ingestTargetParameter(parameter)
-				for len(m.clientsSetterStream) > 0 {
-					parameter = <-m.clientsSetterStream
-					m.ingestTargetParameter(parameter)
-				}
-
 			case parameter = <-m.in:
 				//				log.Info("Got result from device")
 				m.ingestCurrentParameter(parameter)
-				for len(m.in) > 0 {
-					parameter = <-m.in
-					m.ingestCurrentParameter(parameter)
-				}
 			case parameter = <-m.parameterEvent:
 				//				log.Info("Gonna proccess param")
 				m.processParameter(parameter)
-				for len(m.parameterEvent) > 0 {
-					parameter = <-m.parameterEvent
-					m.processParameter(parameter)
-				}
 			}
 		}
 	}()

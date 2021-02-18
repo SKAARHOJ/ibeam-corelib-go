@@ -316,12 +316,6 @@ func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelI
 	getfromManager = make(chan *pb.Parameter, 100)
 	settoManager = make(chan *pb.Parameter, 100)
 
-	fistParameter := pb.Parameter{}
-	fistParameter.Id = &pb.DeviceParameterID{
-		Device:    0,
-		Parameter: 0,
-	}
-
 	watcher := make(chan *pb.Parameter)
 
 	coreInfo.IbeamVersion = pb.File_ibeam_core_proto.Options().ProtoReflect().Get(pb.E_IbeamVersion.TypeDescriptor()).String()

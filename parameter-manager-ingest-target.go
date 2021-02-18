@@ -196,5 +196,5 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 			log.Debugf("TargetValue %v is equal to CurrentValue", newParameterValue.Value)
 		}
 	}
-	m.parameterEvent <- parameter // Trigger processing of the main evaluation
+	m.reEvaluate(parameter) // Trigger processing of the main evaluation
 }

@@ -16,6 +16,8 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 		return
 	}
 
+	reEvaluate := false
+
 	parameterID := parameter.Id.Parameter
 	deviceID := parameter.Id.Device
 	modelID := m.parameterRegistry.getModelID(deviceID)
@@ -54,9 +56,11 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			// Got empty value, need to update available or invalid
 			if newParameterValue.Invalid {
 				// if invalid is true set it
+				reEvaluate = parameterBuffer.currentValue.Invalid != newParameterValue.Invalid
 				parameterBuffer.currentValue.Invalid = newParameterValue.Invalid
 			} else {
 				// else set available
+				reEvaluate = parameterBuffer.available != newParameterValue.Available
 				parameterBuffer.available = newParameterValue.Available
 			}
 
@@ -89,12 +93,14 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
 					if !proto.Equal(parameterBuffer.targetValue, &newValue) {
 						parameterBuffer.targetValue = proto.Clone(&newValue).(*pb.ParameterValue)
+						reEvaluate = true
 						shouldSend = true
 					}
 				}
 
 				if !proto.Equal(parameterBuffer.currentValue, &newValue) {
 					parameterBuffer.currentValue = proto.Clone(&newValue).(*pb.ParameterValue)
+					reEvaluate = true
 					shouldSend = true
 				}
 
@@ -165,6 +171,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 
 			if !proto.Equal(parameterBuffer.currentValue, newParameterValue) {
 				parameterBuffer.currentValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
+				reEvaluate = true
 				shouldSend = true
 			}
 		}
@@ -183,12 +190,17 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 	}
 
 	if !shouldSend {
-		m.parameterEvent <- parameter // Trigger processing of the main evaluation
+		if reEvaluate {
+			m.reEvaluate(parameter) // Trigger processing of the main evaluation
+		}
 		return
 	}
 
 	if values := m.parameterRegistry.getInstanceValues(parameter.GetId()); values != nil {
 		m.serverClientsStream <- b.Param(parameterID, deviceID, values...)
 	}
-	m.parameterEvent <- parameter // Trigger processing of the main evaluation
+	if reEvaluate {
+		m.reEvaluate(parameter)
+		// Trigger processing of the main evaluation
+	}
 }

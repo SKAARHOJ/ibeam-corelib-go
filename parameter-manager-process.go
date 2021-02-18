@@ -211,7 +211,15 @@ func (m *IBeamParameterManager) reevaluateIn(t time.Duration, buffer *ibeamParam
 	log.Trace("Sceduling reevaluation in ", t.Milliseconds(), "milliseconds")
 
 	buffer.reEvaluationTimer = &timeTimer{end: time.Now().Add(t), timer: time.AfterFunc(t, func() {
-		m.parameterEvent <- b.Param(parameterID, deviceID, buffer.getParameterValue())
+		m.reEvaluate(b.Param(parameterID, deviceID, buffer.getParameterValue()))
 		buffer.reEvaluationTimer = nil
 	})}
+}
+
+func (m *IBeamParameterManager) reEvaluate(param *pb.Parameter) {
+	select {
+	case m.parameterEvent <- param:
+	default:
+		log.Error("Parameter Event Channel would block, dropped reevaluation trigger to avoid deadlock")
+	}
 }
