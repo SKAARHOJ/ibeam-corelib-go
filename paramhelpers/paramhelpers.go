@@ -18,6 +18,11 @@ func Int(val int, dimensionID ...uint32) *pb.ParameterValue {
 	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_Integer{Integer: int32(val)}}
 }
 
+// Float just returns a parameter value of type ParameterValue_Floating
+func Float(val float64, dimensionID ...uint32) *pb.ParameterValue {
+	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_Floating{Floating: val}}
+}
+
 // Bool just returns a parameter value of type ParameterValue_Binary
 func Bool(val bool, dimensionID ...uint32) *pb.ParameterValue {
 	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_Binary{Binary: val}}
