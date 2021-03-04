@@ -162,7 +162,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 		}
 
 		if !didSet {
-			if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
+			if time.Since(parameterBuffer.lastUpdate).Milliseconds()+1 > int64(parameterConfig.QuarantineDelayMs) {
 				if !proto.Equal(parameterBuffer.targetValue, newParameterValue) {
 					parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
 					shouldSend = true
