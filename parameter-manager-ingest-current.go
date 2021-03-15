@@ -11,6 +11,7 @@ import (
 )
 
 func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) {
+
 	if err := m.checkValidParameter(parameter); err != nil {
 		log.Error(err)
 		return
@@ -52,6 +53,12 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			log.Error(err)
 			continue
 		}
+
+		if proto.Equal(parameterBuffer.currentValue, newParameterValue) {
+			// if values are equal no need to do anything
+			continue
+		}
+
 		if newParameterValue.Value == nil {
 			// Got empty value, need to update available or invalid
 			if newParameterValue.Invalid {
