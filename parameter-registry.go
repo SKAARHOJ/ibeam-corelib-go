@@ -13,6 +13,9 @@ import (
 var cachedIDMap map[uint32]map[uint32]string
 var cachedIDMapMu sync.RWMutex
 
+var cachedNameMap map[uint32]map[string]uint32
+var cachedNameMapMu sync.RWMutex
+
 type parameterDetails map[uint32]map[uint32]*pb.ParameterDetail     //Parameter Details: model, parameter
 type parameterStates map[uint32]map[uint32]*IBeamParameterDimension //Parameter States: device,parameter,dimension
 
@@ -435,23 +438,31 @@ func (r *IBeamParameterRegistry) cacheIDMaps() {
 	}
 
 	idMaps := make(map[uint32]map[uint32]string, 0)
+	nameMaps := make(map[uint32]map[string]uint32, 0)
 	r.muDetail.RLock()
 
 	for mIndex := range r.ModelInfos {
 		idMap := make(map[uint32]string)
+		nameMap := make(map[string]uint32)
 		for _, parameter := range r.ParameterDetail[mIndex] {
 			idMap[parameter.Id.Parameter] = parameter.Name
+			nameMap[parameter.Name] = parameter.Id.Parameter
 		}
 		idMaps[mIndex] = idMap
+		nameMaps[mIndex] = nameMap
 	}
 	r.muDetail.RUnlock()
 
 	cachedIDMapMu.Lock()
 	cachedIDMap = idMaps
 	cachedIDMapMu.Unlock()
+
+	cachedNameMapMu.Lock()
+	cachedNameMap = nameMaps
+	cachedNameMapMu.Unlock()
 }
 
-// ParameterNameByID Get a parameterID by name, returns "" if not found, always uses model 0
+// ParameterNameByID Get a parameter Name by ID, returns "" if not found, always uses model 0
 func (r *IBeamParameterRegistry) ParameterNameByID(parameterID uint32) string {
 	// check for device registered
 	if !r.parametersDone {
@@ -472,6 +483,29 @@ func (r *IBeamParameterRegistry) ParameterNameByID(parameterID uint32) string {
 	}
 
 	return ""
+}
+
+// PID Get a parameterID by name, returns 0 if not found, always uses model 0
+func (r *IBeamParameterRegistry) PID(parameterName string) uint32 {
+	// check for device registered
+	if !r.parametersDone {
+		log.Error("ParameterNameByID: only call after registering the first device")
+		return 0
+	}
+
+	if cachedNameMap == nil {
+		r.cacheIDMaps() // make sure cachedIDMap is initialized
+	}
+	cachedNameMapMu.RLock()
+	defer cachedNameMapMu.RUnlock()
+
+	// use cached id map of model 0
+	id, exists := cachedNameMap[0][parameterName]
+	if exists {
+		return id
+	}
+
+	return 0
 }
 
 // parameterIDByName get a parameterID by name, returns 0 if not found, not allowed to be public because it needs the mutexlock
