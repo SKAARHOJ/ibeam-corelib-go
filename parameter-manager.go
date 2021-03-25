@@ -70,6 +70,10 @@ func (m *IBeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb
 			Value: []*pb.ParameterValue{},
 		}
 	}
+	if len(parameter.Value) == 1 && parameter.Value[0].Value == nil {
+		// a request to set available or invalid from ingest current
+		return nil
+	}
 
 	// Check if the configured type of the Parameter has a value
 	if parameterConfig.ValueType == pb.ValueType_NoValue && parameterConfig.ControlStyle == pb.ControlStyle_NoControl {
