@@ -341,7 +341,7 @@ func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelI
 		in:                  settoManager,
 		clientsSetterStream: clientsSetter,
 		serverClientsStream: watcher,
-		parameterEvent:      make(chan *pb.Parameter, 100),
+		parameterEvent:      make(chan paramDimensionAddress, 100),
 		server:              &server,
 	}
 

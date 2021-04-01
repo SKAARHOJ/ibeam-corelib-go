@@ -2,6 +2,7 @@ package ibeamcorelib
 
 import (
 	"reflect"
+	"sync"
 	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
@@ -10,15 +11,16 @@ import (
 // ibeamParameterValueBuffer is used for updating a ParameterValue.
 // It holds a current and a target Value.
 type ibeamParameterValueBuffer struct {
-	dimensionID       []uint32
-	available         bool
-	isAssumedState    bool
-	lastUpdate        time.Time
-	tryCount          uint32
-	reEvaluationTimer *timeTimer
-	currentValue      *pb.ParameterValue
-	targetValue       *pb.ParameterValue
-	metaValues        []pb.ParameterMetaValue
+	dimensionID         []uint32
+	available           bool
+	isAssumedState      bool
+	lastUpdate          time.Time
+	tryCount            uint32
+	reEvaluationTimer   *timeTimer
+	reEvaluationTimerMu sync.Mutex
+	currentValue        *pb.ParameterValue
+	targetValue         *pb.ParameterValue
+	metaValues          []pb.ParameterMetaValue
 }
 type timeTimer struct {
 	timer *time.Timer

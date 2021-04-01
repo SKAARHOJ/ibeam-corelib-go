@@ -195,6 +195,11 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 		} else {
 			log.Debugf("TargetValue %v is equal to CurrentValue", newParameterValue.Value)
 		}
+		addr := paramDimensionAddress{
+			Parameter:   parameterID,
+			Device:      deviceID,
+			DimensionID: parameterBuffer.getParameterValue().DimensionID,
+		}
+		m.reEvaluate(addr) // Trigger processing of the main evaluation
 	}
-	m.reEvaluate(parameter) // Trigger processing of the main evaluation
 }

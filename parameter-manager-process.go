@@ -10,7 +10,7 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func (m *IBeamParameterManager) processParameter(param *pb.Parameter) {
+func (m *IBeamParameterManager) processParameter(address paramDimensionAddress) {
 	m.parameterRegistry.muInfo.RLock()
 	defer m.parameterRegistry.muInfo.RUnlock()
 
@@ -22,30 +22,27 @@ func (m *IBeamParameterManager) processParameter(param *pb.Parameter) {
 
 	// Get buffer and config
 	state := m.parameterRegistry.ParameterValue
-	deviceID := param.Id.Device
-	paramID := param.Id.Parameter
+	deviceID := address.Device
+	paramID := address.Parameter
 	modelID := m.parameterRegistry.getModelID(deviceID)
-	rootDimension := state[deviceID][param.Id.Parameter]
+	rootDimension := state[deviceID][address.Parameter]
 	parameterDetail := m.parameterRegistry.ParameterDetail[modelID][paramID]
 
-	for _, value := range param.Value {
-
-		if !rootDimension.MultiIndexHasValue(value.DimensionID) {
-			log.Error("Invalid dimension ID %v for %d", value.DimensionID, param.Id)
-			return
-		}
-		parameterDimension, err := rootDimension.MultiIndex(value.DimensionID)
-		if err != nil {
-			log.Errorf("could not get parameter buffer for dimension %v of param %v: %v", value.DimensionID, param.Id, err)
-			return
-		}
-		parameterBuffer, err := parameterDimension.Value()
-		if err != nil {
-			log.Errorf("could not get parameter buffer value for dimension %v of param %v: %v", value.DimensionID, param.Id, err)
-			return
-		}
-		m.handleSingleParameterBuffer(parameterBuffer, parameterDetail, deviceID)
+	if !rootDimension.MultiIndexHasValue(address.DimensionID) {
+		log.Error("Invalid dimension ID %v for %d", address.DimensionID, address)
+		return
 	}
+	parameterDimension, err := rootDimension.MultiIndex(address.DimensionID)
+	if err != nil {
+		log.Errorf("could not get parameter buffer for dimension %v of param %v: %v", address.DimensionID, address, err)
+		return
+	}
+	parameterBuffer, err := parameterDimension.Value()
+	if err != nil {
+		log.Errorf("could not get parameter buffer value for dimension %v of param %v: %v", address.DimensionID, address, err)
+		return
+	}
+	m.handleSingleParameterBuffer(parameterBuffer, parameterDetail, deviceID)
 
 }
 
@@ -197,6 +194,9 @@ func (m *IBeamParameterManager) reevaluateIn(t time.Duration, buffer *ibeamParam
 		t = time.Microsecond * 100 // This just ensures there is at least a little bit of time for the set of the system to catch up before triggering a reevaluation
 	}
 
+	buffer.reEvaluationTimerMu.Lock()
+	defer buffer.reEvaluationTimerMu.Unlock()
+
 	if buffer.reEvaluationTimer != nil {
 		remainingDuration := buffer.reEvaluationTimer.end.Sub(time.Now())
 		if t > remainingDuration {
@@ -210,15 +210,22 @@ func (m *IBeamParameterManager) reevaluateIn(t time.Duration, buffer *ibeamParam
 
 	log.Trace("Sceduling reevaluation in ", t.Milliseconds(), "milliseconds")
 
+	addr := paramDimensionAddress{
+		Parameter:   parameterID,
+		Device:      deviceID,
+		DimensionID: buffer.getParameterValue().DimensionID,
+	}
 	buffer.reEvaluationTimer = &timeTimer{end: time.Now().Add(t), timer: time.AfterFunc(t, func() {
-		m.reEvaluate(b.Param(parameterID, deviceID, buffer.getParameterValue()))
+		m.reEvaluate(addr)
+		buffer.reEvaluationTimerMu.Lock()
 		buffer.reEvaluationTimer = nil
+		buffer.reEvaluationTimerMu.Unlock()
 	})}
 }
 
-func (m *IBeamParameterManager) reEvaluate(param *pb.Parameter) {
+func (m *IBeamParameterManager) reEvaluate(addr paramDimensionAddress) {
 	select {
-	case m.parameterEvent <- param:
+	case m.parameterEvent <- addr:
 	default:
 		log.Error("Parameter Event Channel would block, dropped reevaluation trigger to avoid deadlock")
 	}

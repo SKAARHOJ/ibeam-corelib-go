@@ -33,6 +33,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 
 	shouldSend := false
 	for _, newParameterValue := range parameter.Value {
+
 		if newParameterValue == nil {
 			log.Warnf("Received nil value for parameter %d from device %d", parameterID, deviceID)
 			continue
@@ -53,6 +54,13 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			log.Error(err)
 			continue
 		}
+
+		parameterBuffer.reEvaluationTimerMu.Lock()
+		if parameterBuffer.reEvaluationTimer != nil {
+			parameterBuffer.reEvaluationTimer.timer.Stop()
+			parameterBuffer.reEvaluationTimer = nil
+		}
+		parameterBuffer.reEvaluationTimerMu.Unlock()
 
 		if proto.Equal(parameterBuffer.currentValue, newParameterValue) {
 			// if values are equal no need to do anything
@@ -189,25 +197,31 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 
 		if !assumed {
 			parameterBuffer.tryCount = 0
-			if parameterBuffer.reEvaluationTimer != nil {
-				parameterBuffer.reEvaluationTimer.timer.Stop()
-				parameterBuffer.reEvaluationTimer = nil
+		}
+
+		if !shouldSend {
+			if reEvaluate {
+				addr := paramDimensionAddress{
+					Parameter:   parameterID,
+					Device:      deviceID,
+					DimensionID: parameterBuffer.getParameterValue().DimensionID,
+				}
+				m.reEvaluate(addr) // Trigger processing of the main evaluation
 			}
+			return
 		}
-	}
 
-	if !shouldSend {
+		if values := m.parameterRegistry.getInstanceValues(parameter.GetId()); values != nil {
+			m.serverClientsStream <- b.Param(parameterID, deviceID, values...)
+		}
 		if reEvaluate {
-			m.reEvaluate(parameter) // Trigger processing of the main evaluation
+			addr := paramDimensionAddress{
+				Parameter:   parameterID,
+				Device:      deviceID,
+				DimensionID: parameterBuffer.getParameterValue().DimensionID,
+			}
+			m.reEvaluate(addr)
+			// Trigger processing of the main evaluation
 		}
-		return
-	}
-
-	if values := m.parameterRegistry.getInstanceValues(parameter.GetId()); values != nil {
-		m.serverClientsStream <- b.Param(parameterID, deviceID, values...)
-	}
-	if reEvaluate {
-		m.reEvaluate(parameter)
-		// Trigger processing of the main evaluation
 	}
 }

@@ -8,6 +8,13 @@ import (
 	"google.golang.org/grpc"
 )
 
+// Internal version of parameterID, to not mess with protobuff mechanisma
+type paramDimensionAddress struct {
+	Parameter   uint32
+	Device      uint32
+	DimensionID []uint32
+}
+
 // IBeamParameterManager manages parameter changes.
 type IBeamParameterManager struct {
 	parameterRegistry   *IBeamParameterRegistry
@@ -15,7 +22,7 @@ type IBeamParameterManager struct {
 	in                  chan *pb.Parameter
 	clientsSetterStream chan *pb.Parameter
 	serverClientsStream chan *pb.Parameter
-	parameterEvent      chan *pb.Parameter
+	parameterEvent      chan paramDimensionAddress
 	server              *IBeamServer
 }
 
@@ -120,9 +127,9 @@ func (m *IBeamParameterManager) Start() {
 			case parameter = <-m.in:
 				//				log.Info("Got result from device")
 				m.ingestCurrentParameter(parameter)
-			case parameter = <-m.parameterEvent:
+			case address := <-m.parameterEvent:
 				//				log.Info("Gonna proccess param")
-				m.processParameter(parameter)
+				m.processParameter(address)
 			}
 		}
 	}()
