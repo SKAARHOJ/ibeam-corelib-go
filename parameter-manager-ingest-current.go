@@ -1,7 +1,6 @@
 package ibeamcorelib
 
 import (
-	"reflect"
 	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
@@ -182,6 +181,9 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
 					shouldSend = true
 				}
+			}else {
+				timeForRecheck := int64(parameterConfig.QuarantineDelayMs) - time.Since(parameterBuffer.lastUpdate).Milliseconds()
+				m.reevaluateIn(time.Duration(time.Millisecond*time.Duration(timeForRecheck)), parameterBuffer, parameterID, deviceID)
 			}
 
 			if !proto.Equal(parameterBuffer.currentValue, newParameterValue) {
@@ -190,7 +192,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				shouldSend = true
 			}
 		}
-		assumed := !reflect.DeepEqual(parameterBuffer.currentValue.Value, parameterBuffer.targetValue.Value)
+		assumed := !proto.Equal(parameterBuffer.currentValue, parameterBuffer.targetValue)
 		if parameterBuffer.isAssumedState != assumed {
 			shouldSend = true
 		}
