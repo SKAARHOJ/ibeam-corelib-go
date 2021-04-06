@@ -198,7 +198,7 @@ func (m *IBeamParameterManager) reevaluateIn(t time.Duration, buffer *ibeamParam
 	defer buffer.reEvaluationTimerMu.Unlock()
 
 	if buffer.reEvaluationTimer != nil {
-		remainingDuration := buffer.reEvaluationTimer.end.Sub(time.Now())
+		remainingDuration := time.Until(buffer.reEvaluationTimer.end)
 		if t > remainingDuration {
 			return
 		}

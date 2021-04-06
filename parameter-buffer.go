@@ -20,7 +20,6 @@ type ibeamParameterValueBuffer struct {
 	reEvaluationTimerMu sync.Mutex
 	currentValue        *pb.ParameterValue
 	targetValue         *pb.ParameterValue
-	metaValues          []pb.ParameterMetaValue
 }
 type timeTimer struct {
 	timer *time.Timer

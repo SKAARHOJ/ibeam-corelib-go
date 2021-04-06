@@ -24,22 +24,13 @@ func GenerateOptionList(options ...string) (optionList *pb.OptionList) {
 	return optionList
 }
 
-func getElementNameFromOptionListByID(list *pb.OptionList, id pb.ParameterValue_CurrentOption) (string, error) {
-	for _, option := range list.Options {
-		if option.Id == id.CurrentOption {
-			return option.Name, nil
-		}
-	}
-	return "", fmt.Errorf("No Name found in OptionList '%v' with ID %v", list, id)
-}
-
 func getIDFromOptionListByElementName(list *pb.OptionList, name string) (uint32, error) {
 	for _, option := range list.Options {
 		if option.Name == name {
 			return option.Id, nil
 		}
 	}
-	return 0, fmt.Errorf("No ID found in OptionList '%v' for Name %v", list, name)
+	return 0, fmt.Errorf("no ID found in OptionList '%v' for Name %v", list, name)
 }
 
 func paramError(pid uint32, did uint32, e pb.ParameterError) *pb.Parameter {

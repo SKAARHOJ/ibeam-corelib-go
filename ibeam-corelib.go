@@ -115,7 +115,6 @@ func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 				}
 			}
 		}
-		rParameters.Parameters = append(rParameters.Parameters)
 	} else if len(dpIDs.Ids) == 1 && dpIDs.Ids[0].Parameter == 0 && dpIDs.Ids[0].Device != 0 {
 		did := dpIDs.Ids[0].Device
 		if _, exists := s.parameterRegistry.ParameterValue[did]; !exists {
@@ -141,7 +140,6 @@ func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 			}
 
 		}
-		rParameters.Parameters = append(rParameters.Parameters)
 	} else {
 		for _, dpID := range dpIDs.Ids {
 			if dpID.Device == 0 || dpID.Parameter == 0 {
@@ -220,7 +218,7 @@ func (s *IBeamServer) getParameterDetail(mpID *pb.ModelParameterID) (*pb.Paramet
 			return parameterDetail, nil
 		}
 	}
-	return nil, errors.New("Cannot find ParameterDetail with given ModelParameterID")
+	return nil, errors.New("cannot find ParameterDetail with given ModelParameterID")
 }
 
 // Set will change the Value for the given Parameter.
@@ -240,7 +238,7 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 	log.Debug("New Client subscribed from ", clientIP)
 
 	// Fist send all parameters
-	parameters, err := s.Get(nil, dpIDs)
+	parameters, err := s.Get(stream.Context(), dpIDs)
 	if err != nil {
 		return err
 	}

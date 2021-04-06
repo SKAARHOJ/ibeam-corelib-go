@@ -267,7 +267,7 @@ func (r *IBeamParameterRegistry) GetParameterNameOfModel(parameterID, modelID ui
 
 	modelInfo, exists := r.ParameterDetail[modelID]
 	if !exists {
-		return "", fmt.Errorf("Could not find Parameter for Model with id %d", modelID)
+		return "", fmt.Errorf("could not find Parameter for Model with id %d", modelID)
 	}
 
 	for _, pd := range modelInfo {
@@ -275,7 +275,7 @@ func (r *IBeamParameterRegistry) GetParameterNameOfModel(parameterID, modelID ui
 			return pd.Name, nil
 		}
 	}
-	return "", fmt.Errorf("Could not find Parameter with id %v", parameterID)
+	return "", fmt.Errorf("could not find Parameter with id %v", parameterID)
 }
 
 // GetModelIDByDeviceID is a helper to get the modelid for a specific device
@@ -313,7 +313,7 @@ func (r *IBeamParameterRegistry) ReRegisterDevice(deviceID, modelID uint32) erro
 	r.muInfo.RLock()
 	if _, exists := r.DeviceInfos[deviceID]; exists {
 		r.muInfo.RUnlock()
-		return fmt.Errorf("Could not re-register device with existing deviceid: %v", deviceID)
+		return fmt.Errorf("could not re-register device with existing deviceid: %v", deviceID)
 	}
 	r.muInfo.RUnlock()
 
@@ -347,13 +347,13 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 	defer r.muDetail.RUnlock()
 
 	if _, exists := r.ParameterDetail[modelID]; !exists {
-		return 0, fmt.Errorf("Could not register device for nonexistent model with id: %v", modelID)
+		return 0, fmt.Errorf("could not register device for nonexistent model with id: %v", modelID)
 	}
 
 	r.muInfo.RLock()
 	if _, exists := r.DeviceInfos[deviceID]; exists {
 		r.muInfo.RUnlock()
-		return 0, fmt.Errorf("Could not register device with existing deviceid: %v", deviceID)
+		return 0, fmt.Errorf("could not register device with existing deviceid: %v", deviceID)
 	}
 	r.muInfo.RUnlock()
 
@@ -437,8 +437,8 @@ func (r *IBeamParameterRegistry) cacheIDMaps() {
 		return
 	}
 
-	idMaps := make(map[uint32]map[uint32]string, 0)
-	nameMaps := make(map[uint32]map[string]uint32, 0)
+	idMaps := make(map[uint32]map[uint32]string)
+	nameMaps := make(map[uint32]map[string]uint32)
 	r.muDetail.RLock()
 
 	for mIndex := range r.ModelInfos {

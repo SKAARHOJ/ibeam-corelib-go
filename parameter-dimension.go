@@ -15,10 +15,7 @@ type IBeamParameterDimension struct {
 }
 
 func (pd *IBeamParameterDimension) isValue() bool {
-	if pd.value == nil {
-		return false
-	}
-	return true
+	return pd.value != nil
 }
 
 // Value of the Dimension
@@ -26,7 +23,7 @@ func (pd *IBeamParameterDimension) Value() (*ibeamParameterValueBuffer, error) {
 	if pd.isValue() {
 		return pd.value, nil
 	}
-	return nil, errors.New("Dimension is not a value")
+	return nil, errors.New("dimension is not a value")
 }
 
 // Subdimensions of the Dimension
@@ -34,7 +31,7 @@ func (pd *IBeamParameterDimension) Subdimensions() ([]*IBeamParameterDimension, 
 	if !pd.isValue() {
 		return pd.subDimensions, nil
 	}
-	return nil, errors.New("Dimension has no subdimension")
+	return nil, errors.New("dimension has no subdimension")
 }
 
 // MultiIndexHasValue checks for a specific dimension ids existence
@@ -76,15 +73,15 @@ func (pd *IBeamParameterDimension) MultiIndex(dimensionID []uint32) (*IBeamParam
 		var err error
 		valuePointer, err = valuePointer.index(id - 1)
 		if err != nil {
-			return nil, fmt.Errorf("DimensionID too long %w", err)
+			return nil, fmt.Errorf("dimensionID too long %w", err)
 		}
 	}
-	return nil, fmt.Errorf("DimensionID too short")
+	return nil, fmt.Errorf("dimensionID too short")
 }
 
 func (pd *IBeamParameterDimension) index(index uint32) (*IBeamParameterDimension, error) {
 	if len(pd.subDimensions) <= int(index) {
-		return nil, fmt.Errorf("Parameter Dimension Index out of range: wanted: %v length: %v", index, len(pd.subDimensions))
+		return nil, fmt.Errorf("parameter dimension index out of range: wanted: %v length: %v", index, len(pd.subDimensions))
 	}
 	return pd.subDimensions[int(index)], nil
 }
