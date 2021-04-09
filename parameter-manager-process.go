@@ -1,7 +1,6 @@
 package ibeamcorelib
 
 import (
-	"reflect"
 	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
@@ -54,7 +53,7 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 	// First Basic Check Pipeline if the Parameter Value can be send to out
 	// ********************************************************************
 
-	if reflect.DeepEqual(parameterBuffer.currentValue.Value, parameterBuffer.targetValue.Value) {
+	if proto.Equal(parameterBuffer.currentValue, parameterBuffer.targetValue) {
 		return
 	}
 
