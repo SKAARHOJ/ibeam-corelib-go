@@ -40,9 +40,11 @@ func (s *IBeamServer) GetDeviceInfo(_ context.Context, deviceIDs *pb.DeviceIDs) 
 	defer s.parameterRegistry.muInfo.RUnlock()
 
 	if len(deviceIDs.Ids) == 0 {
-		infos := []*pb.DeviceInfo{}
+		infos := make([]*pb.DeviceInfo, len(s.parameterRegistry.DeviceInfos))
+		index := 0
 		for _, info := range s.parameterRegistry.DeviceInfos {
-			infos = append(infos, info)
+			infos[index] = info
+			index++
 		}
 		return &pb.DeviceInfos{DeviceInfos: infos}, nil
 	}
@@ -66,9 +68,11 @@ func (s *IBeamServer) GetModelInfo(_ context.Context, mIDs *pb.ModelIDs) (*pb.Mo
 	defer s.parameterRegistry.muInfo.RUnlock()
 
 	if len(mIDs.Ids) == 0 {
-		infos := []*pb.ModelInfo{}
+		infos := make([]*pb.ModelInfo, len(s.parameterRegistry.ModelInfos))
+		index := 0
 		for _, info := range s.parameterRegistry.ModelInfos {
-			infos = append(infos, info)
+			infos[index] = info
+			index++
 		}
 		return &pb.ModelInfos{ModelInfos: infos}, nil
 	}

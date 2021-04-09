@@ -104,7 +104,7 @@ func generateDimensions(dimensionConfig []uint32, initialValueDimension *IBeamPa
 			targetValue:    proto.Clone(initialValueDimension.value.targetValue).(*pb.ParameterValue),
 		}
 
-		valueWithID.value.dimensionID = make([]uint32, len(dimValue.dimensionID))
+		valueWithID.value.dimensionID = make([]uint32, len(dimValue.dimensionID), len(dimValue.dimensionID)+1)
 		copy(valueWithID.value.dimensionID, dimValue.dimensionID)
 		valueWithID.value.dimensionID = append(valueWithID.value.dimensionID, uint32(count+1))
 
