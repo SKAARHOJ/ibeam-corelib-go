@@ -54,17 +54,17 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			continue
 		}
 
+		if proto.Equal(parameterBuffer.currentValue, newParameterValue) {
+			// if values are equal no need to do anything
+			continue
+		}
+
 		parameterBuffer.reEvaluationTimerMu.Lock()
 		if parameterBuffer.reEvaluationTimer != nil {
 			parameterBuffer.reEvaluationTimer.timer.Stop()
 			parameterBuffer.reEvaluationTimer = nil
 		}
 		parameterBuffer.reEvaluationTimerMu.Unlock()
-
-		if proto.Equal(parameterBuffer.currentValue, newParameterValue) {
-			// if values are equal no need to do anything
-			continue
-		}
 
 		if newParameterValue.Value == nil {
 			// Got empty value, need to update available or invalid
@@ -181,7 +181,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
 					shouldSend = true
 				}
-			}else {
+			} else {
 				timeForRecheck := int64(parameterConfig.QuarantineDelayMs) - time.Since(parameterBuffer.lastUpdate).Milliseconds()
 				m.reevaluateIn(time.Duration(time.Millisecond*time.Duration(timeForRecheck)), parameterBuffer, parameterID, deviceID)
 			}
@@ -201,21 +201,12 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			parameterBuffer.tryCount = 0
 		}
 
-		if !shouldSend {
-			if reEvaluate {
-				addr := paramDimensionAddress{
-					Parameter:   parameterID,
-					Device:      deviceID,
-					DimensionID: parameterBuffer.getParameterValue().DimensionID,
-				}
-				m.reEvaluate(addr) // Trigger processing of the main evaluation
+		if shouldSend {
+			if values := m.parameterRegistry.getInstanceValues(parameter.GetId()); values != nil {
+				m.serverClientsStream <- b.Param(parameterID, deviceID, values...)
 			}
-			return
 		}
 
-		if values := m.parameterRegistry.getInstanceValues(parameter.GetId()); values != nil {
-			m.serverClientsStream <- b.Param(parameterID, deviceID, values...)
-		}
 		if reEvaluate {
 			addr := paramDimensionAddress{
 				Parameter:   parameterID,
