@@ -7,7 +7,7 @@ import (
 )
 
 // MetaElements Type alias to make parameter definition nicer
-type MetaElements map[string]pb.ParameterMetaType
+type MetaElements map[string]*pb.ParameterMetaDetail
 
 // DimensionDetails Type alias to make parameter definition nicer
 type DimensionDetails []*pb.DimensionDetail
