@@ -120,12 +120,12 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 
 				didSet = true
 
-			case *pb.ParameterValue_OptionList:
+			case *pb.ParameterValue_OptionListUpdate:
 				if !parameterConfig.OptionListIsDynamic {
 					log.Errorf("Parameter with ID %v has no Dynamic OptionList", parameterID)
 					continue
 				}
-				m.parameterRegistry.parameterDetail[parameterID][parameterID].OptionList = v.OptionList
+				m.parameterRegistry.parameterDetail[parameterID][parameterID].OptionList = v.OptionListUpdate
 				m.serverClientsStream <- b.Param(parameterID, deviceID, newParameterValue)
 				continue
 			case *pb.ParameterValue_CurrentOption:

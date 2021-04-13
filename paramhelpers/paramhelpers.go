@@ -40,7 +40,7 @@ func OptIndex(val int, dimensionID ...uint32) *pb.ParameterValue {
 
 // OptList just returns a parameter value of type ParameterValue_OptionList, used to update a dynamic option list
 func OptList(val *pb.OptionList, dimensionID ...uint32) *pb.ParameterValue {
-	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_OptionList{OptionList: val}}
+	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_OptionListUpdate{OptionListUpdate: val}}
 }
 
 // Available and Invalid

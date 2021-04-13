@@ -181,7 +181,7 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 			}
 
 			log.Debugf("Got Set Binary: %v", newValue)
-		case *pb.ParameterValue_OptionList:
+		case *pb.ParameterValue_OptionListUpdate:
 			log.Debugf("Got Set Option List: %v", newValue)
 
 		}
