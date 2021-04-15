@@ -508,6 +508,28 @@ func (r *IBeamParameterRegistry) PID(parameterName string) uint32 {
 	return 0
 }
 
+// GetNameMap returns a map of all parameter names, usefull for initial state requests
+func (r *IBeamParameterRegistry) GetNameMap() map[uint32]string {
+	// check for device registered
+	if !r.parametersDone {
+		log.Error("GetNameMap: only call after registering the first device")
+		return nil
+	}
+
+	if cachedNameMap == nil {
+		r.cacheIDMaps() // make sure cachedIDMap is initialized
+	}
+	cachedIDMapMu.RLock()
+	defer cachedIDMapMu.RUnlock()
+
+	// use cached map of model 0
+	nameMap := make(map[uint32]string)
+	for key, value := range cachedIDMap[0] {
+		nameMap[key] = value
+	}
+	return nameMap
+}
+
 // parameterIDByName get a parameterID by name, returns 0 if not found, not allowed to be public because it needs the mutexlock
 func (r *IBeamParameterRegistry) parameterIDByName(parameterName string, modelID uint32) uint32 {
 	// Function requires mutex to be fully locked before invocation
