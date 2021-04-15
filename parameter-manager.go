@@ -10,9 +10,9 @@ import (
 
 // Internal version of parameterID, to not mess with protobuff mechanisma
 type paramDimensionAddress struct {
-	Parameter   uint32
-	Device      uint32
-	DimensionID []uint32
+	parameter   uint32
+	device      uint32
+	dimensionID []uint32
 }
 
 // IBeamParameterManager manages parameter changes.
@@ -65,8 +65,8 @@ func (m *IBeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb
 	modelIndex := m.parameterRegistry.getModelID(deviceID)
 
 	// Get State and the Configuration (Details) of the Parameter, assume mutex is locked in outer layers of parameterLoop
-	state := m.parameterRegistry.ParameterValue
-	parameterConfig := m.parameterRegistry.ParameterDetail[modelIndex][parameterIndex]
+	state := m.parameterRegistry.parameterValue
+	parameterConfig := m.parameterRegistry.parameterDetail[modelIndex][parameterIndex]
 	// Check if device and param id are valid and in the State
 	if _, exists := state[deviceID][parameterIndex]; !exists {
 		log.Errorf("Invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)

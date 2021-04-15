@@ -26,10 +26,10 @@ type IBeamParameterRegistry struct {
 	muDetail        sync.RWMutex
 	muValue         sync.RWMutex
 	coreInfo        *pb.CoreInfo
-	DeviceInfos     map[uint32]*pb.DeviceInfo
-	ModelInfos      map[uint32]*pb.ModelInfo
-	ParameterDetail parameterDetails //Parameter Details: model, parameter // TODO: Both need to be private! with getters, but no setters
-	ParameterValue  parameterStates  //Parameter States: device,parameter,dimension
+	deviceInfos     map[uint32]*pb.DeviceInfo
+	modelInfos      map[uint32]*pb.ModelInfo
+	parameterDetail parameterDetails //Parameter Details: model, parameter // TODO: Both need to be private! with getters, but no setters
+	parameterValue  parameterStates  //Parameter States: device,parameter,dimension
 	allowAutoIDs    bool
 	modelsDone      bool // Sanity flag set on first call to add parameters to ensure order
 	parametersDone  bool // Sanity flag set on first call to add devices to ensure order
@@ -45,19 +45,19 @@ func (r *IBeamParameterRegistry) AllowAutoIDs() {
 func (r *IBeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID) (values []*pb.ParameterValue) {
 	deviceID := dpID.Device
 	parameterIndex := dpID.Parameter
-	_, dExists := r.ParameterValue[deviceID]
+	_, dExists := r.parameterValue[deviceID]
 	if dpID.Device == 0 || dpID.Parameter == 0 || !dExists {
 		log.Error("Could not get instance values for DeviceParameterID: Device:", dpID.Device, " and param: ", dpID.Parameter)
 		return nil
 	}
 
-	if _, ok := r.ParameterValue[deviceID][parameterIndex]; !ok {
-		log.Info(r.ParameterValue[deviceID])
+	if _, ok := r.parameterValue[deviceID][parameterIndex]; !ok {
+		log.Info(r.parameterValue[deviceID])
 		log.Error("Could not get instance values for DeviceParameterID: Device:", dpID.Device, " and param: ", dpID.Parameter, " param does not exist")
 		return nil
 	}
 
-	return getValues(r.ParameterValue[deviceID][parameterIndex])
+	return getValues(r.parameterValue[deviceID][parameterIndex])
 }
 
 func getValues(dimension *IBeamParameterDimension) (values []*pb.ParameterValue) {
@@ -77,11 +77,11 @@ func getValues(dimension *IBeamParameterDimension) (values []*pb.ParameterValue)
 
 func (r *IBeamParameterRegistry) getModelID(deviceID uint32) uint32 {
 	// This function assumes that mutexes are already locked
-	_, dExists := r.DeviceInfos[deviceID]
+	_, dExists := r.deviceInfos[deviceID]
 	if !dExists || deviceID == 0 {
 		log.Fatalf("Could not get model for device with id %v.", deviceID)
 	}
-	return r.DeviceInfos[deviceID].ModelID
+	return r.deviceInfos[deviceID].ModelID
 }
 
 // RegisterParameterForModels registers a parameter and its detail struct in the registry for multiple models.
@@ -126,7 +126,7 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 			log.Fatal("Duplicate parameter name for ", detail.Name)
 		}
 
-		defaultModelConfig := r.ParameterDetail[0]
+		defaultModelConfig := r.parameterDetail[0]
 		if paramID == 0 {
 			if !r.allowAutoIDs {
 				log.Fatalf("Missing ID on parameter '%s'", detail.Name)
@@ -142,7 +142,7 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 		validateParameter(detail)
 
 		r.muDetail.Lock()
-		for aMid, modelconfig := range r.ParameterDetail {
+		for aMid, modelconfig := range r.parameterDetail {
 			dt := proto.Clone(detail).(*pb.ParameterDetail)
 			dt.Id.Model = aMid
 			modelconfig[paramID] = dt
@@ -155,7 +155,7 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 			paramID = pid
 		}
 
-		modelconfig, exists := r.ParameterDetail[modelID]
+		modelconfig, exists := r.parameterDetail[modelID]
 		if !exists {
 			log.Fatalf("Could not register parameter '%s' for model with ID: %d", detail.Name, modelID)
 		}
@@ -163,7 +163,7 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 			if !r.allowAutoIDs {
 				log.Fatalf("Missing ID on parameter '%s'", detail.Name)
 			}
-			paramID = uint32(len(r.ParameterDetail[0]) + 1)
+			paramID = uint32(len(r.parameterDetail[0]) + 1)
 		}
 		r.muDetail.RUnlock()
 		detail.Id = &pb.ModelParameterID{
@@ -180,7 +180,7 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 		if pid == 0 {
 			dt := proto.Clone(detail).(*pb.ParameterDetail)
 			dt.Id.Model = 0
-			r.ParameterDetail[0][paramID] = dt
+			r.parameterDetail[0][paramID] = dt
 		}
 		r.muDetail.Unlock()
 		if pid == 0 {
@@ -217,7 +217,7 @@ func (r *IBeamParameterRegistry) UnregisterParameterForModel(modelID uint32, par
 		log.Fatalf("Unknown parameter %s to be unregistered for model %d", parameterName, modelID)
 	}
 
-	delete(r.ParameterDetail[modelID], id)
+	delete(r.parameterDetail[modelID], id)
 	r.muDetail.Unlock()
 
 	log.Debugf("ParameterDetail with ID: %d removed for Model %d", id, modelID)
@@ -238,22 +238,22 @@ func (r *IBeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32 {
 	}
 
 	r.muInfo.Lock()
-	if _, exists := r.ModelInfos[model.Id]; exists {
+	if _, exists := r.modelInfos[model.Id]; exists {
 		// if the id already exists count it up
 		if !r.allowAutoIDs {
 			log.Fatalf("Refusing to autoassign id for model '%s', please specify an explicit ID", model.Name)
 		}
 		r.muDetail.RLock()
-		model.Id = uint32(len(r.ParameterDetail))
+		model.Id = uint32(len(r.parameterDetail))
 		log.Warnf("Autoassigning id %d for model '%s'", model.Id, model.Name)
 		r.muDetail.RUnlock()
 	}
 
-	r.ModelInfos[model.Id] = model
+	r.modelInfos[model.Id] = model
 	r.muInfo.Unlock()
 
 	r.muDetail.Lock()
-	r.ParameterDetail[model.Id] = map[uint32]*pb.ParameterDetail{}
+	r.parameterDetail[model.Id] = map[uint32]*pb.ParameterDetail{}
 	r.muDetail.Unlock()
 
 	log.Debugf("Model '%v' registered with ID: %v ", model.Name, model.Id)
@@ -265,7 +265,7 @@ func (r *IBeamParameterRegistry) GetParameterNameOfModel(parameterID, modelID ui
 	r.muDetail.RLock()
 	defer r.muDetail.RUnlock()
 
-	modelInfo, exists := r.ParameterDetail[modelID]
+	modelInfo, exists := r.parameterDetail[modelID]
 	if !exists {
 		return "", fmt.Errorf("could not find Parameter for Model with id %d", modelID)
 	}
@@ -283,7 +283,7 @@ func (r *IBeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32 {
 	r.muInfo.RLock()
 	defer r.muInfo.RUnlock()
 
-	device, exists := r.DeviceInfos[deviceID]
+	device, exists := r.deviceInfos[deviceID]
 	if !exists {
 		log.Warnf("can not get model: no device with ID %d found", deviceID)
 		return 0
@@ -295,7 +295,7 @@ func (r *IBeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32 {
 func (r *IBeamParameterRegistry) RegisterDeviceWithModelName(deviceID uint32, modelName string) (deviceIndex uint32, err error) {
 	modelID := uint32(0)
 	r.muInfo.RLock()
-	for _, m := range r.ModelInfos {
+	for _, m := range r.modelInfos {
 		if m.Name == modelName {
 			r.muInfo.RUnlock()
 			return r.RegisterDevice(deviceID, modelID)
@@ -311,14 +311,14 @@ func (r *IBeamParameterRegistry) RegisterDeviceWithModelName(deviceID uint32, mo
 func (r *IBeamParameterRegistry) ReRegisterDevice(deviceID, modelID uint32) error {
 	// Check for device exists
 	r.muInfo.RLock()
-	if _, exists := r.DeviceInfos[deviceID]; exists {
+	if _, exists := r.deviceInfos[deviceID]; exists {
 		r.muInfo.RUnlock()
 		return fmt.Errorf("could not re-register device with existing deviceid: %v", deviceID)
 	}
 	r.muInfo.RUnlock()
 
 	r.muDetail.RLock()
-	if _, exists := r.ParameterDetail[modelID]; !exists {
+	if _, exists := r.parameterDetail[modelID]; !exists {
 		r.muDetail.RUnlock()
 		log.Fatalf("Could not register device for nonexistent model with id: %v", modelID)
 	}
@@ -326,11 +326,11 @@ func (r *IBeamParameterRegistry) ReRegisterDevice(deviceID, modelID uint32) erro
 
 	// clear device
 	r.muInfo.Lock()
-	delete(r.DeviceInfos, deviceID)
+	delete(r.deviceInfos, deviceID)
 	r.muInfo.Unlock()
 
 	r.muValue.Lock()
-	delete(r.ParameterValue, deviceID)
+	delete(r.parameterValue, deviceID)
 	r.muValue.Unlock()
 
 	// Call register device with old ID
@@ -346,18 +346,18 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 	r.muDetail.RLock()
 	defer r.muDetail.RUnlock()
 
-	if _, exists := r.ParameterDetail[modelID]; !exists {
+	if _, exists := r.parameterDetail[modelID]; !exists {
 		return 0, fmt.Errorf("could not register device for nonexistent model with id: %v", modelID)
 	}
 
 	r.muInfo.RLock()
-	if _, exists := r.DeviceInfos[deviceID]; exists {
+	if _, exists := r.deviceInfos[deviceID]; exists {
 		r.muInfo.RUnlock()
 		return 0, fmt.Errorf("could not register device with existing deviceid: %v", deviceID)
 	}
 	r.muInfo.RUnlock()
 
-	modelConfig := r.ParameterDetail[modelID]
+	modelConfig := r.parameterDetail[modelID]
 
 	// create device info
 	// take all params from model and generate a value buffer array for all instances
@@ -415,20 +415,20 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 
 	r.muInfo.Lock()
 	if deviceID == 0 {
-		deviceID = uint32(len(r.DeviceInfos) + 1)
+		deviceID = uint32(len(r.deviceInfos) + 1)
 		log.Warnf("Automatically assigning DeviceID %d to device with model %d", deviceID, modelID)
 	}
-	r.DeviceInfos[deviceID] = &pb.DeviceInfo{
+	r.deviceInfos[deviceID] = &pb.DeviceInfo{
 		DeviceID: deviceID,
 		ModelID:  modelID,
 	}
 	r.muInfo.Unlock()
 
 	r.muValue.Lock()
-	r.ParameterValue[deviceID] = parameterDimensions
+	r.parameterValue[deviceID] = parameterDimensions
 	r.muValue.Unlock()
 
-	log.Debugf("Device '%v' registered with model: %v (%v)", deviceID, modelID, r.ModelInfos[modelID].Name)
+	log.Debugf("Device '%v' registered with model: %v (%v)", deviceID, modelID, r.modelInfos[modelID].Name)
 	return deviceID, nil
 }
 
@@ -441,10 +441,10 @@ func (r *IBeamParameterRegistry) cacheIDMaps() {
 	nameMaps := make(map[uint32]map[string]uint32)
 	r.muDetail.RLock()
 
-	for mIndex := range r.ModelInfos {
+	for mIndex := range r.modelInfos {
 		idMap := make(map[uint32]string)
 		nameMap := make(map[string]uint32)
-		for _, parameter := range r.ParameterDetail[mIndex] {
+		for _, parameter := range r.parameterDetail[mIndex] {
 			idMap[parameter.Id.Parameter] = parameter.Name
 			nameMap[parameter.Name] = parameter.Id.Parameter
 		}
@@ -511,11 +511,11 @@ func (r *IBeamParameterRegistry) PID(parameterName string) uint32 {
 // parameterIDByName get a parameterID by name, returns 0 if not found, not allowed to be public because it needs the mutexlock
 func (r *IBeamParameterRegistry) parameterIDByName(parameterName string, modelID uint32) uint32 {
 	// Function requires mutex to be fully locked before invocation
-	if uint32(len(r.ParameterDetail)) <= (modelID) {
+	if uint32(len(r.parameterDetail)) <= (modelID) {
 		log.Fatalln("Could not register parameter for nonexistent model", modelID)
 	}
 
-	for id, param := range r.ParameterDetail[modelID] {
+	for id, param := range r.parameterDetail[modelID] {
 		if param.Name == parameterName {
 			return id
 		}

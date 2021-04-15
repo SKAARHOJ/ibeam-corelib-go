@@ -40,9 +40,9 @@ func (s *IBeamServer) GetDeviceInfo(_ context.Context, deviceIDs *pb.DeviceIDs) 
 	defer s.parameterRegistry.muInfo.RUnlock()
 
 	if len(deviceIDs.Ids) == 0 {
-		infos := make([]*pb.DeviceInfo, len(s.parameterRegistry.DeviceInfos))
+		infos := make([]*pb.DeviceInfo, len(s.parameterRegistry.deviceInfos))
 		index := 0
-		for _, info := range s.parameterRegistry.DeviceInfos {
+		for _, info := range s.parameterRegistry.deviceInfos {
 			infos[index] = info
 			index++
 		}
@@ -51,9 +51,9 @@ func (s *IBeamServer) GetDeviceInfo(_ context.Context, deviceIDs *pb.DeviceIDs) 
 
 	var rDeviceInfos pb.DeviceInfos
 	for _, deviceID := range deviceIDs.Ids {
-		_, dExists := s.parameterRegistry.DeviceInfos[deviceID]
+		_, dExists := s.parameterRegistry.deviceInfos[deviceID]
 		if dExists && deviceID != 0 {
-			rDeviceInfos.DeviceInfos = append(rDeviceInfos.DeviceInfos, s.parameterRegistry.DeviceInfos[deviceID])
+			rDeviceInfos.DeviceInfos = append(rDeviceInfos.DeviceInfos, s.parameterRegistry.deviceInfos[deviceID])
 		}
 		// If we have no Device with such a ID, skip
 	}
@@ -68,9 +68,9 @@ func (s *IBeamServer) GetModelInfo(_ context.Context, mIDs *pb.ModelIDs) (*pb.Mo
 	defer s.parameterRegistry.muInfo.RUnlock()
 
 	if len(mIDs.Ids) == 0 {
-		infos := make([]*pb.ModelInfo, len(s.parameterRegistry.ModelInfos))
+		infos := make([]*pb.ModelInfo, len(s.parameterRegistry.modelInfos))
 		index := 0
-		for _, info := range s.parameterRegistry.ModelInfos {
+		for _, info := range s.parameterRegistry.modelInfos {
 			infos[index] = info
 			index++
 		}
@@ -87,7 +87,7 @@ func (s *IBeamServer) GetModelInfo(_ context.Context, mIDs *pb.ModelIDs) (*pb.Mo
 }
 
 func getModelWithID(s *IBeamServer, mID uint32) *pb.ModelInfo {
-	for _, model := range s.parameterRegistry.ModelInfos {
+	for _, model := range s.parameterRegistry.modelInfos {
 		if model.Id == mID {
 			return model
 		}
@@ -103,7 +103,7 @@ func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 	defer s.parameterRegistry.muValue.RUnlock()
 
 	if len(dpIDs.Ids) == 0 {
-		for did, dState := range s.parameterRegistry.ParameterValue {
+		for did, dState := range s.parameterRegistry.parameterValue {
 			for pid := range dState {
 				dpID := pb.DeviceParameterID{
 					Parameter: uint32(pid),
@@ -121,7 +121,7 @@ func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 		}
 	} else if len(dpIDs.Ids) == 1 && dpIDs.Ids[0].Parameter == 0 && dpIDs.Ids[0].Device != 0 {
 		did := dpIDs.Ids[0].Device
-		if _, exists := s.parameterRegistry.ParameterValue[did]; !exists {
+		if _, exists := s.parameterRegistry.parameterValue[did]; !exists {
 			rParameters.Parameters = append(rParameters.Parameters, &pb.Parameter{
 				Id:    dpIDs.Ids[0],
 				Error: pb.ParameterError_UnknownID,
@@ -129,7 +129,7 @@ func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 			})
 			return
 		}
-		for pid := range s.parameterRegistry.ParameterValue[did] {
+		for pid := range s.parameterRegistry.parameterValue[did] {
 			dpID := pb.DeviceParameterID{
 				Parameter: pid,
 				Device:    did,
@@ -181,15 +181,15 @@ func (s *IBeamServer) GetParameterDetails(c context.Context, mpIDs *pb.ModelPara
 	defer s.parameterRegistry.muInfo.RUnlock()
 
 	if len(mpIDs.Ids) == 0 {
-		for _, modelDetails := range s.parameterRegistry.ParameterDetail {
+		for _, modelDetails := range s.parameterRegistry.parameterDetail {
 			for _, modelDetail := range modelDetails {
 				rParameterDetails.Details = append(rParameterDetails.Details, modelDetail)
 			}
 		}
 	} else if len(mpIDs.Ids) == 1 && int(mpIDs.Ids[0].Parameter) == 0 {
 		// Return all parameters for model
-		if _, exists := s.parameterRegistry.ParameterDetail[mpIDs.Ids[0].Model]; exists {
-			for _, modelDetail := range s.parameterRegistry.ParameterDetail[mpIDs.Ids[0].Model] {
+		if _, exists := s.parameterRegistry.parameterDetail[mpIDs.Ids[0].Model]; exists {
+			for _, modelDetail := range s.parameterRegistry.parameterDetail[mpIDs.Ids[0].Model] {
 				rParameterDetails.Details = append(rParameterDetails.Details, modelDetail)
 			}
 		} else {
@@ -214,10 +214,10 @@ func (s *IBeamServer) getParameterDetail(mpID *pb.ModelParameterID) (*pb.Paramet
 	if mpID.Parameter == 0 {
 		return nil, errors.New("Failed to get instance values " + mpID.String())
 	}
-	if len(s.parameterRegistry.ParameterDetail) < int(mpID.Model) {
+	if len(s.parameterRegistry.parameterDetail) < int(mpID.Model) {
 		return nil, fmt.Errorf("ParamerDetail does not have Model with id %v", mpID.Model)
 	}
-	for _, parameterDetail := range s.parameterRegistry.ParameterDetail[mpID.Model] {
+	for _, parameterDetail := range s.parameterRegistry.parameterDetail[mpID.Model] {
 		if parameterDetail.Id.Model == mpID.Model && parameterDetail.Id.Parameter == mpID.Parameter {
 			return parameterDetail, nil
 		}
@@ -324,10 +324,10 @@ func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelI
 
 	registry = &IBeamParameterRegistry{
 		coreInfo:        proto.Clone(coreInfo).(*pb.CoreInfo),
-		DeviceInfos:     map[uint32]*pb.DeviceInfo{},
-		ModelInfos:      map[uint32]*pb.ModelInfo{},
-		ParameterDetail: map[uint32]map[uint32]*pb.ParameterDetail{},
-		ParameterValue:  map[uint32]map[uint32]*IBeamParameterDimension{},
+		deviceInfos:     map[uint32]*pb.DeviceInfo{},
+		modelInfos:      map[uint32]*pb.ModelInfo{},
+		parameterDetail: map[uint32]map[uint32]*pb.ParameterDetail{},
+		parameterValue:  map[uint32]map[uint32]*IBeamParameterDimension{},
 	}
 
 	server := IBeamServer{

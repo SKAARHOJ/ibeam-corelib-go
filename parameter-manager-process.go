@@ -20,25 +20,25 @@ func (m *IBeamParameterManager) processParameter(address paramDimensionAddress) 
 	defer m.parameterRegistry.muValue.Unlock()
 
 	// Get buffer and config
-	state := m.parameterRegistry.ParameterValue
-	deviceID := address.Device
-	paramID := address.Parameter
+	state := m.parameterRegistry.parameterValue
+	deviceID := address.device
+	paramID := address.parameter
 	modelID := m.parameterRegistry.getModelID(deviceID)
-	rootDimension := state[deviceID][address.Parameter]
-	parameterDetail := m.parameterRegistry.ParameterDetail[modelID][paramID]
+	rootDimension := state[deviceID][address.parameter]
+	parameterDetail := m.parameterRegistry.parameterDetail[modelID][paramID]
 
-	if !rootDimension.MultiIndexHasValue(address.DimensionID) {
-		log.Error("Invalid dimension ID %v for %d", address.DimensionID, address)
+	if !rootDimension.MultiIndexHasValue(address.dimensionID) {
+		log.Error("Invalid dimension ID %v for %d", address.dimensionID, address)
 		return
 	}
-	parameterDimension, err := rootDimension.MultiIndex(address.DimensionID)
+	parameterDimension, err := rootDimension.MultiIndex(address.dimensionID)
 	if err != nil {
-		log.Errorf("could not get parameter buffer for dimension %v of param %v: %v", address.DimensionID, address, err)
+		log.Errorf("could not get parameter buffer for dimension %v of param %v: %v", address.dimensionID, address, err)
 		return
 	}
 	parameterBuffer, err := parameterDimension.Value()
 	if err != nil {
-		log.Errorf("could not get parameter buffer value for dimension %v of param %v: %v", address.DimensionID, address, err)
+		log.Errorf("could not get parameter buffer value for dimension %v of param %v: %v", address.dimensionID, address, err)
 		return
 	}
 	m.handleSingleParameterBuffer(parameterBuffer, parameterDetail, deviceID)
@@ -210,9 +210,9 @@ func (m *IBeamParameterManager) reevaluateIn(t time.Duration, buffer *ibeamParam
 	log.Trace("Sceduling reevaluation in ", t.Milliseconds(), "milliseconds")
 
 	addr := paramDimensionAddress{
-		Parameter:   parameterID,
-		Device:      deviceID,
-		DimensionID: buffer.getParameterValue().DimensionID,
+		parameter:   parameterID,
+		device:      deviceID,
+		dimensionID: buffer.getParameterValue().DimensionID,
 	}
 	buffer.reEvaluationTimer = &timeTimer{end: time.Now().Add(t), timer: time.AfterFunc(t, func() {
 		m.reEvaluate(addr)

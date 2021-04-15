@@ -21,11 +21,11 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 	// Get State and the Configuration (Details) of the Parameter
 	m.parameterRegistry.muValue.Lock()
 	defer m.parameterRegistry.muValue.Unlock()
-	state := m.parameterRegistry.ParameterValue
+	state := m.parameterRegistry.parameterValue
 
 	m.parameterRegistry.muDetail.RLock()
 	defer m.parameterRegistry.muDetail.RUnlock()
-	parameterConfig := m.parameterRegistry.ParameterDetail[modelIndex][parameterID]
+	parameterConfig := m.parameterRegistry.parameterDetail[modelIndex][parameterID]
 
 	// Handle every Value in that was given for the Parameter
 	for _, newParameterValue := range parameter.Value {
@@ -196,9 +196,9 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 			log.Debugf("TargetValue %v is equal to CurrentValue", newParameterValue.Value)
 		}
 		addr := paramDimensionAddress{
-			Parameter:   parameterID,
-			Device:      deviceID,
-			DimensionID: parameterBuffer.getParameterValue().DimensionID,
+			parameter:   parameterID,
+			device:      deviceID,
+			dimensionID: parameterBuffer.getParameterValue().DimensionID,
 		}
 		m.reEvaluate(addr) // Trigger processing of the main evaluation
 	}

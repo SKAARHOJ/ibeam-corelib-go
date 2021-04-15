@@ -25,10 +25,10 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 	// Get State and the Configuration (Details) of the Parameter
 	m.parameterRegistry.muValue.Lock()
 	defer m.parameterRegistry.muValue.Unlock()
-	state := m.parameterRegistry.ParameterValue
+	state := m.parameterRegistry.parameterValue
 	m.parameterRegistry.muDetail.RLock()
 	defer m.parameterRegistry.muDetail.RUnlock()
-	parameterConfig := m.parameterRegistry.ParameterDetail[modelID][parameterID]
+	parameterConfig := m.parameterRegistry.parameterDetail[modelID][parameterID]
 
 	shouldSend := false
 	for _, newParameterValue := range parameter.Value {
@@ -125,7 +125,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					log.Errorf("Parameter with ID %v has no Dynamic OptionList", parameterID)
 					continue
 				}
-				m.parameterRegistry.ParameterDetail[parameterID][parameterID].OptionList = v.OptionList
+				m.parameterRegistry.parameterDetail[parameterID][parameterID].OptionList = v.OptionList
 				m.serverClientsStream <- b.Param(parameterID, deviceID, newParameterValue)
 				continue
 			case *pb.ParameterValue_CurrentOption:
@@ -209,9 +209,9 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 
 		if reEvaluate {
 			addr := paramDimensionAddress{
-				Parameter:   parameterID,
-				Device:      deviceID,
-				DimensionID: parameterBuffer.getParameterValue().DimensionID,
+				parameter:   parameterID,
+				device:      deviceID,
+				dimensionID: parameterBuffer.getParameterValue().DimensionID,
 			}
 			m.reEvaluate(addr)
 			// Trigger processing of the main evaluation
