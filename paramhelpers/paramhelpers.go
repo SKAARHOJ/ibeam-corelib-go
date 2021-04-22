@@ -38,9 +38,32 @@ func OptIndex(val int, dimensionID ...uint32) *pb.ParameterValue {
 	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_CurrentOption{CurrentOption: uint32(val)}}
 }
 
+// Png returns a parameter value of type ParameterValue_Png
+func Png(val []byte, dimensionID ...uint32) *pb.ParameterValue {
+	// TODO: pass image.Image and do some validation ? or just decide to not care ?
+	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_Png{Png: val}}
+}
+
+// Jpeg returns a parameter value of type ParameterValue_Jpeg
+func Jpeg(val []byte, dimensionID ...uint32) *pb.ParameterValue {
+	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_Jpeg{Jpeg: val}}
+}
+
+// Detail Updates
+
 // OptList just returns a parameter value of type ParameterValue_OptionList, used to update a dynamic option list
-func OptList(val *pb.OptionList, dimensionID ...uint32) *pb.ParameterValue {
+func NewOptList(val *pb.OptionList, dimensionID ...uint32) *pb.ParameterValue {
 	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_OptionListUpdate{OptionListUpdate: val}}
+}
+
+// NewMax just returns a parameter value of type ParameterValue_MaximumUpdate, used to update a parameters maximum value
+func NewMax(val float64, dimensionID ...uint32) *pb.ParameterValue {
+	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_MaximumUpdate{MaximumUpdate: val}}
+}
+
+// NewMin just returns a parameter value of type ParameterValue_MinimumUpdate, used to update a parameters minimum value
+func NewMin(val float64, dimensionID ...uint32) *pb.ParameterValue {
+	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_MinimumUpdate{MinimumUpdate: val}}
 }
 
 // Available and Invalid
