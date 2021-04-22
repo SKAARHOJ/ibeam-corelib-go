@@ -125,7 +125,36 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					log.Errorf("Parameter with ID %v has no Dynamic OptionList", parameterID)
 					continue
 				}
+				m.parameterRegistry.muDetail.RUnlock()
+				m.parameterRegistry.muDetail.Lock()
 				m.parameterRegistry.parameterDetail[parameterID][parameterID].OptionList = v.OptionListUpdate
+				m.parameterRegistry.muDetail.Unlock()
+				m.parameterRegistry.muDetail.RLock()
+
+				m.serverClientsStream <- b.Param(parameterID, deviceID, newParameterValue)
+				continue
+			case *pb.ParameterValue_MinimumUpdate:
+				if !parameterConfig.MinMaxIsDynamic {
+					log.Errorf("Parameter with ID %v has no dynamic min / max values", parameterID)
+					continue
+				}
+				m.parameterRegistry.muDetail.RUnlock()
+				m.parameterRegistry.muDetail.Lock()
+				m.parameterRegistry.parameterDetail[parameterID][parameterID].Minimum = v.MinimumUpdate
+				m.parameterRegistry.muDetail.Unlock()
+				m.parameterRegistry.muDetail.RLock()
+				m.serverClientsStream <- b.Param(parameterID, deviceID, newParameterValue)
+				continue
+			case *pb.ParameterValue_MaximumUpdate:
+				if !parameterConfig.MinMaxIsDynamic {
+					log.Errorf("Parameter with ID %v has no dynamic min / max values", parameterID)
+					continue
+				}
+				m.parameterRegistry.muDetail.RUnlock()
+				m.parameterRegistry.muDetail.Lock()
+				m.parameterRegistry.parameterDetail[parameterID][parameterID].Minimum = v.MaximumUpdate
+				m.parameterRegistry.muDetail.Unlock()
+				m.parameterRegistry.muDetail.RLock()
 				m.serverClientsStream <- b.Param(parameterID, deviceID, newParameterValue)
 				continue
 			case *pb.ParameterValue_CurrentOption:
