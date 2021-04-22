@@ -549,6 +549,22 @@ func validateParameter(detail *pb.ParameterDetail) {
 		log.Fatalf("Parameter '%v': Any non assumed value (FeedbackStyle_NoFeedback) needs to have RetryCount set", detail.Name)
 	}
 
+	// Metavalue checks
+	for mName, mDetail := range detail.MetaDetails {
+		if mDetail.MetaType != pb.ParameterMetaType_MetaInteger && mDetail.MetaType != pb.ParameterMetaType_MetaFloating {
+			if mDetail.Minimum != 0 || mDetail.Maximum != 0 {
+				log.Warnf("Parameter metavalue '%s' of type %v has useless min / max values", mName, mDetail.MetaType)
+			}
+		}
+
+		if mDetail.MetaType == pb.ParameterMetaType_MetaOption && len(mDetail.Options) == 0 {
+			log.Fatalf("Parameter metavalue '%s' of type MetaOption has no option list", mName)
+		} else if mDetail.MetaType != pb.ParameterMetaType_MetaOption && len(mDetail.Options) > 0 {
+			log.Warnf("Parameter metavalue '%s' of type %v has useless option list", mName, mDetail.MetaType)
+		}
+
+	}
+
 	// ValueType Checks
 	switch detail.ValueType {
 	case pb.ValueType_Floating:

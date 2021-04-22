@@ -28,6 +28,7 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 	parameterConfig := m.parameterRegistry.parameterDetail[modelIndex][parameterID]
 
 	// Handle every Value in that was given for the Parameter
+valueLoop:
 	for _, newParameterValue := range parameter.Value {
 		// Check if the NewValue has a Value
 		if newParameterValue.Value == nil {
@@ -59,6 +60,45 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 		if err != nil {
 			log.Errorf("Could not get value for dimension id %v,: %v", newParameterValue.DimensionID, err)
 			continue
+		}
+
+		// Check if meta values are set check min/max and options
+		if len(newParameterValue.MetaValues) > 0 {
+			for name, mValue := range newParameterValue.MetaValues {
+
+				mConfig, exists := parameterConfig.MetaDetails[name]
+				if !exists {
+					log.Warn("Received undefined meta value called %s for parameter id %v", name, parameter.Id)
+					continue // accept invalid options
+				}
+
+				if mConfig.Minimum != 0 && mConfig.Maximum != 0 {
+					v := float64(0)
+					if mConfig.MetaType == pb.ParameterMetaType_MetaFloating {
+						v = mValue.GetFloating()
+
+					} else if mConfig.MetaType == pb.ParameterMetaType_MetaInteger {
+						v = float64(mValue.GetInteger())
+					}
+					if v > mConfig.Maximum {
+						log.Errorf("MaxViolation for parameter meta value %s for parameter id %v : %f > %f", name, parameter.Id, v, mConfig.Maximum)
+						m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MaxViolation)
+						continue valueLoop
+					} else if v < mConfig.Minimum {
+						log.Errorf("MinViolation for parameter meta value %s for parameter id %v : %f < %f", name, parameter.Id, v, mConfig.Minimum)
+						m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MinViolation)
+						continue valueLoop
+					}
+				}
+
+				if mConfig.MetaType == pb.ParameterMetaType_MetaOption {
+					if !containsString(mValue.GetStr(), mConfig.Options) {
+						log.Errorf("Received undefined meta option value called %s for metavalue %s for parameter id %v", mValue.GetStr(), name, parameter.Id)
+						m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_UnknownID)
+						continue valueLoop
+					}
+				}
+			}
 		}
 
 		// Check if Value is valid and has the right Type
@@ -202,4 +242,13 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 		}
 		m.reEvaluate(addr) // Trigger processing of the main evaluation
 	}
+}
+
+func containsString(value string, slice []string) bool {
+	for _, sValue := range slice {
+		if value == sValue {
+			return true
+		}
+	}
+	return false
 }
