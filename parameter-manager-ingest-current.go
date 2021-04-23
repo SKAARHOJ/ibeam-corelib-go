@@ -168,7 +168,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				m.parameterRegistry.muDetail.RUnlock()
 
 				m.parameterRegistry.muDetail.Lock()
-				m.parameterRegistry.parameterDetail[modelID][parameterID].Minimum = v.MaximumUpdate
+				m.parameterRegistry.parameterDetail[modelID][parameterID].Maximum = v.MaximumUpdate
 				m.parameterRegistry.muDetail.Unlock()
 
 				m.parameterRegistry.muDetail.RLock()
