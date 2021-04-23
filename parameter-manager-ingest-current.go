@@ -127,34 +127,10 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				}
 				m.parameterRegistry.muDetail.RUnlock()
 				m.parameterRegistry.muDetail.Lock()
-				m.parameterRegistry.parameterDetail[parameterID][parameterID].OptionList = v.OptionListUpdate
+				m.parameterRegistry.parameterDetail[modelID][parameterID].OptionList = v.OptionListUpdate
 				m.parameterRegistry.muDetail.Unlock()
 				m.parameterRegistry.muDetail.RLock()
 
-				m.serverClientsStream <- b.Param(parameterID, deviceID, newParameterValue)
-				continue
-			case *pb.ParameterValue_MinimumUpdate:
-				if !parameterConfig.MinMaxIsDynamic {
-					log.Errorf("Parameter with ID %v has no dynamic min / max values", parameterID)
-					continue
-				}
-				m.parameterRegistry.muDetail.RUnlock()
-				m.parameterRegistry.muDetail.Lock()
-				m.parameterRegistry.parameterDetail[parameterID][parameterID].Minimum = v.MinimumUpdate
-				m.parameterRegistry.muDetail.Unlock()
-				m.parameterRegistry.muDetail.RLock()
-				m.serverClientsStream <- b.Param(parameterID, deviceID, newParameterValue)
-				continue
-			case *pb.ParameterValue_MaximumUpdate:
-				if !parameterConfig.MinMaxIsDynamic {
-					log.Errorf("Parameter with ID %v has no dynamic min / max values", parameterID)
-					continue
-				}
-				m.parameterRegistry.muDetail.RUnlock()
-				m.parameterRegistry.muDetail.Lock()
-				m.parameterRegistry.parameterDetail[parameterID][parameterID].Minimum = v.MaximumUpdate
-				m.parameterRegistry.muDetail.Unlock()
-				m.parameterRegistry.muDetail.RLock()
 				m.serverClientsStream <- b.Param(parameterID, deviceID, newParameterValue)
 				continue
 			case *pb.ParameterValue_CurrentOption:
@@ -169,10 +145,42 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				continue
 			}
 		case pb.ValueType_Floating:
+			switch v := newParameterValue.Value.(type) {
+			case *pb.ParameterValue_MinimumUpdate:
+				if !parameterConfig.MinMaxIsDynamic {
+					log.Errorf("Parameter with ID %v has no dynamic min / max values", parameterID)
+					continue
+				}
+				m.parameterRegistry.muDetail.RUnlock()
+
+				m.parameterRegistry.muDetail.Lock()
+				m.parameterRegistry.parameterDetail[modelID][parameterID].Minimum = v.MinimumUpdate
+				m.parameterRegistry.muDetail.Unlock()
+
+				m.parameterRegistry.muDetail.RLock()
+				m.serverClientsStream <- b.Param(parameterID, deviceID, newParameterValue)
+				continue
+			case *pb.ParameterValue_MaximumUpdate:
+				if !parameterConfig.MinMaxIsDynamic {
+					log.Errorf("Parameter with ID %v has no dynamic min / max values", parameterID)
+					continue
+				}
+				m.parameterRegistry.muDetail.RUnlock()
+
+				m.parameterRegistry.muDetail.Lock()
+				m.parameterRegistry.parameterDetail[modelID][parameterID].Minimum = v.MaximumUpdate
+				m.parameterRegistry.muDetail.Unlock()
+
+				m.parameterRegistry.muDetail.RLock()
+				m.serverClientsStream <- b.Param(parameterID, deviceID, newParameterValue)
+				continue
+			}
+
 			if _, ok := newParameterValue.Value.(*pb.ParameterValue_Floating); !ok {
 				log.Errorf("Parameter with ID %v is Type Float but got %T", parameterID, parameterConfig.ValueType)
 				continue
 			}
+
 			if newParameterValue.Value.(*pb.ParameterValue_Floating).Floating > parameterConfig.Maximum {
 				log.Errorf("Ingest Current Loop: Max violation for parameter %v", parameterID)
 				continue
@@ -182,10 +190,38 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				continue
 			}
 		case pb.ValueType_Integer:
+			switch v := newParameterValue.Value.(type) {
+			case *pb.ParameterValue_MinimumUpdate:
+				if !parameterConfig.MinMaxIsDynamic {
+					log.Errorf("Parameter with ID %v has no dynamic min / max values", parameterID)
+					continue
+				}
+				m.parameterRegistry.muDetail.RUnlock()
+				m.parameterRegistry.muDetail.Lock()
+				m.parameterRegistry.parameterDetail[modelID][parameterID].Minimum = v.MinimumUpdate
+				m.parameterRegistry.muDetail.Unlock()
+				m.parameterRegistry.muDetail.RLock()
+				m.serverClientsStream <- b.Param(parameterID, deviceID, newParameterValue)
+				continue
+			case *pb.ParameterValue_MaximumUpdate:
+				if !parameterConfig.MinMaxIsDynamic {
+					log.Errorf("Parameter with ID %v has no dynamic min / max values", parameterID)
+					continue
+				}
+				m.parameterRegistry.muDetail.RUnlock()
+				m.parameterRegistry.muDetail.Lock()
+				m.parameterRegistry.parameterDetail[modelID][parameterID].Minimum = v.MaximumUpdate
+				m.parameterRegistry.muDetail.Unlock()
+				m.parameterRegistry.muDetail.RLock()
+				m.serverClientsStream <- b.Param(parameterID, deviceID, newParameterValue)
+				continue
+			}
+
 			if _, ok := newParameterValue.Value.(*pb.ParameterValue_Integer); !ok {
 				log.Errorf("Parameter with ID %v is Type Integer but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
 				continue
 			}
+
 			if newParameterValue.Value.(*pb.ParameterValue_Integer).Integer > int32(parameterConfig.Maximum) {
 				log.Errorf("Ingest Current Loop: Max violation for parameter %v, got %d", parameterID, newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)
 				continue
@@ -194,6 +230,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				log.Errorf("Ingest Current Loop: Min violation for parameter %v, got %d", parameterID, newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)
 				continue
 			}
+
 		case pb.ValueType_String:
 			if _, ok := newParameterValue.Value.(*pb.ParameterValue_Str); !ok {
 				log.Errorf("Parameter with ID %v is Type String but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
