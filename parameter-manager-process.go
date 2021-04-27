@@ -53,7 +53,7 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 	// First Basic Check Pipeline if the Parameter Value can be send to out
 	// ********************************************************************
 
-	if proto.Equal(parameterBuffer.currentValue, parameterBuffer.targetValue) {
+	if !parameterBuffer.isAssumedState {
 		return
 	}
 
