@@ -16,8 +16,6 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 		return
 	}
 
-	reEvaluate := false
-
 	parameterID := parameter.Id.Parameter
 	deviceID := parameter.Id.Device
 	modelID := m.parameterRegistry.getModelID(deviceID)
@@ -30,7 +28,6 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 	defer m.parameterRegistry.muDetail.RUnlock()
 	parameterConfig := m.parameterRegistry.parameterDetail[modelID][parameterID]
 
-	shouldSend := false
 	for _, newParameterValue := range parameter.Value {
 
 		if newParameterValue == nil {
@@ -70,11 +67,9 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			// Got empty value, need to update available or invalid
 			if newParameterValue.Invalid {
 				// if invalid is true set it
-				reEvaluate = parameterBuffer.currentValue.Invalid != newParameterValue.Invalid
 				parameterBuffer.currentValue.Invalid = newParameterValue.Invalid
 			} else {
 				// else set available
-				reEvaluate = parameterBuffer.available != newParameterValue.Available
 				parameterBuffer.available = newParameterValue.Available
 			}
 
@@ -83,8 +78,6 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			}
 			continue
 		}
-
-		didSet := false // flag to to handle custom cases
 
 		// Check Type of Parameter
 		switch parameterConfig.ValueType {
@@ -97,28 +90,17 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					log.Error(err)
 					continue
 				}
-				// FIXME: We have to clear this inconsistentcy here
-				newValue := pb.ParameterValue{
-					Value: &pb.ParameterValue_CurrentOption{
-						CurrentOption: id,
-					},
+				// Currently a option list can be set by firering in a currentoption or a string,
+				// the manager will always output a currentoption value though
+
+				newParameterValue.Value = &pb.ParameterValue_CurrentOption{
+					CurrentOption: id,
 				}
 
-				if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
-					if !proto.Equal(parameterBuffer.targetValue, &newValue) {
-						parameterBuffer.targetValue = proto.Clone(&newValue).(*pb.ParameterValue)
-						reEvaluate = true
-						shouldSend = true
-					}
+				if proto.Equal(parameterBuffer.currentValue, newParameterValue) {
+					// In this one special case we could recheck if the values are still equal or not, and abort if they are now
+					continue
 				}
-
-				if !proto.Equal(parameterBuffer.currentValue, &newValue) {
-					parameterBuffer.currentValue = proto.Clone(&newValue).(*pb.ParameterValue)
-					reEvaluate = true
-					shouldSend = true
-				}
-
-				didSet = true
 
 			case *pb.ParameterValue_OptionListUpdate:
 				if !parameterConfig.OptionListIsDynamic {
@@ -197,9 +179,11 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					continue
 				}
 				m.parameterRegistry.muDetail.RUnlock()
+
 				m.parameterRegistry.muDetail.Lock()
 				m.parameterRegistry.parameterDetail[modelID][parameterID].Minimum = v.MinimumUpdate
 				m.parameterRegistry.muDetail.Unlock()
+
 				m.parameterRegistry.muDetail.RLock()
 				m.serverClientsStream <- b.Param(parameterID, deviceID, newParameterValue)
 				continue
@@ -209,9 +193,11 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					continue
 				}
 				m.parameterRegistry.muDetail.RUnlock()
+
 				m.parameterRegistry.muDetail.Lock()
 				m.parameterRegistry.parameterDetail[modelID][parameterID].Maximum = v.MaximumUpdate
 				m.parameterRegistry.muDetail.Unlock()
+
 				m.parameterRegistry.muDetail.RLock()
 				m.serverClientsStream <- b.Param(parameterID, deviceID, newParameterValue)
 				continue
@@ -241,46 +227,39 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			continue
 		}
 
-		if !didSet {
-			if time.Since(parameterBuffer.lastUpdate).Milliseconds()+1 > int64(parameterConfig.QuarantineDelayMs) {
-				if !proto.Equal(parameterBuffer.targetValue, newParameterValue) {
-					parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
-					shouldSend = true
-				}
-			} else {
-				timeForRecheck := int64(parameterConfig.QuarantineDelayMs) - time.Since(parameterBuffer.lastUpdate).Milliseconds()
-				m.reevaluateIn(time.Duration(time.Millisecond*time.Duration(timeForRecheck)), parameterBuffer, parameterID, deviceID)
-			}
+		assumed := false
+		setTarget := false
 
-			if !proto.Equal(parameterBuffer.currentValue, newParameterValue) {
-				parameterBuffer.currentValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
-				reEvaluate = true
-				shouldSend = true
+		if time.Since(parameterBuffer.lastUpdate).Milliseconds()+1 > int64(parameterConfig.QuarantineDelayMs) {
+			if parameterBuffer.isAssumedState { // earlier it was assumed, so now the current value has changed, so lets update target anyway
+				parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
+				setTarget = true
 			}
+		} else {
+			timeForRecheck := int64(parameterConfig.QuarantineDelayMs) - time.Since(parameterBuffer.lastUpdate).Milliseconds()
+			m.reevaluateIn(time.Duration(time.Millisecond*time.Duration(timeForRecheck)), parameterBuffer, parameterID, deviceID)
 		}
-		assumed := !proto.Equal(parameterBuffer.currentValue, parameterBuffer.targetValue)
-		if parameterBuffer.isAssumedState != assumed {
-			shouldSend = true
+
+		parameterBuffer.currentValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
+
+		if !setTarget { // if both values where just set we do already know that it will be not assumed
+			assumed = !proto.Equal(parameterBuffer.currentValue, parameterBuffer.targetValue)
 		}
 
 		if !assumed {
 			parameterBuffer.tryCount = 0
 		}
 
-		if shouldSend {
-			if values := m.parameterRegistry.getInstanceValues(parameter.GetId()); values != nil {
-				m.serverClientsStream <- b.Param(parameterID, deviceID, values...)
-			}
+		if values := m.parameterRegistry.getInstanceValues(parameter.GetId()); values != nil {
+			m.serverClientsStream <- b.Param(parameterID, deviceID, values...)
 		}
 
-		if reEvaluate {
-			addr := paramDimensionAddress{
-				parameter:   parameterID,
-				device:      deviceID,
-				dimensionID: parameterBuffer.getParameterValue().DimensionID,
-			}
-			m.reEvaluate(addr)
-			// Trigger processing of the main evaluation
+		addr := paramDimensionAddress{
+			parameter:   parameterID,
+			device:      deviceID,
+			dimensionID: parameterBuffer.getParameterValue().DimensionID,
 		}
+		m.reEvaluate(addr)
+		// Trigger processing of the main evaluation
 	}
 }
