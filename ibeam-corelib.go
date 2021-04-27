@@ -249,7 +249,7 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 
 	for _, parameter := range parameters.Parameters {
 		log.Debugf("Send Parameter with ID '%v' to client", parameter.Id)
-		log.Debugf("Param: %+v", parameter)
+		log.Tracef("Param: %+v", parameter)
 		stream.Send(parameter)
 	}
 
