@@ -68,7 +68,7 @@ valueLoop:
 
 				mConfig, exists := parameterConfig.MetaDetails[name]
 				if !exists {
-					log.Warn("Received undefined meta value called %s for parameter id %v", name, parameter.Id)
+					log.Warnf("Received undefined meta value called %s for parameter id %v", name, parameter.Id)
 					continue // accept invalid options
 				}
 
@@ -229,11 +229,16 @@ valueLoop:
 		// Safe the momentary saved Value of the Parameter in the state
 
 		if !proto.Equal(newParameterValue, parameterBuffer.currentValue) {
-			log.Debugf("Set new TargetValue '%v', for Parameter %v (%v), Device: %v", newParameterValue.Value, parameterID, parameterConfig.Name, deviceID)
+			if parameterConfig.ValueType != pb.ValueType_PNG && parameterConfig.ValueType != pb.ValueType_JPEG {
+				log.Debugf("Set new TargetValue '%v', for Parameter %v (%v), Device: %v", newParameterValue.Value, parameterID, parameterConfig.Name, deviceID)
+			}
 			parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
 			parameterBuffer.tryCount = 0
 		} else {
-			log.Debugf("TargetValue %v is equal to CurrentValue", newParameterValue.Value)
+			if parameterConfig.ValueType != pb.ValueType_PNG && parameterConfig.ValueType != pb.ValueType_JPEG {
+				log.Debugf("TargetValue %v is equal to CurrentValue", newParameterValue.Value)
+
+			}
 		}
 		addr := paramDimensionAddress{
 			parameter:   parameterID,
