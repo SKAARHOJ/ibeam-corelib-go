@@ -462,8 +462,13 @@ func (r *IBeamParameterRegistry) cacheIDMaps() {
 	cachedNameMapMu.Unlock()
 }
 
-// ParameterNameByID Get a parameter Name by ID, returns "" if not found, always uses model 0
+// ParameterNameByID Get a parameter Name by ID, returns "" if not found, always uses model 0 DEPRECATED: Use PName instead
 func (r *IBeamParameterRegistry) ParameterNameByID(parameterID uint32) string {
+	return r.PName(parameterID)
+}
+
+// PName Get a parameter Name by ID, returns "" if not found, always uses model 0
+func (r *IBeamParameterRegistry) PName(parameterID uint32) string {
 	// check for device registered
 	if !r.parametersDone {
 		log.Error("ParameterNameByID: only call after registering the first device")
@@ -587,9 +592,6 @@ func validateParameter(detail *pb.ParameterDetail) {
 	}
 
 	// Warnings
-	if detail.ShortLabel == "" {
-		log.Warnf("Parameter '%v': No short label set", detail.Name)
-	}
 	if detail.Description == "" {
 		log.Warnf("Parameter '%v': No description set", detail.Name)
 	}
