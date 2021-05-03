@@ -531,27 +531,35 @@ func (r *IBeamParameterRegistry) parameterIDByName(parameterName string, modelID
 func validateParameter(detail *pb.ParameterDetail) {
 	// Fatals
 	if detail.Name == "" {
-		log.Fatalf("Could not validate parameter ID %v: No name set", detail.Id)
+		log.Fatalf("Parameter: ID %v: No name set", detail.Id)
 	}
 	if detail.ControlStyle == pb.ControlStyle_NoControl && detail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
-		log.Fatalf("Could not validate parameter '%v': Can not have no control and no feedback", detail.Name)
+		log.Fatalf("Parameter: '%v': Can not have no control and no feedback", detail.Name)
 	}
 	if detail.ControlStyle == pb.ControlStyle_ControlledIncremental && detail.ValueType != pb.ValueType_Integer {
-		log.Fatalf("Could not validate parameter '%v': Controlled Incremental only supported on integers right now", detail.Name)
+		log.Fatalf("Parameter: '%v': Controlled Incremental only supported on integers right now", detail.Name)
 	}
 	if detail.ControlStyle == pb.ControlStyle_Incremental && detail.IncDecStepsLowerLimit == 0 && detail.IncDecStepsUpperLimit == 0 {
-		log.Fatalf("Could not validate parameter '%v': Incremental: please provide lower and upper range for incDecSteps", detail.Name)
+		log.Fatalf("Parameter: '%v': Incremental: please provide lower and upper range for incDecSteps", detail.Name)
 	}
 	if detail.ControlStyle != pb.ControlStyle_Incremental &&
 		detail.ControlStyle != pb.ControlStyle_ControlledIncremental &&
 		(detail.IncDecStepsLowerLimit != 0 || detail.IncDecStepsUpperLimit != 0) {
-		log.Fatalf("Could not validate parameter '%v': Lower and upper limit are only valid on Incremental Control Mode", detail.Name)
+		log.Fatalf("Parameter: '%v': Lower and upper limit are only valid on Incremental Control Mode", detail.Name)
 	}
 	if detail.Label == "" {
-		log.Fatalf("Could not validate parameter '%v': No label set", detail.Name)
+		log.Fatalf("Parameter: '%v': No label set", detail.Name)
 	}
 	if detail.ControlStyle != pb.ControlStyle_NoControl && detail.FeedbackStyle != pb.FeedbackStyle_NoFeedback && detail.RetryCount == 0 {
 		log.Fatalf("Parameter '%v': Any non assumed value (FeedbackStyle_NoFeedback) needs to have RetryCount set", detail.Name)
+	}
+
+	if detail.InputCurve != pb.InputCurve_NormalInputCurve && detail.ValueType != pb.ValueType_Integer && detail.ValueType != pb.ValueType_Floating {
+		log.Fatalf("Parameter '%v': InputCurves can only be used on Integer or Float values", detail.Name)
+	}
+
+	if detail.DisplayFloatPrecision != pb.FloatPrecision_UndefinedFloatPrecision && detail.ValueType != pb.ValueType_Floating {
+		log.Fatalf("Parameter '%v': Float Percision is only usable on floats", detail.Name)
 	}
 
 	// Metavalue checks
@@ -576,18 +584,18 @@ func validateParameter(detail *pb.ParameterDetail) {
 		fallthrough
 	case pb.ValueType_Integer:
 		if detail.Minimum == 0 && detail.Maximum == 0 {
-			log.Fatalf("Could not validate parameter '%v': Integer needs min/max set", detail.Name)
+			log.Fatalf("Parameter: '%v': Integer needs min/max set", detail.Name)
 		}
 	case pb.ValueType_Binary:
 		if detail.ControlStyle == pb.ControlStyle_Incremental {
-			log.Fatalf("Could not validate parameter '%v': Binary can not have incremental control", detail.Name)
+			log.Fatalf("Parameter: '%v': Binary can not have incremental control", detail.Name)
 		}
 	case pb.ValueType_NoValue:
 		if detail.FeedbackStyle != pb.FeedbackStyle_NoFeedback {
-			log.Fatalf("Could not validate parameter '%v': NoValue can not have Feedback", detail.Name)
+			log.Fatalf("Parameter: '%v': NoValue can not have Feedback", detail.Name)
 		}
 		if detail.Minimum != 0 || detail.Maximum != 0 {
-			log.Fatalf("Could not validate parameter '%v': NoValue can not min/max", detail.Name)
+			log.Fatalf("Parameter: '%v': NoValue can not min/max", detail.Name)
 		}
 	}
 
