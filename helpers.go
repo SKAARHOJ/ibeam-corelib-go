@@ -12,6 +12,9 @@ type MetaElements map[string]*pb.ParameterMetaDetail
 // DimensionDetails Type alias to make parameter definition nicer
 type DimensionDetails []*pb.DimensionDetail
 
+// DescreteValueDetails Type alias to make parameter definition nicer
+type DescreteValueDetails []*pb.DescreteValueDetail
+
 // GenerateOptionList returns a new OptionList with ascending IDs
 func GenerateOptionList(options ...string) (optionList *pb.OptionList) {
 	optionList = &pb.OptionList{}
