@@ -111,19 +111,18 @@ valueLoop:
 			}
 
 			if newValue.Integer > int32(parameterConfig.Maximum) {
-				log.Errorf("Max violation for parameter %v", parameterID)
-				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MaxViolation)
-
-				continue
+				if !isDescreteValue(parameterConfig, float64(newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)) {
+					log.Errorf("Max violation for parameter %v", parameterID)
+					m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MaxViolation)
+					continue
+				}
 			}
 			if newValue.Integer < int32(parameterConfig.Minimum) {
-				log.Errorf("Min violation for parameter %v", parameterID)
-				m.serverClientsStream <- &pb.Parameter{
-					Id:    parameter.Id,
-					Error: pb.ParameterError_MinViolation,
-					Value: []*pb.ParameterValue{},
+				if !isDescreteValue(parameterConfig, float64(newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)) {
+					log.Errorf("Min violation for parameter %v", parameterID)
+					m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MinViolation)
+					continue
 				}
-				continue
 			}
 		case *pb.ParameterValue_IncDecSteps:
 			// inc dec currently only works with integers or no values, float is kind of missing, action lists need to be evaluated
@@ -162,14 +161,18 @@ valueLoop:
 			}
 
 			if newValue.Floating > parameterConfig.Maximum {
-				log.Errorf("Max violation for parameter %v", parameterID)
-				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MaxViolation)
-				continue
+				if !isDescreteValue(parameterConfig, newParameterValue.Value.(*pb.ParameterValue_Floating).Floating) {
+					log.Errorf("Max violation for parameter %v", parameterID)
+					m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MaxViolation)
+					continue
+				}
 			}
 			if newValue.Floating < parameterConfig.Minimum {
-				log.Errorf("Min violation for parameter %v", parameterID)
-				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MinViolation)
-				continue
+				if !isDescreteValue(parameterConfig, newParameterValue.Value.(*pb.ParameterValue_Floating).Floating) {
+					log.Errorf("Min violation for parameter %v", parameterID)
+					m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MinViolation)
+					continue
+				}
 			}
 		case *pb.ParameterValue_Str:
 			if parameterConfig.ValueType != pb.ValueType_String {

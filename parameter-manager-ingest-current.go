@@ -164,12 +164,16 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			}
 
 			if newParameterValue.Value.(*pb.ParameterValue_Floating).Floating > parameterConfig.Maximum {
-				log.Errorf("Ingest Current Loop: Max violation for parameter %v", parameterID)
-				continue
+				if !isDescreteValue(parameterConfig, newParameterValue.Value.(*pb.ParameterValue_Floating).Floating) {
+					log.Errorf("Ingest Current Loop: Max violation for parameter %v", parameterID)
+					continue
+				}
 			}
 			if newParameterValue.Value.(*pb.ParameterValue_Floating).Floating < parameterConfig.Minimum {
-				log.Errorf("Ingest Current Loop: Min violation for parameter %v", parameterID)
-				continue
+				if !isDescreteValue(parameterConfig, newParameterValue.Value.(*pb.ParameterValue_Floating).Floating) {
+					log.Errorf("Ingest Current Loop: Min violation for parameter %v", parameterID)
+					continue
+				}
 			}
 		case pb.ValueType_Integer:
 			switch v := newParameterValue.Value.(type) {
@@ -209,12 +213,16 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			}
 
 			if newParameterValue.Value.(*pb.ParameterValue_Integer).Integer > int32(parameterConfig.Maximum) {
-				log.Errorf("Ingest Current Loop: Max violation for parameter %v, got %d", parameterID, newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)
-				continue
+				if !isDescreteValue(parameterConfig, float64(newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)) {
+					log.Errorf("Ingest Current Loop: Max violation for parameter %v, got %d", parameterID, newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)
+					continue
+				}
 			}
 			if newParameterValue.Value.(*pb.ParameterValue_Integer).Integer < int32(parameterConfig.Minimum) {
-				log.Errorf("Ingest Current Loop: Min violation for parameter %v, got %d", parameterID, newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)
-				continue
+				if !isDescreteValue(parameterConfig, float64(newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)) {
+					log.Errorf("Ingest Current Loop: Min violation for parameter %v, got %d", parameterID, newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)
+					continue
+				}
 			}
 
 		case pb.ValueType_String:
@@ -262,4 +270,17 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 		m.reEvaluate(addr)
 		// Trigger processing of the main evaluation
 	}
+}
+
+func isDescreteValue(parameterConfig *pb.ParameterDetail, value float64) bool {
+	found := false
+	if len(parameterConfig.DescreteValueDetails) > 0 {
+		for _, dv := range parameterConfig.DescreteValueDetails {
+			if dv.GetValue() == value {
+				found = true
+				break
+			}
+		}
+	}
+	return found
 }
