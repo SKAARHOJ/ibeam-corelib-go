@@ -4,9 +4,8 @@ go 1.15
 
 require (
 	github.com/kr/text v0.2.0 // indirect
-	github.com/s00500/env_logger v0.1.9
+	github.com/s00500/env_logger v0.1.16
 	github.com/sirupsen/logrus v1.8.1 // indirect
-	github.com/stretchr/testify v1.6.1 // indirect
 	golang.org/x/net v0.0.0-20210504132125-bbd867fde50d // indirect
 	golang.org/x/sys v0.0.0-20210503173754-0981d6026fa6 // indirect
 	google.golang.org/genproto v0.0.0-20210504143626-3b2ad6ccc450 // indirect
