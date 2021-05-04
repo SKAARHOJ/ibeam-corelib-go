@@ -28,7 +28,7 @@ type IBeamParameterRegistry struct {
 	coreInfo        *pb.CoreInfo
 	deviceInfos     map[uint32]*pb.DeviceInfo
 	modelInfos      map[uint32]*pb.ModelInfo
-	parameterDetail parameterDetails //Parameter Details: model, parameter // TODO: Both need to be private! with getters, but no setters
+	parameterDetail parameterDetails //Parameter Details: model, parameter
 	parameterValue  parameterStates  //Parameter States: device,parameter,dimension
 	allowAutoIDs    bool
 	modelsDone      bool // Sanity flag set on first call to add parameters to ensure order
