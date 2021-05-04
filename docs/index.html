@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>doc.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<!-- Code generated by gomarkdoc. DO NOT EDIT -->
+<h1 id="ibeamcorelib">ibeamcorelib</h1>
+<pre class="hljs"><code><div><span class="hljs-keyword">import</span> <span class="hljs-string">"github.com/SKAARHOJ/ibeam-corelib-go"</span>
+</div></code></pre>
+<h2 id="index">Index</h2>
+<ul>
+<li><a href="#variables">Variables</a></li>
+<li><a href="#func-createserver">func CreateServer(coreInfo *pb.CoreInfo) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan *pb.Parameter, getfromManager chan *pb.Parameter)</a></li>
+<li><a href="#func-createserverwithdefaultmodel">func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelInfo) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan *pb.Parameter, getfromManager chan *pb.Parameter)</a></li>
+<li><a href="#func-generateoptionlist">func GenerateOptionList(options ...string) (optionList *pb.OptionList)</a></li>
+<li><a href="#func-containsdeviceparameter">func containsDeviceParameter(dpID *pb.DeviceParameterID, dpIDs *pb.DeviceParameterIDs) bool</a></li>
+<li><a href="#func-containsstring">func containsString(value string, slice []string) bool</a></li>
+<li><a href="#func-getidfromoptionlistbyelementname">func getIDFromOptionListByElementName(list *pb.OptionList, name string) (uint32, error)</a></li>
+<li><a href="#func-getmodelwithid">func getModelWithID(s *IBeamServer, mID uint32) *pb.ModelInfo</a></li>
+<li><a href="#func-getvalues">func getValues(dimension *IBeamParameterDimension) (values []*pb.ParameterValue)</a></li>
+<li><a href="#func-isdescretevalue">func isDescreteValue(parameterConfig *pb.ParameterDetail, value float64) bool</a></li>
+<li><a href="#func-paramerror">func paramError(pid uint32, did uint32, e pb.ParameterError) *pb.Parameter</a></li>
+<li><a href="#func-validateparameter">func validateParameter(detail *pb.ParameterDetail)</a></li>
+<li><a href="#type-descretevaluedetails">type DescreteValueDetails</a></li>
+<li><a href="#type-dimensiondetails">type DimensionDetails</a></li>
+<li><a href="#type-ibeamparameterdimension">type IBeamParameterDimension</a>
+<ul>
+<li><a href="#func-generatedimensions">func generateDimensions(dimensionConfig []uint32, initialValueDimension *IBeamParameterDimension) *IBeamParameterDimension</a></li>
+<li><a href="#func-ibeamparameterdimension-multiindex">func (pd *IBeamParameterDimension) MultiIndex(dimensionID []uint32) (*IBeamParameterDimension, error)</a></li>
+<li><a href="#func-ibeamparameterdimension-multiindexhasvalue">func (pd *IBeamParameterDimension) MultiIndexHasValue(dimensionID []uint32) bool</a></li>
+<li><a href="#func-ibeamparameterdimension-subdimensions">func (pd *IBeamParameterDimension) Subdimensions() ([]*IBeamParameterDimension, error)</a></li>
+<li><a href="#func-ibeamparameterdimension-value">func (pd *IBeamParameterDimension) Value() (*ibeamParameterValueBuffer, error)</a></li>
+<li><a href="#func-ibeamparameterdimension-index">func (pd *IBeamParameterDimension) index(index uint32) (*IBeamParameterDimension, error)</a></li>
+<li><a href="#func-ibeamparameterdimension-isvalue">func (pd *IBeamParameterDimension) isValue() bool</a></li>
+</ul>
+</li>
+<li><a href="#type-ibeamparametermanager">type IBeamParameterManager</a>
+<ul>
+<li><a href="#func-ibeamparametermanager-start">func (m *IBeamParameterManager) Start()</a></li>
+<li><a href="#func-ibeamparametermanager-startwithserver">func (m *IBeamParameterManager) StartWithServer(network, address string)</a></li>
+<li><a href="#func-ibeamparametermanager-checkvalidparameter">func (m *IBeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb.Parameter</a></li>
+<li><a href="#func-ibeamparametermanager-handlesingleparameterbuffer">func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibeamParameterValueBuffer, parameterDetail *pb.ParameterDetail, deviceID uint32)</a></li>
+<li><a href="#func-ibeamparametermanager-ingestcurrentparameter">func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter)</a></li>
+<li><a href="#func-ibeamparametermanager-ingesttargetparameter">func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter)</a></li>
+<li><a href="#func-ibeamparametermanager-processparameter">func (m *IBeamParameterManager) processParameter(address paramDimensionAddress)</a></li>
+<li><a href="#func-ibeamparametermanager-reevaluate">func (m *IBeamParameterManager) reEvaluate(addr paramDimensionAddress)</a></li>
+<li><a href="#func-ibeamparametermanager-reevaluatein">func (m *IBeamParameterManager) reevaluateIn(t time.Duration, buffer *ibeamParameterValueBuffer, parameterID, deviceID uint32)</a></li>
+</ul>
+</li>
+<li><a href="#type-ibeamparameterregistry">type IBeamParameterRegistry</a>
+<ul>
+<li><a href="#func-ibeamparameterregistry-allowautoids">func (r *IBeamParameterRegistry) AllowAutoIDs()</a></li>
+<li><a href="#func-ibeamparameterregistry-getmodelidbydeviceid">func (r *IBeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32</a></li>
+<li><a href="#func-ibeamparameterregistry-getnamemap">func (r *IBeamParameterRegistry) GetNameMap() map[uint32]string</a></li>
+<li><a href="#func-ibeamparameterregistry-getparameternameofmodel">func (r *IBeamParameterRegistry) GetParameterNameOfModel(parameterID, modelID uint32) (string, error)</a></li>
+<li><a href="#func-ibeamparameterregistry-pid">func (r *IBeamParameterRegistry) PID(parameterName string) uint32</a></li>
+<li><a href="#func-ibeamparameterregistry-pname">func (r *IBeamParameterRegistry) PName(parameterID uint32) string</a></li>
+<li><a href="#func-ibeamparameterregistry-parameternamebyid">func (r *IBeamParameterRegistry) ParameterNameByID(parameterID uint32) string</a></li>
+<li><a href="#func-ibeamparameterregistry-reregisterdevice">func (r *IBeamParameterRegistry) ReRegisterDevice(deviceID, modelID uint32) error</a></li>
+<li><a href="#func-ibeamparameterregistry-registerdevice">func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint32, error)</a></li>
+<li><a href="#func-ibeamparameterregistry-registerdevicewithmodelname">func (r *IBeamParameterRegistry) RegisterDeviceWithModelName(deviceID uint32, modelName string) (deviceIndex uint32, err error)</a></li>
+<li><a href="#func-ibeamparameterregistry-registermodel">func (r *IBeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32</a></li>
+<li><a href="#func-ibeamparameterregistry-registerparameter">func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (paramID uint32)</a></li>
+<li><a href="#func-ibeamparameterregistry-registerparameterformodel">func (r *IBeamParameterRegistry) RegisterParameterForModel(modelID uint32, detail *pb.ParameterDetail) (parameterIndex uint32)</a></li>
+<li><a href="#func-ibeamparameterregistry-registerparameterformodels">func (r *IBeamParameterRegistry) RegisterParameterForModels(modelIDs []uint32, detail *pb.ParameterDetail)</a></li>
+<li><a href="#func-ibeamparameterregistry-unregisterparameterformodel">func (r *IBeamParameterRegistry) UnregisterParameterForModel(modelID uint32, parameterName string)</a></li>
+<li><a href="#func-ibeamparameterregistry-unregisterparameterformodels">func (r *IBeamParameterRegistry) UnregisterParameterForModels(modelIDs []uint32, parameterName string)</a></li>
+<li><a href="#func-ibeamparameterregistry-cacheidmaps">func (r *IBeamParameterRegistry) cacheIDMaps()</a></li>
+<li><a href="#func-ibeamparameterregistry-getinstancevalues">func (r *IBeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID) (values []*pb.ParameterValue)</a></li>
+<li><a href="#func-ibeamparameterregistry-getmodelid">func (r *IBeamParameterRegistry) getModelID(deviceID uint32) uint32</a></li>
+<li><a href="#func-ibeamparameterregistry-parameteridbyname">func (r *IBeamParameterRegistry) parameterIDByName(parameterName string, modelID uint32) uint32</a></li>
+</ul>
+</li>
+<li><a href="#type-ibeamserver">type IBeamServer</a>
+<ul>
+<li><a href="#func-ibeamserver-get">func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rParameters *pb.Parameters, err error)</a></li>
+<li><a href="#func-ibeamserver-getcoreinfo">func (s *IBeamServer) GetCoreInfo(_ context.Context, _ *pb.Empty) (*pb.CoreInfo, error)</a></li>
+<li><a href="#func-ibeamserver-getdeviceinfo">func (s *IBeamServer) GetDeviceInfo(_ context.Context, deviceIDs *pb.DeviceIDs) (*pb.DeviceInfos, error)</a></li>
+<li><a href="#func-ibeamserver-getmodelinfo">func (s *IBeamServer) GetModelInfo(_ context.Context, mIDs *pb.ModelIDs) (*pb.ModelInfos, error)</a></li>
+<li><a href="#func-ibeamserver-getparameterdetails">func (s *IBeamServer) GetParameterDetails(c context.Context, mpIDs *pb.ModelParameterIDs) (*pb.ParameterDetails, error)</a></li>
+<li><a href="#func-ibeamserver-set">func (s *IBeamServer) Set(_ context.Context, ps *pb.Parameters) (*pb.Empty, error)</a></li>
+<li><a href="#func-ibeamserver-subscribe">func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCore_SubscribeServer) error</a></li>
+<li><a href="#func-ibeamserver-getparameterdetail">func (s *IBeamServer) getParameterDetail(mpID *pb.ModelParameterID) (*pb.ParameterDetail, error)</a></li>
+</ul>
+</li>
+<li><a href="#type-metaelements">type MetaElements</a></li>
+<li><a href="#type-ibeamparametervaluebuffer">type ibeamParameterValueBuffer</a>
+<ul>
+<li><a href="#func-ibeamparametervaluebuffer-decrementparametervalue">func (b *ibeamParameterValueBuffer) decrementParameterValue() *pb.ParameterValue</a></li>
+<li><a href="#func-ibeamparametervaluebuffer-getparametervalue">func (b *ibeamParameterValueBuffer) getParameterValue() *pb.ParameterValue</a></li>
+<li><a href="#func-ibeamparametervaluebuffer-incrementparametervalue">func (b *ibeamParameterValueBuffer) incrementParameterValue() *pb.ParameterValue</a></li>
+</ul>
+</li>
+<li><a href="#type-paramdimensionaddress">type paramDimensionAddress</a></li>
+<li><a href="#type-parameterdetails">type parameterDetails</a></li>
+<li><a href="#type-parameterstates">type parameterStates</a></li>
+<li><a href="#type-timetimer">type timeTimer</a></li>
+</ul>
+<h2 id="variables">Variables</h2>
+<pre class="hljs"><code><div><span class="hljs-keyword">var</span> cachedIDMap <span class="hljs-keyword">map</span>[<span class="hljs-keyword">uint32</span>]<span class="hljs-keyword">map</span>[<span class="hljs-keyword">uint32</span>]<span class="hljs-keyword">string</span>
+</div></code></pre>
+<pre class="hljs"><code><div><span class="hljs-keyword">var</span> cachedIDMapMu sync.RWMutex
+</div></code></pre>
+<pre class="hljs"><code><div><span class="hljs-keyword">var</span> cachedNameMap <span class="hljs-keyword">map</span>[<span class="hljs-keyword">uint32</span>]<span class="hljs-keyword">map</span>[<span class="hljs-keyword">string</span>]<span class="hljs-keyword">uint32</span>
+</div></code></pre>
+<pre class="hljs"><code><div><span class="hljs-keyword">var</span> cachedNameMapMu sync.RWMutex
+</div></code></pre>
+<h2 id="func-createserver">func <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L307">CreateServer</a></h2>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">CreateServer</span><span class="hljs-params">(coreInfo *pb.CoreInfo)</span> <span class="hljs-params">(manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager <span class="hljs-keyword">chan</span> *pb.Parameter, getfromManager <span class="hljs-keyword">chan</span> *pb.Parameter)</span></span>
+</div></code></pre>
+<p>CreateServer sets up the ibeam server, parameter manager and parameter registry</p>
+<h2 id="func-createserverwithdefaultmodel">func <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L316">CreateServerWithDefaultModel</a></h2>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">CreateServerWithDefaultModel</span><span class="hljs-params">(coreInfo *pb.CoreInfo, defaultModel *pb.ModelInfo)</span> <span class="hljs-params">(manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager <span class="hljs-keyword">chan</span> *pb.Parameter, getfromManager <span class="hljs-keyword">chan</span> *pb.Parameter)</span></span>
+</div></code></pre>
+<p>CreateServerWithDefaultModel sets up the ibeam server, parameter manager and parameter registry and allows to specify a default model</p>
+<h2 id="func-generateoptionlist">func <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/helpers.go#L19">GenerateOptionList</a></h2>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">GenerateOptionList</span><span class="hljs-params">(options ...<span class="hljs-keyword">string</span>)</span> <span class="hljs-params">(optionList *pb.OptionList)</span></span>
+</div></code></pre>
+<p>GenerateOptionList returns a new OptionList with ascending IDs</p>
+<h2 id="func-containsdeviceparameter">func <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L297">containsDeviceParameter</a></h2>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">containsDeviceParameter</span><span class="hljs-params">(dpID *pb.DeviceParameterID, dpIDs *pb.DeviceParameterIDs)</span> <span class="hljs-title">bool</span></span>
+</div></code></pre>
+<h2 id="func-containsstring">func <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-ingest-target.go#L255">containsString</a></h2>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">containsString</span><span class="hljs-params">(value <span class="hljs-keyword">string</span>, slice []<span class="hljs-keyword">string</span>)</span> <span class="hljs-title">bool</span></span>
+</div></code></pre>
+<h2 id="func-getidfromoptionlistbyelementname">func <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/helpers.go#L30">getIDFromOptionListByElementName</a></h2>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">getIDFromOptionListByElementName</span><span class="hljs-params">(list *pb.OptionList, name <span class="hljs-keyword">string</span>)</span> <span class="hljs-params">(<span class="hljs-keyword">uint32</span>, error)</span></span>
+</div></code></pre>
+<h2 id="func-getmodelwithid">func <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L89">getModelWithID</a></h2>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">getModelWithID</span><span class="hljs-params">(s *IBeamServer, mID <span class="hljs-keyword">uint32</span>)</span> *<span class="hljs-title">pb</span>.<span class="hljs-title">ModelInfo</span></span>
+</div></code></pre>
+<h2 id="func-getvalues">func <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L63">getValues</a></h2>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">getValues</span><span class="hljs-params">(dimension *IBeamParameterDimension)</span> <span class="hljs-params">(values []*pb.ParameterValue)</span></span>
+</div></code></pre>
+<h2 id="func-isdescretevalue">func <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-ingest-current.go#L275">isDescreteValue</a></h2>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">isDescreteValue</span><span class="hljs-params">(parameterConfig *pb.ParameterDetail, value <span class="hljs-keyword">float64</span>)</span> <span class="hljs-title">bool</span></span>
+</div></code></pre>
+<h2 id="func-paramerror">func <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/helpers.go#L39">paramError</a></h2>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">paramError</span><span class="hljs-params">(pid <span class="hljs-keyword">uint32</span>, did <span class="hljs-keyword">uint32</span>, e pb.ParameterError)</span> *<span class="hljs-title">pb</span>.<span class="hljs-title">Parameter</span></span>
+</div></code></pre>
+<h2 id="func-validateparameter">func <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L553">validateParameter</a></h2>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">validateParameter</span><span class="hljs-params">(detail *pb.ParameterDetail)</span></span>
+</div></code></pre>
+<h2 id="type-descretevaluedetails">type <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/helpers.go#L16">DescreteValueDetails</a></h2>
+<p>DescreteValueDetails Type alias to make parameter definition nicer</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">type</span> DescreteValueDetails []*pb.DescreteValueDetail
+</div></code></pre>
+<h2 id="type-dimensiondetails">type <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/helpers.go#L13">DimensionDetails</a></h2>
+<p>DimensionDetails Type alias to make parameter definition nicer</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">type</span> DimensionDetails []*pb.DimensionDetail
+</div></code></pre>
+<h2 id="type-ibeamparameterdimension">type <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L12-L15">IBeamParameterDimension</a></h2>
+<p>IBeamParameterDimension is a recursive structure to enable the state management of parameters with several dimensions</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">type</span> IBeamParameterDimension <span class="hljs-keyword">struct</span> {
+    subDimensions []*IBeamParameterDimension
+    value         *ibeamParameterValueBuffer
+}
+</div></code></pre>
+<h3 id="func-generatedimensions">func <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L89">generateDimensions</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-title">generateDimensions</span><span class="hljs-params">(dimensionConfig []<span class="hljs-keyword">uint32</span>, initialValueDimension *IBeamParameterDimension)</span> *<span class="hljs-title">IBeamParameterDimension</span></span>
+</div></code></pre>
+<h3 id="func-ibeamparameterdimension-multiindex">func (*IBeamParameterDimension) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L63">MultiIndex</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(pd *IBeamParameterDimension)</span> <span class="hljs-title">MultiIndex</span><span class="hljs-params">(dimensionID []<span class="hljs-keyword">uint32</span>)</span> <span class="hljs-params">(*IBeamParameterDimension, error)</span></span>
+</div></code></pre>
+<p>MultiIndex gets a specific dimension by dimensionID</p>
+<h3 id="func-ibeamparameterdimension-multiindexhasvalue">func (*IBeamParameterDimension) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L38">MultiIndexHasValue</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(pd *IBeamParameterDimension)</span> <span class="hljs-title">MultiIndexHasValue</span><span class="hljs-params">(dimensionID []<span class="hljs-keyword">uint32</span>)</span> <span class="hljs-title">bool</span></span>
+</div></code></pre>
+<p>MultiIndexHasValue checks for a specific dimension ids existence</p>
+<h3 id="func-ibeamparameterdimension-subdimensions">func (*IBeamParameterDimension) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L30">Subdimensions</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(pd *IBeamParameterDimension)</span> <span class="hljs-title">Subdimensions</span><span class="hljs-params">()</span> <span class="hljs-params">([]*IBeamParameterDimension, error)</span></span>
+</div></code></pre>
+<p>Subdimensions of the Dimension</p>
+<h3 id="func-ibeamparameterdimension-value">func (*IBeamParameterDimension) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L22">Value</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(pd *IBeamParameterDimension)</span> <span class="hljs-title">Value</span><span class="hljs-params">()</span> <span class="hljs-params">(*ibeamParameterValueBuffer, error)</span></span>
+</div></code></pre>
+<p>Value of the Dimension</p>
+<h3 id="func-ibeamparameterdimension-index">func (*IBeamParameterDimension) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L82">index</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(pd *IBeamParameterDimension)</span> <span class="hljs-title">index</span><span class="hljs-params">(index <span class="hljs-keyword">uint32</span>)</span> <span class="hljs-params">(*IBeamParameterDimension, error)</span></span>
+</div></code></pre>
+<h3 id="func-ibeamparameterdimension-isvalue">func (*IBeamParameterDimension) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L17">isValue</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(pd *IBeamParameterDimension)</span> <span class="hljs-title">isValue</span><span class="hljs-params">()</span> <span class="hljs-title">bool</span></span>
+</div></code></pre>
+<h2 id="type-ibeamparametermanager">type <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager.go#L19-L27">IBeamParameterManager</a></h2>
+<p>IBeamParameterManager manages parameter changes.</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">type</span> IBeamParameterManager <span class="hljs-keyword">struct</span> {
+    parameterRegistry   *IBeamParameterRegistry
+    out                 <span class="hljs-keyword">chan</span> *pb.Parameter
+    in                  <span class="hljs-keyword">chan</span> *pb.Parameter
+    clientsSetterStream <span class="hljs-keyword">chan</span> *pb.Parameter
+    serverClientsStream <span class="hljs-keyword">chan</span> *pb.Parameter
+    parameterEvent      <span class="hljs-keyword">chan</span> paramDimensionAddress
+    server              *IBeamServer
+}
+</div></code></pre>
+<h3 id="func-ibeamparametermanager-start">func (*IBeamParameterManager) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager.go#L119">Start</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(m *IBeamParameterManager)</span> <span class="hljs-title">Start</span><span class="hljs-params">()</span></span>
+</div></code></pre>
+<p>Start the communication between client and server.</p>
+<h3 id="func-ibeamparametermanager-startwithserver">func (*IBeamParameterManager) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager.go#L31">StartWithServer</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(m *IBeamParameterManager)</span> <span class="hljs-title">StartWithServer</span><span class="hljs-params">(network, address <span class="hljs-keyword">string</span>)</span></span>
+</div></code></pre>
+<p>StartWithServer Starts the ibeam parameter routine and the GRPC server in one call. This is blocking and should be called at the end of main. The network must be &quot;tcp&quot;, &quot;tcp4&quot;, &quot;tcp6&quot;, &quot;unix&quot; or &quot;unixpacket&quot;.</p>
+<h3 id="func-ibeamparametermanager-checkvalidparameter">func (*IBeamParameterManager) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager.go#L47">checkValidParameter</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(m *IBeamParameterManager)</span> <span class="hljs-title">checkValidParameter</span><span class="hljs-params">(parameter *pb.Parameter)</span> *<span class="hljs-title">pb</span>.<span class="hljs-title">Parameter</span></span>
+</div></code></pre>
+<h3 id="func-ibeamparametermanager-handlesingleparameterbuffer">func (*IBeamParameterManager) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-process.go#L48">handleSingleParameterBuffer</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(m *IBeamParameterManager)</span> <span class="hljs-title">handleSingleParameterBuffer</span><span class="hljs-params">(parameterBuffer *ibeamParameterValueBuffer, parameterDetail *pb.ParameterDetail, deviceID <span class="hljs-keyword">uint32</span>)</span></span>
+</div></code></pre>
+<h3 id="func-ibeamparametermanager-ingestcurrentparameter">func (*IBeamParameterManager) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-ingest-current.go#L12">ingestCurrentParameter</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(m *IBeamParameterManager)</span> <span class="hljs-title">ingestCurrentParameter</span><span class="hljs-params">(parameter *pb.Parameter)</span></span>
+</div></code></pre>
+<h3 id="func-ibeamparametermanager-ingesttargetparameter">func (*IBeamParameterManager) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-ingest-target.go#L10">ingestTargetParameter</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(m *IBeamParameterManager)</span> <span class="hljs-title">ingestTargetParameter</span><span class="hljs-params">(parameter *pb.Parameter)</span></span>
+</div></code></pre>
+<h3 id="func-ibeamparametermanager-processparameter">func (*IBeamParameterManager) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-process.go#L12">processParameter</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(m *IBeamParameterManager)</span> <span class="hljs-title">processParameter</span><span class="hljs-params">(address paramDimensionAddress)</span></span>
+</div></code></pre>
+<h3 id="func-ibeamparametermanager-reevaluate">func (*IBeamParameterManager) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-process.go#L225">reEvaluate</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(m *IBeamParameterManager)</span> <span class="hljs-title">reEvaluate</span><span class="hljs-params">(addr paramDimensionAddress)</span></span>
+</div></code></pre>
+<h3 id="func-ibeamparametermanager-reevaluatein">func (*IBeamParameterManager) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-process.go#L191">reevaluateIn</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(m *IBeamParameterManager)</span> <span class="hljs-title">reevaluateIn</span><span class="hljs-params">(t time.Duration, buffer *ibeamParameterValueBuffer, parameterID, deviceID <span class="hljs-keyword">uint32</span>)</span></span>
+</div></code></pre>
+<h2 id="type-ibeamparameterregistry">type <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L24-L36">IBeamParameterRegistry</a></h2>
+<p>IBeamParameterRegistry is the storage of the core. It saves all Infos about the Core, Device and Models and stores the Details and current Values of the Parameter.</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">type</span> IBeamParameterRegistry <span class="hljs-keyword">struct</span> {
+    muInfo          sync.RWMutex <span class="hljs-comment">// Protects both Model and DeviceInfos</span>
+    muDetail        sync.RWMutex
+    muValue         sync.RWMutex
+    coreInfo        *pb.CoreInfo
+    deviceInfos     <span class="hljs-keyword">map</span>[<span class="hljs-keyword">uint32</span>]*pb.DeviceInfo
+    modelInfos      <span class="hljs-keyword">map</span>[<span class="hljs-keyword">uint32</span>]*pb.ModelInfo
+    parameterDetail parameterDetails <span class="hljs-comment">//Parameter Details: model, parameter</span>
+    parameterValue  parameterStates  <span class="hljs-comment">//Parameter States: device,parameter,dimension</span>
+    allowAutoIDs    <span class="hljs-keyword">bool</span>
+    modelsDone      <span class="hljs-keyword">bool</span> <span class="hljs-comment">// Sanity flag set on first call to add parameters to ensure order</span>
+    parametersDone  <span class="hljs-keyword">bool</span> <span class="hljs-comment">// Sanity flag set on first call to add devices to ensure order</span>
+}
+</div></code></pre>
+<h3 id="func-ibeamparameterregistry-allowautoids">func (*IBeamParameterRegistry) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L39">AllowAutoIDs</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r *IBeamParameterRegistry)</span> <span class="hljs-title">AllowAutoIDs</span><span class="hljs-params">()</span></span>
+</div></code></pre>
+<p>AllowAutoIDs Allowing Automatic IDs for parameters, this is only meant for initial development</p>
+<h3 id="func-ibeamparameterregistry-getmodelidbydeviceid">func (*IBeamParameterRegistry) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L282">GetModelIDByDeviceID</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r *IBeamParameterRegistry)</span> <span class="hljs-title">GetModelIDByDeviceID</span><span class="hljs-params">(deviceID <span class="hljs-keyword">uint32</span>)</span> <span class="hljs-title">uint32</span></span>
+</div></code></pre>
+<p>GetModelIDByDeviceID is a helper to get the modelid for a specific device</p>
+<h3 id="func-ibeamparameterregistry-getnamemap">func (*IBeamParameterRegistry) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L517">GetNameMap</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r *IBeamParameterRegistry)</span> <span class="hljs-title">GetNameMap</span><span class="hljs-params">()</span> <span class="hljs-title">map</span>[<span class="hljs-title">uint32</span>]<span class="hljs-title">string</span></span>
+</div></code></pre>
+<p>GetNameMap returns a map of all parameter names, usefull for initial state requests</p>
+<h3 id="func-ibeamparameterregistry-getparameternameofmodel">func (*IBeamParameterRegistry) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L264">GetParameterNameOfModel</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r *IBeamParameterRegistry)</span> <span class="hljs-title">GetParameterNameOfModel</span><span class="hljs-params">(parameterID, modelID <span class="hljs-keyword">uint32</span>)</span> <span class="hljs-params">(<span class="hljs-keyword">string</span>, error)</span></span>
+</div></code></pre>
+<p>GetParameterNameOfModel gets the name of a parameter by id and model id</p>
+<h3 id="func-ibeamparameterregistry-pid">func (*IBeamParameterRegistry) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L494">PID</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r *IBeamParameterRegistry)</span> <span class="hljs-title">PID</span><span class="hljs-params">(parameterName <span class="hljs-keyword">string</span>)</span> <span class="hljs-title">uint32</span></span>
+</div></code></pre>
+<p>PID Get a parameterID by name, returns 0 if not found, always uses model 0</p>
+<h3 id="func-ibeamparameterregistry-pname">func (*IBeamParameterRegistry) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L471">PName</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r *IBeamParameterRegistry)</span> <span class="hljs-title">PName</span><span class="hljs-params">(parameterID <span class="hljs-keyword">uint32</span>)</span> <span class="hljs-title">string</span></span>
+</div></code></pre>
+<p>PName Get a parameter Name by ID, returns &quot;&quot; if not found, always uses model 0</p>
+<h3 id="func-ibeamparameterregistry-parameternamebyid">func (*IBeamParameterRegistry) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L466">ParameterNameByID</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r *IBeamParameterRegistry)</span> <span class="hljs-title">ParameterNameByID</span><span class="hljs-params">(parameterID <span class="hljs-keyword">uint32</span>)</span> <span class="hljs-title">string</span></span>
+</div></code></pre>
+<p>ParameterNameByID Get a parameter Name by ID, returns &quot;&quot; if not found, always uses model 0 DEPRECATED: Use PName instead</p>
+<h3 id="func-ibeamparameterregistry-reregisterdevice">func (*IBeamParameterRegistry) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L311">ReRegisterDevice</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r *IBeamParameterRegistry)</span> <span class="hljs-title">ReRegisterDevice</span><span class="hljs-params">(deviceID, modelID <span class="hljs-keyword">uint32</span>)</span> <span class="hljs-title">error</span></span>
+</div></code></pre>
+<p>ReRegisterDevice registers an existing device again. This allows to reset it's state and change the type of model if necessary Make sure to handle the error properly</p>
+<h3 id="func-ibeamparameterregistry-registerdevice">func (*IBeamParameterRegistry) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L343">RegisterDevice</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r *IBeamParameterRegistry)</span> <span class="hljs-title">RegisterDevice</span><span class="hljs-params">(deviceID, modelID <span class="hljs-keyword">uint32</span>)</span> <span class="hljs-params">(<span class="hljs-keyword">uint32</span>, error)</span></span>
+</div></code></pre>
+<p>RegisterDevice registers a new Device in the Registry with given DeviceID and ModelID. If the DeviceID is 0 it will be picked automatically Make sure to handle the error properly</p>
+<h3 id="func-ibeamparameterregistry-registerdevicewithmodelname">func (*IBeamParameterRegistry) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L295">RegisterDeviceWithModelName</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r *IBeamParameterRegistry)</span> <span class="hljs-title">RegisterDeviceWithModelName</span><span class="hljs-params">(deviceID <span class="hljs-keyword">uint32</span>, modelName <span class="hljs-keyword">string</span>)</span> <span class="hljs-params">(deviceIndex <span class="hljs-keyword">uint32</span>, err error)</span></span>
+</div></code></pre>
+<p>RegisterDeviceWithModelName registers a new Device in the Registry with given Modelname, if there is no it uses the generic one. If the DeviceID is 0 it will be picked automatically</p>
+<h3 id="func-ibeamparameterregistry-registermodel">func (*IBeamParameterRegistry) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L227">RegisterModel</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r *IBeamParameterRegistry)</span> <span class="hljs-title">RegisterModel</span><span class="hljs-params">(model *pb.ModelInfo)</span> <span class="hljs-title">uint32</span></span>
+</div></code></pre>
+<p>RegisterModel registers a new Model in the Registry with given ModelInfo</p>
+<h3 id="func-ibeamparameterregistry-registerparameter">func (*IBeamParameterRegistry) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L108">RegisterParameter</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r *IBeamParameterRegistry)</span> <span class="hljs-title">RegisterParameter</span><span class="hljs-params">(detail *pb.ParameterDetail)</span> <span class="hljs-params">(paramID <span class="hljs-keyword">uint32</span>)</span></span>
+</div></code></pre>
+<p>RegisterParameter registers a parameter and its detail struct in the registry.</p>
+<h3 id="func-ibeamparameterregistry-registerparameterformodel">func (*IBeamParameterRegistry) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L99">RegisterParameterForModel</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r *IBeamParameterRegistry)</span> <span class="hljs-title">RegisterParameterForModel</span><span class="hljs-params">(modelID <span class="hljs-keyword">uint32</span>, detail *pb.ParameterDetail)</span> <span class="hljs-params">(parameterIndex <span class="hljs-keyword">uint32</span>)</span></span>
+</div></code></pre>
+<p>RegisterParameterForModel registers a parameter and its detail struct in the registry for a single specified model and the default model if the id does not exist there yet.</p>
+<h3 id="func-ibeamparameterregistry-registerparameterformodels">func (*IBeamParameterRegistry) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L88">RegisterParameterForModels</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r *IBeamParameterRegistry)</span> <span class="hljs-title">RegisterParameterForModels</span><span class="hljs-params">(modelIDs []<span class="hljs-keyword">uint32</span>, detail *pb.ParameterDetail)</span></span>
+</div></code></pre>
+<p>RegisterParameterForModels registers a parameter and its detail struct in the registry for multiple models.</p>
+<h3 id="func-ibeamparameterregistry-unregisterparameterformodel">func (*IBeamParameterRegistry) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L204">UnregisterParameterForModel</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r *IBeamParameterRegistry)</span> <span class="hljs-title">UnregisterParameterForModel</span><span class="hljs-params">(modelID <span class="hljs-keyword">uint32</span>, parameterName <span class="hljs-keyword">string</span>)</span></span>
+</div></code></pre>
+<p>UnregisterParameterForModel removes a specific parameter for a specific model.</p>
+<h3 id="func-ibeamparameterregistry-unregisterparameterformodels">func (*IBeamParameterRegistry) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L197">UnregisterParameterForModels</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r *IBeamParameterRegistry)</span> <span class="hljs-title">UnregisterParameterForModels</span><span class="hljs-params">(modelIDs []<span class="hljs-keyword">uint32</span>, parameterName <span class="hljs-keyword">string</span>)</span></span>
+</div></code></pre>
+<p>UnregisterParameterForModels removes a specific parameter for a list of models.</p>
+<h3 id="func-ibeamparameterregistry-cacheidmaps">func (*IBeamParameterRegistry) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L435">cacheIDMaps</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r *IBeamParameterRegistry)</span> <span class="hljs-title">cacheIDMaps</span><span class="hljs-params">()</span></span>
+</div></code></pre>
+<h3 id="func-ibeamparameterregistry-getinstancevalues">func (*IBeamParameterRegistry) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L45">getInstanceValues</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r *IBeamParameterRegistry)</span> <span class="hljs-title">getInstanceValues</span><span class="hljs-params">(dpID *pb.DeviceParameterID)</span> <span class="hljs-params">(values []*pb.ParameterValue)</span></span>
+</div></code></pre>
+<p>device,parameter,instance</p>
+<h3 id="func-ibeamparameterregistry-getmodelid">func (*IBeamParameterRegistry) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L78">getModelID</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r *IBeamParameterRegistry)</span> <span class="hljs-title">getModelID</span><span class="hljs-params">(deviceID <span class="hljs-keyword">uint32</span>)</span> <span class="hljs-title">uint32</span></span>
+</div></code></pre>
+<h3 id="func-ibeamparameterregistry-parameteridbyname">func (*IBeamParameterRegistry) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L539">parameterIDByName</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(r *IBeamParameterRegistry)</span> <span class="hljs-title">parameterIDByName</span><span class="hljs-params">(parameterName <span class="hljs-keyword">string</span>, modelID <span class="hljs-keyword">uint32</span>)</span> <span class="hljs-title">uint32</span></span>
+</div></code></pre>
+<p>parameterIDByName get a parameterID by name, returns 0 if not found, not allowed to be public because it needs the mutexlock</p>
+<h2 id="type-ibeamserver">type <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L17-L23">IBeamServer</a></h2>
+<p>IBeamServer implements the IbeamCoreServer interface of the generated protofile library.</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">type</span> IBeamServer <span class="hljs-keyword">struct</span> {
+    parameterRegistry        *IBeamParameterRegistry
+    clientsSetterStream      <span class="hljs-keyword">chan</span> *pb.Parameter
+    serverClientsStream      <span class="hljs-keyword">chan</span> *pb.Parameter
+    serverClientsDistributor <span class="hljs-keyword">map</span>[<span class="hljs-keyword">chan</span> *pb.Parameter]<span class="hljs-keyword">bool</span>
+    muDistributor            sync.RWMutex
+}
+</div></code></pre>
+<h3 id="func-ibeamserver-get">func (*IBeamServer) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L100">Get</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(s *IBeamServer)</span> <span class="hljs-title">Get</span><span class="hljs-params">(_ context.Context, dpIDs *pb.DeviceParameterIDs)</span> <span class="hljs-params">(rParameters *pb.Parameters, err error)</span></span>
+</div></code></pre>
+<p>Get returns the Parameters with their current state for given DeviceParameterIDs. If no IDs are given, all Parameters will be returned.</p>
+<h3 id="func-ibeamserver-getcoreinfo">func (*IBeamServer) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L26">GetCoreInfo</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(s *IBeamServer)</span> <span class="hljs-title">GetCoreInfo</span><span class="hljs-params">(_ context.Context, _ *pb.Empty)</span> <span class="hljs-params">(*pb.CoreInfo, error)</span></span>
+</div></code></pre>
+<p>GetCoreInfo returns the CoreInfo of the IBeamCore</p>
+<h3 id="func-ibeamserver-getdeviceinfo">func (*IBeamServer) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L36">GetDeviceInfo</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(s *IBeamServer)</span> <span class="hljs-title">GetDeviceInfo</span><span class="hljs-params">(_ context.Context, deviceIDs *pb.DeviceIDs)</span> <span class="hljs-params">(*pb.DeviceInfos, error)</span></span>
+</div></code></pre>
+<p>GetDeviceInfo returns the DeviceInfos for given DeviceIDs. If no IDs are given, all DeviceInfos will be returned.</p>
+<h3 id="func-ibeamserver-getmodelinfo">func (*IBeamServer) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L66">GetModelInfo</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(s *IBeamServer)</span> <span class="hljs-title">GetModelInfo</span><span class="hljs-params">(_ context.Context, mIDs *pb.ModelIDs)</span> <span class="hljs-params">(*pb.ModelInfos, error)</span></span>
+</div></code></pre>
+<p>GetModelInfo returns the ModelInfos for given ModelIDs. If no IDs are given, all ModelInfos will be returned.</p>
+<h3 id="func-ibeamserver-getparameterdetails">func (*IBeamServer) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L174">GetParameterDetails</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(s *IBeamServer)</span> <span class="hljs-title">GetParameterDetails</span><span class="hljs-params">(c context.Context, mpIDs *pb.ModelParameterIDs)</span> <span class="hljs-params">(*pb.ParameterDetails, error)</span></span>
+</div></code></pre>
+<p>GetParameterDetails returns the Details for given ModelParameterIDs. If no IDs are given, the Details from all Parameters will be returned.</p>
+<h3 id="func-ibeamserver-set">func (*IBeamServer) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L229">Set</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(s *IBeamServer)</span> <span class="hljs-title">Set</span><span class="hljs-params">(_ context.Context, ps *pb.Parameters)</span> <span class="hljs-params">(*pb.Empty, error)</span></span>
+</div></code></pre>
+<p>Set will change the Value for the given Parameter.</p>
+<h3 id="func-ibeamserver-subscribe">func (*IBeamServer) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L239">Subscribe</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(s *IBeamServer)</span> <span class="hljs-title">Subscribe</span><span class="hljs-params">(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCore_SubscribeServer)</span> <span class="hljs-title">error</span></span>
+</div></code></pre>
+<p>Subscribe starts a ServerStream and send updates if a Parameter changes. On subscribe all current values should be sent back. If no IDs are given, subscribe to every Parameter.</p>
+<h3 id="func-ibeamserver-getparameterdetail">func (*IBeamServer) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L213">getParameterDetail</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(s *IBeamServer)</span> <span class="hljs-title">getParameterDetail</span><span class="hljs-params">(mpID *pb.ModelParameterID)</span> <span class="hljs-params">(*pb.ParameterDetail, error)</span></span>
+</div></code></pre>
+<h2 id="type-metaelements">type <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/helpers.go#L10">MetaElements</a></h2>
+<p>MetaElements Type alias to make parameter definition nicer</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">type</span> MetaElements <span class="hljs-keyword">map</span>[<span class="hljs-keyword">string</span>]*pb.ParameterMetaDetail
+</div></code></pre>
+<h2 id="type-ibeamparametervaluebuffer">type <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-buffer.go#L13-L23">ibeamParameterValueBuffer</a></h2>
+<p>ibeamParameterValueBuffer is used for updating a ParameterValue. It holds a current and a target Value.</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">type</span> ibeamParameterValueBuffer <span class="hljs-keyword">struct</span> {
+    dimensionID         []<span class="hljs-keyword">uint32</span>
+    available           <span class="hljs-keyword">bool</span>
+    isAssumedState      <span class="hljs-keyword">bool</span>
+    lastUpdate          time.Time
+    tryCount            <span class="hljs-keyword">uint32</span>
+    reEvaluationTimer   *timeTimer
+    reEvaluationTimerMu sync.Mutex
+    currentValue        *pb.ParameterValue
+    targetValue         *pb.ParameterValue
+}
+</div></code></pre>
+<h3 id="func-ibeamparametervaluebuffer-decrementparametervalue">func (*ibeamParameterValueBuffer) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-buffer.go#L53">decrementParameterValue</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(b *ibeamParameterValueBuffer)</span> <span class="hljs-title">decrementParameterValue</span><span class="hljs-params">()</span> *<span class="hljs-title">pb</span>.<span class="hljs-title">ParameterValue</span></span>
+</div></code></pre>
+<h3 id="func-ibeamparametervaluebuffer-getparametervalue">func (*ibeamParameterValueBuffer) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-buffer.go#L29">getParameterValue</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(b *ibeamParameterValueBuffer)</span> <span class="hljs-title">getParameterValue</span><span class="hljs-params">()</span> *<span class="hljs-title">pb</span>.<span class="hljs-title">ParameterValue</span></span>
+</div></code></pre>
+<h3 id="func-ibeamparametervaluebuffer-incrementparametervalue">func (*ibeamParameterValueBuffer) <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-buffer.go#L41">incrementParameterValue</a></h3>
+<pre class="hljs"><code><div><span class="hljs-function"><span class="hljs-keyword">func</span> <span class="hljs-params">(b *ibeamParameterValueBuffer)</span> <span class="hljs-title">incrementParameterValue</span><span class="hljs-params">()</span> *<span class="hljs-title">pb</span>.<span class="hljs-title">ParameterValue</span></span>
+</div></code></pre>
+<h2 id="type-paramdimensionaddress">type <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager.go#L12-L16">paramDimensionAddress</a></h2>
+<p>Internal version of parameterID, to not mess with protobuff mechanisma</p>
+<pre class="hljs"><code><div><span class="hljs-keyword">type</span> paramDimensionAddress <span class="hljs-keyword">struct</span> {
+    parameter   <span class="hljs-keyword">uint32</span>
+    device      <span class="hljs-keyword">uint32</span>
+    dimensionID []<span class="hljs-keyword">uint32</span>
+}
+</div></code></pre>
+<h2 id="type-parameterdetails">type <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L19">parameterDetails</a></h2>
+<pre class="hljs"><code><div><span class="hljs-keyword">type</span> parameterDetails <span class="hljs-keyword">map</span>[<span class="hljs-keyword">uint32</span>]<span class="hljs-keyword">map</span>[<span class="hljs-keyword">uint32</span>]*pb.ParameterDetail <span class="hljs-comment">//Parameter Details: model, parameter</span>
+</div></code></pre>
+<h2 id="type-parameterstates">type <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L20">parameterStates</a></h2>
+<pre class="hljs"><code><div><span class="hljs-keyword">type</span> parameterStates <span class="hljs-keyword">map</span>[<span class="hljs-keyword">uint32</span>]<span class="hljs-keyword">map</span>[<span class="hljs-keyword">uint32</span>]*IBeamParameterDimension <span class="hljs-comment">//Parameter States: device,parameter,dimension</span>
+</div></code></pre>
+<h2 id="type-timetimer">type <a href="https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-buffer.go#L24-L27">timeTimer</a></h2>
+<pre class="hljs"><code><div><span class="hljs-keyword">type</span> timeTimer <span class="hljs-keyword">struct</span> {
+    timer *time.Timer
+    end   time.Time
+}
+</div></code></pre>
+<p>Generated by <a href="https://github.com/princjef/gomarkdoc">gomarkdoc</a></p>
+
+</body>
+</html>
