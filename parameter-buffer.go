@@ -27,7 +27,7 @@ type timeTimer struct {
 }
 
 func (b *ibeamParameterValueBuffer) getParameterValue() *pb.ParameterValue {
-	b.isAssumedState = !reflect.DeepEqual(b.targetValue.Value, b.currentValue.Value)
+	b.isAssumedState = !b.currentEquals(b.targetValue)
 	return &pb.ParameterValue{
 		DimensionID:    b.dimensionID,
 		Available:      b.available,

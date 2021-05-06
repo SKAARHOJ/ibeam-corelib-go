@@ -148,8 +148,8 @@ valueLoop:
 						parameterBuffer.currentValue.Value = &pb.ParameterValue_Integer{Integer: newIntVal}
 					}
 					// send out right away
-					m.serverClientsStream <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue())
-					continue // make sure we skip the rest of the logic :-)
+					m.serverClientsStream <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue()) // FIXME: check  ?!
+					continue                                                                                     // make sure we skip the rest of the logic :-)
 				}
 			}
 
@@ -231,16 +231,16 @@ valueLoop:
 
 		// Safe the momentary saved Value of the Parameter in the state
 
-		if !proto.Equal(newParameterValue, parameterBuffer.currentValue) {
+		if !parameterBuffer.currentEquals(newParameterValue) {
 			if parameterConfig.ValueType != pb.ValueType_PNG && parameterConfig.ValueType != pb.ValueType_JPEG {
 				log.Debugf("Set new TargetValue '%v', for Parameter %v (%v), Device: %v", newParameterValue.Value, parameterID, parameterConfig.Name, deviceID)
 			}
 			parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
+			parameterBuffer.isAssumedState = true
 			parameterBuffer.tryCount = 0
 		} else {
 			if parameterConfig.ValueType != pb.ValueType_PNG && parameterConfig.ValueType != pb.ValueType_JPEG {
 				log.Debugf("TargetValue %v is equal to CurrentValue", newParameterValue.Value)
-
 			}
 		}
 		addr := paramDimensionAddress{
