@@ -51,7 +51,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			continue
 		}
 
-		if proto.Equal(parameterBuffer.currentValue, newParameterValue) {
+		if parameterBuffer.currentEquals(newParameterValue) {
 			// if values are equal no need to do anything
 			continue
 		}
@@ -228,7 +228,10 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			continue
 		}
 
+		parameterBuffer.currentValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
+
 		didSetTarget := false
+		didScheduleReEval := false
 
 		if time.Since(parameterBuffer.lastUpdate).Milliseconds()+1 > int64(parameterConfig.QuarantineDelayMs) {
 			if !proto.Equal(parameterBuffer.targetValue, newParameterValue) {
@@ -238,9 +241,8 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 		} else {
 			timeForRecheck := int64(parameterConfig.QuarantineDelayMs) - time.Since(parameterBuffer.lastUpdate).Milliseconds()
 			m.reevaluateIn(time.Duration(time.Millisecond*time.Duration(timeForRecheck)), parameterBuffer, parameterID, deviceID)
+			didScheduleReEval = true
 		}
-
-		parameterBuffer.currentValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
 
 		assumed := false
 		if didSetTarget {
@@ -248,6 +250,8 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 		} else {
 			assumed = !proto.Equal(parameterBuffer.currentValue, parameterBuffer.targetValue)
 		}
+
+		parameterBuffer.isAssumedState = assumed
 
 		if !assumed {
 			parameterBuffer.tryCount = 0
@@ -257,13 +261,15 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			m.serverClientsStream <- b.Param(parameterID, deviceID, values...)
 		}
 
-		addr := paramDimensionAddress{
-			parameter:   parameterID,
-			device:      deviceID,
-			dimensionID: parameterBuffer.getParameterValue().DimensionID,
-		}
-		m.reEvaluate(addr)
-		// Trigger processing of the main evaluation
+		if !didScheduleReEval {
+			// Trigger processing of the main evaluation
 
+			addr := paramDimensionAddress{
+				parameter:   parameterID,
+				device:      deviceID,
+				dimensionID: parameterBuffer.getParameterValue().DimensionID,
+			}
+			m.reEvaluate(addr)
+		}
 	}
 }
