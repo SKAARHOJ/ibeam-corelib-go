@@ -248,7 +248,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 		if didSetTarget {
 			assumed = false
 		} else {
-			assumed = !proto.Equal(parameterBuffer.currentValue, parameterBuffer.targetValue)
+			assumed = !parameterBuffer.currentEquals(parameterBuffer.targetValue)
 		}
 
 		parameterBuffer.isAssumedState = assumed
