@@ -134,3 +134,16 @@ func (m *IBeamParameterManager) Start() {
 		}
 	}()
 }
+
+func isDescreteValue(parameterConfig *pb.ParameterDetail, value float64) bool {
+	found := false
+	if len(parameterConfig.DescreteValueDetails) > 0 {
+		for _, dv := range parameterConfig.DescreteValueDetails {
+			if dv.GetValue() == value {
+				found = true
+				break
+			}
+		}
+	}
+	return found
+}

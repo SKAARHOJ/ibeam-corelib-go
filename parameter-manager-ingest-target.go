@@ -112,14 +112,14 @@ valueLoop:
 
 			if newValue.Integer > int32(parameterConfig.Maximum) {
 				if !isDescreteValue(parameterConfig, float64(newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)) {
-					log.Errorf("Max violation for parameter %v", parameterID)
+					log.Errorf("Ingest Target Loop: Max violation for parameter %v", parameterID)
 					m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MaxViolation)
 					continue
 				}
 			}
 			if newValue.Integer < int32(parameterConfig.Minimum) {
 				if !isDescreteValue(parameterConfig, float64(newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)) {
-					log.Errorf("Min violation for parameter %v", parameterID)
+					log.Errorf("Ingest Target Loop: Min violation for parameter %v", parameterID, newValue.Integer)
 					m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MinViolation)
 					continue
 				}
