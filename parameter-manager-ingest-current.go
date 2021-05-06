@@ -30,7 +30,6 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 	defer m.parameterRegistry.muDetail.RUnlock()
 	parameterConfig := m.parameterRegistry.parameterDetail[modelID][parameterID]
 
-	shouldSend := false
 	for _, newParameterValue := range parameter.Value {
 
 		if newParameterValue == nil {
@@ -87,9 +86,9 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 		// Check Type of Parameter
 		switch parameterConfig.ValueType {
 		case pb.ValueType_Opt:
-			// If Type of Parameter is Opt, find the right Opt
 			switch v := newParameterValue.Value.(type) {
 			case *pb.ParameterValue_Str:
+				// If Type of Parameter is Opt and we get a string, find the right Opt
 				id, err := getIDFromOptionListByElementName(parameterConfig.OptionList, v.Str)
 				if err != nil {
 					log.Error("on optionlist name lookup: ", err)
@@ -233,35 +232,36 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			continue
 		}
 
+		didSetTarget := false
+		didSetCurrent := false
+
 		if time.Since(parameterBuffer.lastUpdate).Milliseconds()+1 > int64(parameterConfig.QuarantineDelayMs) {
 			if !proto.Equal(parameterBuffer.targetValue, newParameterValue) {
 				parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
-				shouldSend = true
+				didSetTarget = true
 			}
 		} else {
 			timeForRecheck := int64(parameterConfig.QuarantineDelayMs) - time.Since(parameterBuffer.lastUpdate).Milliseconds()
 			m.reevaluateIn(time.Duration(time.Millisecond*time.Duration(timeForRecheck)), parameterBuffer, parameterID, deviceID)
 		}
 
-		if !proto.Equal(parameterBuffer.currentValue, newParameterValue) {
-			parameterBuffer.currentValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
-			reEvaluate = true
-			shouldSend = true
-		}
+		parameterBuffer.currentValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
+		didSetCurrent = true
+		reEvaluate = true
 
-		assumed := !proto.Equal(parameterBuffer.currentValue, parameterBuffer.targetValue)
-		if parameterBuffer.isAssumedState != assumed {
-			shouldSend = true
+		assumed := false
+		if didSetTarget && didSetCurrent {
+			assumed = false
+		} else {
+			assumed = !proto.Equal(parameterBuffer.currentValue, parameterBuffer.targetValue)
 		}
 
 		if !assumed {
 			parameterBuffer.tryCount = 0
 		}
 
-		if shouldSend {
-			if values := m.parameterRegistry.getInstanceValues(parameter.GetId()); values != nil {
-				m.serverClientsStream <- b.Param(parameterID, deviceID, values...)
-			}
+		if values := m.parameterRegistry.getInstanceValues(parameter.GetId()); values != nil {
+			m.serverClientsStream <- b.Param(parameterID, deviceID, values...)
 		}
 
 		if reEvaluate {
