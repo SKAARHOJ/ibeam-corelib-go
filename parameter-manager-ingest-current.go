@@ -84,8 +84,6 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			continue
 		}
 
-		didSet := false // flag to to handle custom cases
-
 		// Check Type of Parameter
 		switch parameterConfig.ValueType {
 		case pb.ValueType_Opt:
@@ -94,31 +92,13 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			case *pb.ParameterValue_Str:
 				id, err := getIDFromOptionListByElementName(parameterConfig.OptionList, v.Str)
 				if err != nil {
-					log.Error(err)
+					log.Error("on optionlist name lookup: ", err)
 					continue
 				}
-				// FIXME: We have to clear this inconsistentcy here
-				newValue := pb.ParameterValue{
-					Value: &pb.ParameterValue_CurrentOption{
-						CurrentOption: id,
-					},
-				}
 
-				if time.Since(parameterBuffer.lastUpdate).Milliseconds() > int64(parameterConfig.QuarantineDelayMs) {
-					if !proto.Equal(parameterBuffer.targetValue, &newValue) {
-						parameterBuffer.targetValue = proto.Clone(&newValue).(*pb.ParameterValue)
-						reEvaluate = true
-						shouldSend = true
-					}
+				newParameterValue.Value = &pb.ParameterValue_CurrentOption{
+					CurrentOption: id,
 				}
-
-				if !proto.Equal(parameterBuffer.currentValue, &newValue) {
-					parameterBuffer.currentValue = proto.Clone(&newValue).(*pb.ParameterValue)
-					reEvaluate = true
-					shouldSend = true
-				}
-
-				didSet = true
 
 			case *pb.ParameterValue_OptionListUpdate:
 				if !parameterConfig.OptionListIsDynamic {
@@ -253,23 +233,22 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			continue
 		}
 
-		if !didSet {
-			if time.Since(parameterBuffer.lastUpdate).Milliseconds()+1 > int64(parameterConfig.QuarantineDelayMs) {
-				if !proto.Equal(parameterBuffer.targetValue, newParameterValue) {
-					parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
-					shouldSend = true
-				}
-			} else {
-				timeForRecheck := int64(parameterConfig.QuarantineDelayMs) - time.Since(parameterBuffer.lastUpdate).Milliseconds()
-				m.reevaluateIn(time.Duration(time.Millisecond*time.Duration(timeForRecheck)), parameterBuffer, parameterID, deviceID)
-			}
-
-			if !proto.Equal(parameterBuffer.currentValue, newParameterValue) {
-				parameterBuffer.currentValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
-				reEvaluate = true
+		if time.Since(parameterBuffer.lastUpdate).Milliseconds()+1 > int64(parameterConfig.QuarantineDelayMs) {
+			if !proto.Equal(parameterBuffer.targetValue, newParameterValue) {
+				parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
 				shouldSend = true
 			}
+		} else {
+			timeForRecheck := int64(parameterConfig.QuarantineDelayMs) - time.Since(parameterBuffer.lastUpdate).Milliseconds()
+			m.reevaluateIn(time.Duration(time.Millisecond*time.Duration(timeForRecheck)), parameterBuffer, parameterID, deviceID)
 		}
+
+		if !proto.Equal(parameterBuffer.currentValue, newParameterValue) {
+			parameterBuffer.currentValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
+			reEvaluate = true
+			shouldSend = true
+		}
+
 		assumed := !proto.Equal(parameterBuffer.currentValue, parameterBuffer.targetValue)
 		if parameterBuffer.isAssumedState != assumed {
 			shouldSend = true
