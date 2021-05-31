@@ -240,7 +240,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			}
 		} else {
 			timeForRecheck := int64(parameterConfig.QuarantineDelayMs) - time.Since(parameterBuffer.lastUpdate).Milliseconds()
-			m.reevaluateIn(time.Duration(time.Millisecond*time.Duration(timeForRecheck)), parameterBuffer, parameterID, deviceID)
+			m.reevaluateIn(time.Millisecond*time.Duration(timeForRecheck), parameterBuffer, parameterID, deviceID)
 			didScheduleReEval = true
 		}
 

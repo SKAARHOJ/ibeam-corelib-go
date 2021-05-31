@@ -106,8 +106,8 @@ func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 		for did, dState := range s.parameterRegistry.parameterValue {
 			for pid := range dState {
 				dpID := pb.DeviceParameterID{
-					Parameter: uint32(pid),
-					Device:    uint32(did),
+					Parameter: pid,
+					Device:    did,
 				}
 				iv := s.parameterRegistry.getInstanceValues(&dpID)
 				if iv != nil {

@@ -38,7 +38,7 @@ func getIDFromOptionListByElementName(list *pb.OptionList, name string) (uint32,
 
 func paramError(pid uint32, did uint32, e pb.ParameterError) *pb.Parameter {
 	return &pb.Parameter{
-		Id:    &pb.DeviceParameterID{Device: uint32(did), Parameter: pid},
+		Id:    &pb.DeviceParameterID{Device: did, Parameter: pid},
 		Error: e,
 	}
 }
