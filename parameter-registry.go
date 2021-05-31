@@ -278,6 +278,24 @@ func (r *IBeamParameterRegistry) GetParameterNameOfModel(parameterID, modelID ui
 	return "", fmt.Errorf("could not find Parameter with id %v", parameterID)
 }
 
+// GetParameterDetail gets the details of a parameter by id and model id
+func (r *IBeamParameterRegistry) GetParameterDetail(parameterID, modelID uint32) (*pb.ParameterDetail, error) {
+	r.muDetail.RLock()
+	defer r.muDetail.RUnlock()
+
+	modelInfo, exists := r.parameterDetail[modelID]
+	if !exists {
+		return "", fmt.Errorf("could not find Parameter for Model with id %d", modelID)
+	}
+
+	for _, pd := range modelInfo {
+		if pd.Id.Parameter == parameterID {
+			return proto.Clone(pd).(*pb.ParameterDetail), nil
+		}
+	}
+	return nil, fmt.Errorf("could not find Parameter with id %v", parameterID)
+}
+
 // GetModelIDByDeviceID is a helper to get the modelid for a specific device
 func (r *IBeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32 {
 	r.muInfo.RLock()
