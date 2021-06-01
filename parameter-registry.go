@@ -285,7 +285,7 @@ func (r *IBeamParameterRegistry) GetParameterDetail(parameterID, modelID uint32)
 
 	modelInfo, exists := r.parameterDetail[modelID]
 	if !exists {
-		return "", fmt.Errorf("could not find Parameter for Model with id %d", modelID)
+		return nil, fmt.Errorf("could not find Parameter for Model with id %d", modelID)
 	}
 
 	for _, pd := range modelInfo {
