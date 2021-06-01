@@ -296,6 +296,37 @@ func (r *IBeamParameterRegistry) GetParameterDetail(parameterID, modelID uint32)
 	return nil, fmt.Errorf("could not find Parameter with id %v", parameterID)
 }
 
+// GetParameterValue gets a copy of the parameter value from the state by pid, did and dimensionIDs
+func (r *IBeamParameterRegistry) GetParameterValue(parameterID, deviceID uint32, dimensionID ...uint32) (*pb.ParameterValue, error) {
+	r.muValue.RLock()
+	defer r.muValue.RUnlock()
+	state := r.parameterValue
+
+	// first check param and deviceID
+	if _, exists := state[deviceID][parameterID]; !exists {
+		return nil, fmt.Errorf("getparametervalue: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
+	}
+
+	// Check if Dimension is Valid
+	if !state[deviceID][parameterID].MultiIndexHasValue(dimensionID) {
+
+		return nil, fmt.Errorf("getparametervalue: invalid dimension id  %v for parameter %d and device %d", dimensionID, parameterID, deviceID)
+	}
+
+	parameterDimension, err := state[deviceID][parameterID].MultiIndex(dimensionID)
+	if err != nil {
+		return nil, err
+	}
+
+	parameterBuffer, err := parameterDimension.Value()
+	if err != nil {
+		return nil, err
+	}
+
+	valueCopy := proto.Clone(parameterBuffer.getParameterValue()).(*pb.ParameterValue)
+	return valueCopy, nil
+}
+
 // GetModelIDByDeviceID is a helper to get the modelid for a specific device
 func (r *IBeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32 {
 	r.muInfo.RLock()
