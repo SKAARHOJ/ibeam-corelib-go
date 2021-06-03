@@ -2,6 +2,8 @@ package ibeamcorelib
 
 import (
 	"net"
+	"os"
+	"strings"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
 	log "github.com/s00500/env_logger"
@@ -31,6 +33,13 @@ type IBeamParameterManager struct {
 func (m *IBeamParameterManager) StartWithServer(network, address string) {
 	// Start parameter management routine
 	m.Start()
+
+	if network == "unix" && strings.HasPrefix(address, "/var/lib/ibeam/sockets") {
+		err := os.Remove(address)
+		if err != nil {
+			log.Trace(log.Wrap(err, "on removing old socket file"))
+		}
+	}
 
 	lis, err := net.Listen(network, address)
 	if err != nil {
