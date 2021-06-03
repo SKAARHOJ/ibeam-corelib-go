@@ -34,7 +34,7 @@ func (m *IBeamParameterManager) StartWithServer(network, address string) {
 	// Start parameter management routine
 	m.Start()
 
-	if network == "unix" && strings.HasPrefix(address, "/var/lib/ibeam/sockets") {
+	if network == "unix" && strings.HasPrefix(address, "/var/ibeam/sockets") {
 		err := os.Remove(address)
 		if err != nil {
 			log.Trace(log.Wrap(err, "on removing old socket file"))
