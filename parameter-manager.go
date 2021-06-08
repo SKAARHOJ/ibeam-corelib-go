@@ -4,6 +4,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
 	log "github.com/s00500/env_logger"
@@ -31,6 +32,8 @@ type IBeamParameterManager struct {
 // StartWithServer Starts the ibeam parameter routine and the GRPC server in one call. This is blocking and should be called at the end of main.
 // The network must be "tcp", "tcp4", "tcp6", "unix" or "unixpacket".
 func (m *IBeamParameterManager) StartWithServer(network, address string) {
+	ReloadHook() // just to be sure, this can later be called in the top of the main function to avoid duplicate logs
+
 	// Start parameter management routine
 	m.Start()
 
@@ -47,9 +50,25 @@ func (m *IBeamParameterManager) StartWithServer(network, address string) {
 	}
 	grpcServer := grpc.NewServer()
 	pb.RegisterIbeamCoreServer(grpcServer, m.server)
-	err = grpcServer.Serve(lis)
-	if err != nil {
-		log.Fatalf("failed to serve: %v", err)
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		err = grpcServer.Serve(lis)
+		if err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+		wg.Done()
+	}()
+
+	sig, err := wait() // Will this term on all sigs ?
+	log.Should(err)
+
+	grpcServer.Stop()
+	wg.Wait()
+
+	if sig == SIGUSR2 {
+		err := execReload()
+		log.Should(err)
 	}
 }
 
