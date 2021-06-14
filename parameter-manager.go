@@ -21,8 +21,8 @@ type paramDimensionAddress struct {
 // IBeamParameterManager manages parameter changes.
 type IBeamParameterManager struct {
 	parameterRegistry   *IBeamParameterRegistry
-	out                 chan *pb.Parameter
-	in                  chan *pb.Parameter
+	out                 chan<- *pb.Parameter
+	in                  <-chan *pb.Parameter
 	clientsSetterStream chan *pb.Parameter
 	serverClientsStream chan *pb.Parameter
 	parameterEvent      chan paramDimensionAddress

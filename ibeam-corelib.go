@@ -304,7 +304,7 @@ func containsDeviceParameter(dpID *pb.DeviceParameterID, dpIDs *pb.DeviceParamet
 }
 
 // CreateServer sets up the ibeam server, parameter manager and parameter registry
-func CreateServer(coreInfo *pb.CoreInfo) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan *pb.Parameter, getfromManager chan *pb.Parameter) {
+func CreateServer(coreInfo *pb.CoreInfo) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan<- *pb.Parameter, getfromManager <-chan *pb.Parameter) {
 	defaultModelInfo := &pb.ModelInfo{
 		Name:        "Generic Model",
 		Description: "default model of the implementation",
@@ -313,10 +313,12 @@ func CreateServer(coreInfo *pb.CoreInfo) (manager *IBeamParameterManager, regist
 }
 
 // CreateServerWithDefaultModel sets up the ibeam server, parameter manager and parameter registry and allows to specify a default model
-func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelInfo) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan *pb.Parameter, getfromManager chan *pb.Parameter) {
+func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelInfo) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, setToManager chan<- *pb.Parameter, getFromManager <-chan *pb.Parameter) {
 	clientsSetter := make(chan *pb.Parameter, 100)
-	getfromManager = make(chan *pb.Parameter, 100)
-	settoManager = make(chan *pb.Parameter, 100)
+	getfromManagerChannel := make(chan *pb.Parameter, 100)
+	settoManagerChannel := make(chan *pb.Parameter, 100)
+	setToManager = settoManagerChannel
+	getFromManager = settoManagerChannel
 
 	watcher := make(chan *pb.Parameter)
 
@@ -339,8 +341,8 @@ func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelI
 
 	manager = &IBeamParameterManager{
 		parameterRegistry:   registry,
-		out:                 getfromManager,
-		in:                  settoManager,
+		out:                 getfromManagerChannel,
+		in:                  settoManagerChannel,
 		clientsSetterStream: clientsSetter,
 		serverClientsStream: watcher,
 		parameterEvent:      make(chan paramDimensionAddress, 100),
