@@ -317,8 +317,8 @@ func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelI
 	clientsSetter := make(chan *pb.Parameter, 100)
 	getfromManagerChannel := make(chan *pb.Parameter, 100)
 	settoManagerChannel := make(chan *pb.Parameter, 100)
+	getFromManager = getfromManagerChannel
 	setToManager = settoManagerChannel
-	getFromManager = settoManagerChannel
 
 	watcher := make(chan *pb.Parameter)
 
