@@ -8,6 +8,7 @@ require (
 	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/s00500/env_logger v0.1.18
 	github.com/sirupsen/logrus v1.8.1 // indirect
+	github.com/speps/go-hashids/v2 v2.0.1 // indirect
 	golang.org/x/net v0.0.0-20210504132125-bbd867fde50d // indirect
 	golang.org/x/sys v0.0.0-20210603081109-ebe580a85c40 // indirect
 	google.golang.org/genproto v0.0.0-20210504143626-3b2ad6ccc450 // indirect
