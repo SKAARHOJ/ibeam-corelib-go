@@ -2,6 +2,7 @@ package ibeamcorelib
 
 import (
 	"fmt"
+	"hash/fnv"
 	"sync"
 	"time"
 
@@ -30,15 +31,15 @@ type IBeamParameterRegistry struct {
 	modelInfos      map[uint32]*pb.ModelInfo
 	parameterDetail parameterDetails //Parameter Details: model, parameter
 	parameterValue  parameterStates  //Parameter States: device,parameter,dimension
-	allowAutoIDs    bool
-	modelsDone      bool // Sanity flag set on first call to add parameters to ensure order
-	parametersDone  bool // Sanity flag set on first call to add devices to ensure order
+	ModelAutoIDs    bool             // This is not recommended to use, please do use the proper IDs for models
+	modelsDone      bool             // Sanity flag set on first call to add parameters to ensure order
+	parametersDone  bool             // Sanity flag set on first call to add devices to ensure order
 }
 
-// AllowAutoIDs Allowing Automatic IDs for parameters, this is only meant for initial development
-func (r *IBeamParameterRegistry) AllowAutoIDs() {
-	log.Warn("Allowing Automatic IDs for parameters, this is only meant for initial development!!!")
-	r.allowAutoIDs = true
+func idFromName(name string) uint32 {
+	h := fnv.New32a()
+	h.Write([]byte(name))
+	return h.Sum32()
 }
 
 // device,parameter,instance
@@ -126,12 +127,8 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 			log.Fatal("Duplicate parameter name for ", detail.Name)
 		}
 
-		defaultModelConfig := r.parameterDetail[0]
 		if paramID == 0 {
-			if !r.allowAutoIDs {
-				log.Fatalf("Missing ID on parameter '%s'", detail.Name)
-			}
-			paramID = uint32(len(defaultModelConfig) + 1)
+			paramID = idFromName(detail.Name)
 		}
 		r.muDetail.RUnlock()
 		detail.Id = &pb.ModelParameterID{
@@ -160,7 +157,7 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 			log.Fatalf("Could not register parameter '%s' for model with ID: %d", detail.Name, modelID)
 		}
 		if paramID == 0 {
-			if !r.allowAutoIDs {
+			if !r.ModelAutoIDs {
 				log.Fatalf("Missing ID on parameter '%s'", detail.Name)
 			}
 			paramID = uint32(len(r.parameterDetail[0]) + 1)
