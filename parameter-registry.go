@@ -387,6 +387,25 @@ func (r *IBeamParameterRegistry) ReRegisterDevice(deviceID, modelID uint32) erro
 // RegisterDevice registers a new Device in the Registry with given DeviceID and ModelID. If the DeviceID is 0 it will be picked automatically
 // Make sure to handle the error properly
 func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint32, error) {
+	if !r.parametersDone {
+		r.muDetail.Lock()
+		id := r.parameterIDByName("connection", 0)
+		r.muDetail.Unlock()
+		if id != 1 {
+			// Autoregister connection parameter
+			r.RegisterParameter(&pb.ParameterDetail{
+				Id:            &pb.ModelParameterID{Parameter: 1},
+				Path:          "config",
+				Name:          "connection",
+				Label:         "Connected",
+				Description:   "Connection status of device",
+				GenericType:   pb.GenericType_ConnectionState,
+				ControlStyle:  pb.ControlStyle_NoControl,
+				FeedbackStyle: pb.FeedbackStyle_NormalFeedback,
+				ValueType:     pb.ValueType_Binary,
+			})
+		}
+	}
 	r.parametersDone = true
 
 	r.muDetail.RLock()
