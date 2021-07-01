@@ -42,3 +42,7 @@ func paramError(pid uint32, did uint32, e pb.ParameterError) *pb.Parameter {
 		Error: e,
 	}
 }
+
+func HashedID(name string) uint32 {
+	return idFromName(name)
+}

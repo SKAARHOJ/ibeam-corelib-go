@@ -237,7 +237,7 @@ func (r *IBeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32 {
 	r.muInfo.Lock()
 	if _, exists := r.modelInfos[model.Id]; exists {
 		// if the id already exists count it up
-		if !r.allowAutoIDs {
+		if !r.ModelAutoIDs {
 			log.Fatalf("Refusing to autoassign id for model '%s', please specify an explicit ID", model.Name)
 		}
 		r.muDetail.RLock()
