@@ -30,18 +30,27 @@ type IBeamParameterManager struct {
 }
 
 // StartWithServer Starts the ibeam parameter routine and the GRPC server in one call. This is blocking and should be called at the end of main.
-// The network must be "tcp", "tcp4", "tcp6", "unix" or "unixpacket".
-func (m *IBeamParameterManager) StartWithServer(network, address string) {
+func (m *IBeamParameterManager) StartWithServer(address string) {
 	ReloadHook() // just to be sure, this can later be called in the top of the main function to avoid duplicate logs
 
 	// Start parameter management routine
 	m.Start()
 
-	if network == "unix" && strings.HasPrefix(address, "/var/ibeam/sockets") {
+	addressOverride := os.Getenv("IBEAM_CORE_ADDRESS")
+	if addressOverride != "" {
+		address = addressOverride
+	}
+
+	if strings.HasPrefix(address, "/var/ibeam/sockets") {
 		err := os.Remove(address)
 		if err != nil {
 			log.Trace(log.Wrap(err, "on removing old socket file"))
 		}
+	}
+
+	network := "tcp"
+	if strings.HasPrefix(address, "/") {
+		network = "unix"
 	}
 
 	lis, err := net.Listen(network, address)
