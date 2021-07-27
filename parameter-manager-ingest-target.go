@@ -42,7 +42,7 @@ valueLoop:
 		}
 
 		// Check if dimension of the value is valid
-		if !state[deviceID][parameterID].MultiIndexHasValue(newParameterValue.DimensionID) {
+		if !state[deviceID][parameterID].multiIndexHasValue(newParameterValue.DimensionID) {
 			log.Errorf("Received invalid Dimension %d for parameter %d on device %d", newParameterValue.DimensionID, parameterID, parameter.Id.Device)
 			m.serverClientsStream <- &pb.Parameter{
 				Id:    parameter.Id,
@@ -51,12 +51,12 @@ valueLoop:
 			}
 			continue
 		}
-		dimension, err := state[deviceID][parameterID].MultiIndex(newParameterValue.DimensionID)
+		dimension, err := state[deviceID][parameterID].multiIndex(newParameterValue.DimensionID)
 		if err != nil {
 			log.Error(err)
 			continue
 		}
-		parameterBuffer, err := dimension.Value()
+		parameterBuffer, err := dimension.getValue()
 		if err != nil {
 			log.Errorf("Could not get value for dimension id %v,: %v", newParameterValue.DimensionID, err)
 			continue

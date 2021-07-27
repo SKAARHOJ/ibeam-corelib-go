@@ -18,7 +18,7 @@ var cachedNameMap map[uint32]map[string]uint32
 var cachedNameMapMu sync.RWMutex
 
 type parameterDetails map[uint32]map[uint32]*pb.ParameterDetail     //Parameter Details: model, parameter
-type parameterStates map[uint32]map[uint32]*IBeamParameterDimension //Parameter States: device,parameter,dimension
+type parameterStates map[uint32]map[uint32]*iBeamParameterDimension //Parameter States: device,parameter,dimension
 
 // IBeamParameterRegistry is the storage of the core.
 // It saves all Infos about the Core, Device and Models and stores the Details and current Values of the Parameter.
@@ -61,9 +61,9 @@ func (r *IBeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID) (
 	return getValues(r.parameterValue[deviceID][parameterIndex])
 }
 
-func getValues(dimension *IBeamParameterDimension) (values []*pb.ParameterValue) {
+func getValues(dimension *iBeamParameterDimension) (values []*pb.ParameterValue) {
 	if dimension.isValue() {
-		value, err := dimension.Value()
+		value, err := dimension.getValue()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -305,17 +305,17 @@ func (r *IBeamParameterRegistry) GetParameterValue(parameterID, deviceID uint32,
 	}
 
 	// Check if Dimension is Valid
-	if !state[deviceID][parameterID].MultiIndexHasValue(dimensionID) {
+	if !state[deviceID][parameterID].multiIndexHasValue(dimensionID) {
 
 		return nil, fmt.Errorf("getparametervalue: invalid dimension id  %v for parameter %d and device %d", dimensionID, parameterID, deviceID)
 	}
 
-	parameterDimension, err := state[deviceID][parameterID].MultiIndex(dimensionID)
+	parameterDimension, err := state[deviceID][parameterID].multiIndex(dimensionID)
 	if err != nil {
 		return nil, err
 	}
 
-	parameterBuffer, err := parameterDimension.Value()
+	parameterBuffer, err := parameterDimension.getValue()
 	if err != nil {
 		return nil, err
 	}
@@ -428,7 +428,7 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 	// take all params from model and generate a value buffer array for all instances
 	// add value buffers to the state array
 
-	parameterDimensions := map[uint32]*IBeamParameterDimension{}
+	parameterDimensions := map[uint32]*iBeamParameterDimension{}
 	for _, parameterDetail := range modelConfig {
 		parameterID := parameterDetail.Id.Parameter
 
@@ -460,7 +460,7 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 		}
 
 		dimensionConfig := []uint32{}
-		initialValueDimension := IBeamParameterDimension{
+		initialValueDimension := iBeamParameterDimension{
 			value: &ibeamParameterValueBuffer{
 				dimensionID:    make([]uint32, 0),
 				available:      true,

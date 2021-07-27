@@ -330,7 +330,7 @@ func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelI
 		deviceInfos:     map[uint32]*pb.DeviceInfo{},
 		modelInfos:      map[uint32]*pb.ModelInfo{},
 		parameterDetail: map[uint32]map[uint32]*pb.ParameterDetail{},
-		parameterValue:  map[uint32]map[uint32]*IBeamParameterDimension{},
+		parameterValue:  map[uint32]map[uint32]*iBeamParameterDimension{},
 	}
 
 	server := IBeamServer{

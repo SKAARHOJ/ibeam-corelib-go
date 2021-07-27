@@ -35,17 +35,17 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			continue
 		}
 		// Check if Dimension is Valid
-		if !state[deviceID][parameterID].MultiIndexHasValue(newParameterValue.DimensionID) {
+		if !state[deviceID][parameterID].multiIndexHasValue(newParameterValue.DimensionID) {
 			log.Errorf("Received invalid dimension id  %v for parameter %d from device %d", newParameterValue.DimensionID, parameterID, deviceID)
 			continue
 		}
 
-		parameterDimension, err := state[deviceID][parameterID].MultiIndex(newParameterValue.DimensionID)
+		parameterDimension, err := state[deviceID][parameterID].multiIndex(newParameterValue.DimensionID)
 		if err != nil {
 			log.Error(err)
 			continue
 		}
-		parameterBuffer, err := parameterDimension.Value()
+		parameterBuffer, err := parameterDimension.getValue()
 		if err != nil {
 			log.Error(err)
 			continue

@@ -27,16 +27,16 @@ func (m *IBeamParameterManager) processParameter(address paramDimensionAddress) 
 	rootDimension := state[deviceID][address.parameter]
 	parameterDetail := m.parameterRegistry.parameterDetail[modelID][paramID]
 
-	if !rootDimension.MultiIndexHasValue(address.dimensionID) {
+	if !rootDimension.multiIndexHasValue(address.dimensionID) {
 		log.Error("Invalid dimension ID %v for %d", address.dimensionID, address)
 		return
 	}
-	parameterDimension, err := rootDimension.MultiIndex(address.dimensionID)
+	parameterDimension, err := rootDimension.multiIndex(address.dimensionID)
 	if err != nil {
 		log.Errorf("could not get parameter buffer for dimension %v of param %v: %v", address.dimensionID, address, err)
 		return
 	}
-	parameterBuffer, err := parameterDimension.Value()
+	parameterBuffer, err := parameterDimension.getValue()
 	if err != nil {
 		log.Errorf("could not get parameter buffer value for dimension %v of param %v: %v", address.dimensionID, address, err)
 		return
