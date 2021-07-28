@@ -62,6 +62,22 @@ valueLoop:
 			continue
 		}
 
+		minimum := parameterConfig.Minimum
+		maximum := parameterConfig.Maximum
+		if parameterConfig.MinMaxIsDynamic {
+			if parameterBuffer.dynamicMin != nil {
+				minimum = *parameterBuffer.dynamicMin
+			}
+			if parameterBuffer.dynamicMin != nil {
+				maximum = *parameterBuffer.dynamicMax
+			}
+		}
+
+		optionlist := parameterConfig.OptionList
+		if parameterConfig.OptionListIsDynamic && parameterBuffer.dynamicOptions != nil {
+			optionlist = parameterBuffer.dynamicOptions
+		}
+
 		// Check if meta values are set check min/max and options
 		if len(newParameterValue.MetaValues) > 0 {
 			for name, mValue := range newParameterValue.MetaValues {
@@ -110,14 +126,14 @@ valueLoop:
 				continue
 			}
 
-			if newValue.Integer > int32(parameterConfig.Maximum) {
+			if newValue.Integer > int32(maximum) {
 				if !isDescreteValue(parameterConfig, float64(newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)) {
 					log.Errorf("Ingest Target Loop: Max violation for parameter %v, %d", parameterID)
 					m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MaxViolation)
 					continue
 				}
 			}
-			if newValue.Integer < int32(parameterConfig.Minimum) {
+			if newValue.Integer < int32(minimum) {
 				if !isDescreteValue(parameterConfig, float64(newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)) {
 					log.Errorf("Ingest Target Loop: Min violation for parameter %v, %d", parameterID, newValue.Integer)
 					m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MinViolation)
@@ -141,15 +157,15 @@ valueLoop:
 			if parameterConfig.ValueType == pb.ValueType_Integer {
 				newIntVal := parameterBuffer.targetValue.GetInteger() + newValue.IncDecSteps
 				log.Tracef("Decrement %d by %d", parameterBuffer.targetValue.GetInteger(), newValue.IncDecSteps)
-				if newIntVal <= int32(parameterConfig.Maximum) && newIntVal >= int32(parameterConfig.Minimum) {
+				if newIntVal <= int32(maximum) && newIntVal >= int32(minimum) {
 					parameterBuffer.targetValue.Value = &pb.ParameterValue_Integer{Integer: newIntVal}
 					parameterBuffer.targetValue.Invalid = false
 					if parameterConfig.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
 						parameterBuffer.currentValue.Value = &pb.ParameterValue_Integer{Integer: newIntVal}
 					}
 					// send out right away
-					m.serverClientsStream <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue()) // FIXME: check  ?!
-					continue                                                                                     // make sure we skip the rest of the logic :-)
+					m.serverClientsStream <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue())
+					continue // make sure we skip the rest of the logic :-)
 				}
 			}
 
@@ -160,14 +176,14 @@ valueLoop:
 				continue
 			}
 
-			if newValue.Floating > parameterConfig.Maximum {
+			if newValue.Floating > maximum {
 				if !isDescreteValue(parameterConfig, newParameterValue.Value.(*pb.ParameterValue_Floating).Floating) {
 					log.Errorf("Max violation for parameter %v", parameterID)
 					m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MaxViolation)
 					continue
 				}
 			}
-			if newValue.Floating < parameterConfig.Minimum {
+			if newValue.Floating < minimum {
 				if !isDescreteValue(parameterConfig, newParameterValue.Value.(*pb.ParameterValue_Floating).Floating) {
 					log.Errorf("Min violation for parameter %v", parameterID)
 					m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MinViolation)
@@ -185,14 +201,14 @@ valueLoop:
 
 		case *pb.ParameterValue_CurrentOption:
 
-			if parameterConfig.OptionList == nil {
+			if optionlist == nil {
 				log.Errorf("No option List found for Parameter %v", newValue)
 				continue
 			}
 
 			// check if id is valid in optionlist
 			found := false
-			for _, o := range parameterConfig.OptionList.Options {
+			for _, o := range optionlist.Options {
 				if o.Id == newValue.CurrentOption {
 					found = true
 					break

@@ -110,17 +110,22 @@ func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 					Parameter: pid,
 					Device:    did,
 				}
-				iv := s.parameterRegistry.getInstanceValues(&dpID)
-				if iv != nil {
-					rParameters.Parameters = append(rParameters.Parameters, &pb.Parameter{
-						Id:    &dpID,
-						Error: 0,
-						Value: iv,
-					})
+
+				iv := s.parameterRegistry.getInstanceValues(&dpID, true)
+				if iv == nil {
+					continue
 				}
+				rParameters.Parameters = append(rParameters.Parameters, &pb.Parameter{
+					Id:    &dpID,
+					Error: 0,
+					Value: iv,
+				})
 			}
 		}
-	} else if len(dpIDs.Ids) == 1 && dpIDs.Ids[0].Parameter == 0 && dpIDs.Ids[0].Device != 0 {
+		return rParameters, err
+	}
+
+	if len(dpIDs.Ids) == 1 && dpIDs.Ids[0].Parameter == 0 && dpIDs.Ids[0].Device != 0 {
 		did := dpIDs.Ids[0].Device
 		if _, exists := s.parameterRegistry.parameterValue[did]; !exists {
 			rParameters.Parameters = append(rParameters.Parameters, &pb.Parameter{
@@ -135,7 +140,7 @@ func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 				Parameter: pid,
 				Device:    did,
 			}
-			iv := s.parameterRegistry.getInstanceValues(&dpID)
+			iv := s.parameterRegistry.getInstanceValues(&dpID, true)
 			if iv != nil {
 				rParameters.Parameters = append(rParameters.Parameters, &pb.Parameter{
 					Id:    &dpID,
@@ -145,29 +150,30 @@ func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 			}
 
 		}
-	} else {
-		for _, dpID := range dpIDs.Ids {
-			if dpID.Device == 0 || dpID.Parameter == 0 {
-				err = errors.New("Failed to get instance values " + dpID.String())
-				return
-			}
-			iv := s.parameterRegistry.getInstanceValues(dpID)
-			if len(iv) == 0 {
-				rParameters.Parameters = append(rParameters.Parameters, &pb.Parameter{
-					Id:    dpID,
-					Error: pb.ParameterError_UnknownError,
-					Value: nil,
-				})
-			} else {
-				rParameters.Parameters = append(rParameters.Parameters, &pb.Parameter{
-					Id:    dpID,
-					Error: pb.ParameterError_NoError,
-					Value: iv,
-				})
-			}
+		return rParameters, err
+	}
+
+	for _, dpID := range dpIDs.Ids {
+		if dpID.Device == 0 || dpID.Parameter == 0 {
+			err = errors.New("Failed to get instance values " + dpID.String())
+			return
+		}
+		iv := s.parameterRegistry.getInstanceValues(dpID, true)
+		if len(iv) == 0 {
+			rParameters.Parameters = append(rParameters.Parameters, &pb.Parameter{
+				Id:    dpID,
+				Error: pb.ParameterError_UnknownError,
+				Value: nil,
+			})
+		} else {
+			rParameters.Parameters = append(rParameters.Parameters, &pb.Parameter{
+				Id:    dpID,
+				Error: pb.ParameterError_NoError,
+				Value: iv,
+			})
 		}
 	}
-	return
+	return rParameters, err
 }
 
 // GetParameterDetails returns the Details for given ModelParameterIDs.

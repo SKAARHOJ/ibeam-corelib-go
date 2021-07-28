@@ -7,6 +7,7 @@ import (
 	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
+	b "github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers"
 	log "github.com/s00500/env_logger"
 	"google.golang.org/protobuf/proto"
 )
@@ -43,7 +44,7 @@ func idFromName(name string) uint32 {
 }
 
 // device,parameter,instance
-func (r *IBeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID) (values []*pb.ParameterValue) {
+func (r *IBeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID, includeDynamicConfig bool) (values []*pb.ParameterValue) {
 	deviceID := dpID.Device
 	parameterIndex := dpID.Parameter
 	_, dExists := r.parameterValue[deviceID]
@@ -58,20 +59,39 @@ func (r *IBeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID) (
 		return nil
 	}
 
-	return getValues(r.parameterValue[deviceID][parameterIndex])
+	return getValues(r.parameterValue[deviceID][parameterIndex], includeDynamicConfig)
 }
 
-func getValues(dimension *iBeamParameterDimension) (values []*pb.ParameterValue) {
+func getValues(dimension *iBeamParameterDimension, includeDynamicConfig bool) (values []*pb.ParameterValue) {
 	if dimension.isValue() {
 		value, err := dimension.getValue()
 		if err != nil {
-			log.Fatal(err)
+			log.Error(log.Wrap(err, "Critical error in getting value"))
+			return nil
 		}
-		values = append(values, value.getParameterValue())
-	} else {
-		for _, dimension := range dimension.subDimensions {
-			values = append(values, getValues(dimension)...)
+
+		paramValue := value.getParameterValue()
+		values = append(values, paramValue)
+
+		if !includeDynamicConfig {
+			return values
 		}
+		if value.dynamicOptions != nil {
+			values = append(values, b.NewOptList(value.dynamicOptions, paramValue.DimensionID...))
+		}
+
+		if value.dynamicMax != nil {
+			values = append(values, b.NewMax(*value.dynamicMax, paramValue.DimensionID...))
+		}
+
+		if value.dynamicMin != nil {
+			values = append(values, b.NewMin(*value.dynamicMin, paramValue.DimensionID...))
+		}
+		return values
+	}
+
+	for _, dimension := range dimension.subDimensions {
+		values = append(values, getValues(dimension, includeDynamicConfig)...)
 	}
 	return values
 }

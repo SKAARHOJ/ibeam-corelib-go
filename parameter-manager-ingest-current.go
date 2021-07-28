@@ -73,7 +73,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				parameterBuffer.available = newParameterValue.Available
 			}
 
-			if values := m.parameterRegistry.getInstanceValues(parameter.GetId()); values != nil {
+			if values := m.parameterRegistry.getInstanceValues(parameter.GetId(), false); values != nil {
 				m.serverClientsStream <- b.Param(parameterID, deviceID, values...)
 			}
 			continue
@@ -85,7 +85,12 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			switch v := newParameterValue.Value.(type) {
 			case *pb.ParameterValue_Str:
 				// If Type of Parameter is Opt and we get a string, find the right Opt
-				id, err := getIDFromOptionListByElementName(parameterConfig.OptionList, v.Str)
+				optionlist := parameterConfig.OptionList
+				if parameterConfig.OptionListIsDynamic && parameterBuffer.dynamicOptions != nil {
+					optionlist = parameterBuffer.dynamicOptions
+				}
+
+				id, err := getIDFromOptionListByElementName(optionlist, v.Str)
 				if err != nil {
 					log.Error("on optionlist name lookup: ", err)
 					continue
@@ -100,11 +105,8 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					log.Errorf("Parameter with ID %v has no Dynamic OptionList", parameterID)
 					continue
 				}
-				m.parameterRegistry.muDetail.RUnlock()
-				m.parameterRegistry.muDetail.Lock()
-				m.parameterRegistry.parameterDetail[modelID][parameterID].OptionList = v.OptionListUpdate
-				m.parameterRegistry.muDetail.Unlock()
-				m.parameterRegistry.muDetail.RLock()
+
+				parameterBuffer.dynamicOptions = proto.Clone(v.OptionListUpdate).(*pb.OptionList)
 
 				m.serverClientsStream <- b.Param(parameterID, deviceID, newParameterValue)
 				continue
@@ -126,13 +128,10 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					log.Errorf("Parameter with ID %v has no dynamic min / max values", parameterID)
 					continue
 				}
-				m.parameterRegistry.muDetail.RUnlock()
 
-				m.parameterRegistry.muDetail.Lock()
-				m.parameterRegistry.parameterDetail[modelID][parameterID].Minimum = v.MinimumUpdate
-				m.parameterRegistry.muDetail.Unlock()
+				newMin := v.MinimumUpdate
+				parameterBuffer.dynamicMin = &newMin
 
-				m.parameterRegistry.muDetail.RLock()
 				m.serverClientsStream <- b.Param(parameterID, deviceID, newParameterValue)
 				continue
 			case *pb.ParameterValue_MaximumUpdate:
@@ -140,15 +139,23 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					log.Errorf("Parameter with ID %v has no dynamic min / max values", parameterID)
 					continue
 				}
-				m.parameterRegistry.muDetail.RUnlock()
 
-				m.parameterRegistry.muDetail.Lock()
-				m.parameterRegistry.parameterDetail[modelID][parameterID].Maximum = v.MaximumUpdate
-				m.parameterRegistry.muDetail.Unlock()
+				newMax := v.MaximumUpdate
+				parameterBuffer.dynamicMax = &newMax
 
-				m.parameterRegistry.muDetail.RLock()
 				m.serverClientsStream <- b.Param(parameterID, deviceID, newParameterValue)
 				continue
+			}
+
+			minimum := parameterConfig.Minimum
+			maximum := parameterConfig.Maximum
+			if parameterConfig.MinMaxIsDynamic {
+				if parameterBuffer.dynamicMin != nil {
+					minimum = *parameterBuffer.dynamicMin
+				}
+				if parameterBuffer.dynamicMin != nil {
+					maximum = *parameterBuffer.dynamicMax
+				}
 			}
 
 			if _, ok := newParameterValue.Value.(*pb.ParameterValue_Floating); !ok {
@@ -156,13 +163,13 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				continue
 			}
 
-			if newParameterValue.Value.(*pb.ParameterValue_Floating).Floating > parameterConfig.Maximum {
+			if newParameterValue.Value.(*pb.ParameterValue_Floating).Floating > maximum {
 				if !isDescreteValue(parameterConfig, newParameterValue.Value.(*pb.ParameterValue_Floating).Floating) {
 					log.Errorf("Ingest Current Loop: Max violation for parameter %v", parameterID)
 					continue
 				}
 			}
-			if newParameterValue.Value.(*pb.ParameterValue_Floating).Floating < parameterConfig.Minimum {
+			if newParameterValue.Value.(*pb.ParameterValue_Floating).Floating < minimum {
 				if !isDescreteValue(parameterConfig, newParameterValue.Value.(*pb.ParameterValue_Floating).Floating) {
 					log.Errorf("Ingest Current Loop: Min violation for parameter %v", parameterID)
 					continue
@@ -175,13 +182,10 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					log.Errorf("Parameter with ID %v has no dynamic min / max values", parameterID)
 					continue
 				}
-				m.parameterRegistry.muDetail.RUnlock()
 
-				m.parameterRegistry.muDetail.Lock()
-				m.parameterRegistry.parameterDetail[modelID][parameterID].Minimum = v.MinimumUpdate
-				m.parameterRegistry.muDetail.Unlock()
+				newMin := v.MinimumUpdate
+				parameterBuffer.dynamicMin = &newMin
 
-				m.parameterRegistry.muDetail.RLock()
 				m.serverClientsStream <- b.Param(parameterID, deviceID, newParameterValue)
 				continue
 			case *pb.ParameterValue_MaximumUpdate:
@@ -189,13 +193,10 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 					log.Errorf("Parameter with ID %v has no dynamic min / max values", parameterID)
 					continue
 				}
-				m.parameterRegistry.muDetail.RUnlock()
 
-				m.parameterRegistry.muDetail.Lock()
-				m.parameterRegistry.parameterDetail[modelID][parameterID].Maximum = v.MaximumUpdate
-				m.parameterRegistry.muDetail.Unlock()
+				newMax := v.MaximumUpdate
+				parameterBuffer.dynamicMax = &newMax
 
-				m.parameterRegistry.muDetail.RLock()
 				m.serverClientsStream <- b.Param(parameterID, deviceID, newParameterValue)
 				continue
 			}
@@ -257,7 +258,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			parameterBuffer.tryCount = 0
 		}
 
-		if values := m.parameterRegistry.getInstanceValues(parameter.GetId()); values != nil {
+		if values := m.parameterRegistry.getInstanceValues(parameter.GetId(), false); values != nil {
 			m.serverClientsStream <- b.Param(parameterID, deviceID, values...)
 		}
 

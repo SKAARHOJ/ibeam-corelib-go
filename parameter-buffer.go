@@ -20,6 +20,10 @@ type ibeamParameterValueBuffer struct {
 	reEvaluationTimerMu sync.Mutex
 	currentValue        *pb.ParameterValue
 	targetValue         *pb.ParameterValue
+
+	dynamicOptions *pb.OptionList
+	dynamicMin     *float64
+	dynamicMax     *float64
 }
 type timeTimer struct {
 	timer *time.Timer
