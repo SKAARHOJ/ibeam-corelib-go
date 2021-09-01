@@ -63,7 +63,7 @@ valueLoop:
 		}
 
 		if !dimension.value.available {
-			log.Errorf("Ingest Target Loop: Unavailable for parameter %v, DimensionID: %d", parameterID, newParameterValue.DimensionID[])
+			log.Errorf("Ingest Target Loop: Unavailable for parameter %v, DimensionID: %v", parameterID, newParameterValue.DimensionID)
 			m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_Unavailable)
 			continue
 		}
