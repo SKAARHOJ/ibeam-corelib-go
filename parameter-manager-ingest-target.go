@@ -62,6 +62,12 @@ valueLoop:
 			continue
 		}
 
+		if !dimension.value.available {
+			log.Errorf("Ingest Target Loop: Unavailable for parameter %v, DimensionID: %d", parameterID, newParameterValue.DimensionID[])
+			m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_Unavailable)
+			continue
+		}
+
 		minimum := parameterConfig.Minimum
 		maximum := parameterConfig.Maximum
 		if parameterConfig.MinMaxIsDynamic {
