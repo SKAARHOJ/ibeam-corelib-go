@@ -123,6 +123,13 @@ valueLoop:
 			}
 		}
 
+		// Check if th evalue is already set!
+		newParameterValue.Available = parameterBuffer.currentValue.Available // on an incoming request we can savely ignore the available, it will likely be false anyways
+		if parameterBuffer.currentEquals(newParameterValue) {
+			// if values are equal no need to do anything
+			continue
+		}
+
 		// Check if Value is valid and has the right Type
 		switch newValue := newParameterValue.Value.(type) {
 		case *pb.ParameterValue_Integer:
