@@ -36,7 +36,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 		}
 		// Check if Dimension is Valid
 		if !state[deviceID][parameterID].multiIndexHasValue(newParameterValue.DimensionID) {
-			log.Errorf("Received invalid dimension id  %v for parameter %d from device %d", newParameterValue.DimensionID, parameterID, deviceID)
+			log.Errorf("Received invalid dimension id  %v for parameter %s(%d) from device %d", newParameterValue.DimensionID, parameterConfig.Name, parameterID, deviceID)
 			continue
 		}
 

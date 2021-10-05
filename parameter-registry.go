@@ -479,7 +479,6 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 			log.Fatalf("It is not recommended to use more than 3 dimensions, if needed please contact the maintainer")
 		}
 
-		dimensionConfig := []uint32{}
 		initialValueDimension := iBeamParameterDimension{
 			value: &ibeamParameterValueBuffer{
 				dimensionID:    make([]uint32, 0),
@@ -491,11 +490,7 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 			},
 		}
 
-		for _, dimension := range parameterDetail.Dimensions {
-			dimensionConfig = append(dimensionConfig, dimension.Count)
-		}
-
-		parameterDimensions[parameterID] = generateDimensions(dimensionConfig, &initialValueDimension)
+		parameterDimensions[parameterID] = generateDimensions(parameterDetail.Dimensions, &initialValueDimension)
 	}
 
 	r.muInfo.Lock()
