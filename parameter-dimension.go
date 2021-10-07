@@ -95,7 +95,7 @@ func generateDimensions(dimensionConfig []*pb.DimensionDetail, initialValueDimen
 
 	dimElementIDs := make([]uint32, len(dimensionConfig[0].ElementLabels)+int(dimensionConfig[0].Count))
 
-	for count := uint32(0); count <= dimensionConfig[0].Count; count++ {
+	for count := uint32(1); count <= dimensionConfig[0].Count; count++ {
 		dimElementIDs = append(dimElementIDs, count)
 	}
 
