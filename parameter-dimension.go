@@ -93,7 +93,7 @@ func generateDimensions(dimensionConfig []*pb.DimensionDetail, initialValueDimen
 
 	dimensions := make(map[uint32]*iBeamParameterDimension, 0)
 
-	dimElementIDs := make([]uint32, len(dimensionConfig[0].ElementLabels)+int(dimensionConfig[0].Count))
+	dimElementIDs := make([]uint32, 0, len(dimensionConfig[0].ElementLabels)+int(dimensionConfig[0].Count))
 
 	for count := uint32(1); count <= dimensionConfig[0].Count; count++ {
 		dimElementIDs = append(dimElementIDs, count)
