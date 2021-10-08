@@ -664,6 +664,13 @@ func validateParameter(detail *pb.ParameterDetail) {
 		log.Fatalf("Parameter '%v': Float Percision is only usable on floats", detail.Name)
 	}
 
+	// Dimension check
+	for dId, dimensionDetail := range detail.Dimensions {
+		if dimensionDetail.Count == 0 && len(dimensionDetail.ElementLabels) == 0 {
+			log.Fatalf("Parameter '%v' Dimension '%d': Count is 0 and element labels are empty, this will cause a staleless parameter", detail.Name, dId)
+		}
+	}
+
 	// Metavalue checks
 	for mName, mDetail := range detail.MetaDetails {
 		if mDetail.MetaType != pb.ParameterMetaType_MetaInteger && mDetail.MetaType != pb.ParameterMetaType_MetaFloating {
