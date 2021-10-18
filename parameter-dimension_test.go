@@ -297,12 +297,12 @@ func TestIBeamParameterDimension_index(t *testing.T) {
 		{
 			name:   "With valid min dimID",
 			fields: fields{subDimensions: dimensions1.subDimensions, value: dimensions1.value},
-			args:   args{index: 0},
+			args:   args{index: 1},
 		},
 		{
 			name:    "With too big index",
 			fields:  fields{subDimensions: dimensions1.subDimensions, value: dimensions1.value},
-			args:    args{index: 5},
+			args:    args{index: 6},
 			wantErr: true,
 		},
 	}
