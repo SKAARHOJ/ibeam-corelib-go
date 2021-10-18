@@ -53,7 +53,7 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 	// First Basic Check Pipeline if the Parameter Value can be send to out
 	// ********************************************************************
 
-	if !parameterBuffer.isAssumedState {
+	if !parameterBuffer.isAssumedState.Load() {
 		return
 	}
 
@@ -82,7 +82,7 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 	case pb.ControlStyle_Normal:
 		if parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
 			parameterBuffer.currentValue = proto.Clone(parameterBuffer.targetValue).(*pb.ParameterValue)
-			parameterBuffer.isAssumedState = false
+			parameterBuffer.isAssumedState.Store(false)
 		}
 
 		// If we Have a current Option, get the Value for the option from the Option List
@@ -203,12 +203,12 @@ func (m *IBeamParameterManager) reevaluateIn(t time.Duration, buffer *ibeamParam
 			return
 		}
 
-		log.Trace("Resceduling in ", t.Milliseconds(), "milliseconds")
+		log.Info("Resceduling in ", t.Milliseconds(), "milliseconds")
 		buffer.reEvaluationTimer.timer.Reset(t)
 		return
 	}
 
-	log.Trace("Sceduling reevaluation in ", t.Milliseconds(), "milliseconds")
+	log.Info("Scheduling reevaluation in ", t.Milliseconds(), "milliseconds")
 
 	addr := paramDimensionAddress{
 		parameter:   parameterID,

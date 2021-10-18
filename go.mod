@@ -3,12 +3,10 @@ module github.com/SKAARHOJ/ibeam-corelib-go
 go 1.15
 
 require (
-	github.com/konsorten/go-windows-terminal-sequences v1.0.3 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-isatty v0.0.13 // indirect
 	github.com/s00500/env_logger v0.1.18
-	github.com/sirupsen/logrus v1.8.1 // indirect
-	github.com/speps/go-hashids/v2 v2.0.1 // indirect
+	go.uber.org/atomic v1.9.0
 	golang.org/x/net v0.0.0-20210504132125-bbd867fde50d // indirect
 	golang.org/x/sys v0.0.0-20210603081109-ebe580a85c40 // indirect
 	google.golang.org/genproto v0.0.0-20210504143626-3b2ad6ccc450 // indirect

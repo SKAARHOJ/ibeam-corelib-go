@@ -245,7 +245,6 @@ valueLoop:
 				Value: []*pb.ParameterValue{newParameterValue},
 			}
 		case *pb.ParameterValue_Binary:
-
 			if parameterConfig.ValueType != pb.ValueType_Binary {
 				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
 				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
@@ -265,7 +264,7 @@ valueLoop:
 				log.Debugf("Set new TargetValue '%v', for Parameter %v (%v), Device: %v", newParameterValue.Value, parameterID, parameterConfig.Name, deviceID)
 			}
 			parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
-			parameterBuffer.isAssumedState = true
+			parameterBuffer.isAssumedState.Store(true)
 			parameterBuffer.tryCount = 0
 		} else {
 			if parameterConfig.ValueType != pb.ValueType_PNG && parameterConfig.ValueType != pb.ValueType_JPEG {

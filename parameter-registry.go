@@ -481,14 +481,14 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 
 		initialValueDimension := iBeamParameterDimension{
 			value: &ibeamParameterValueBuffer{
-				dimensionID:    make([]uint32, 0),
-				available:      true,
-				isAssumedState: true,
-				lastUpdate:     time.Now(),
-				currentValue:   proto.Clone(initialValue).(*pb.ParameterValue),
-				targetValue:    proto.Clone(initialValue).(*pb.ParameterValue),
+				dimensionID:  make([]uint32, 0),
+				available:    true,
+				lastUpdate:   time.Now(),
+				currentValue: proto.Clone(initialValue).(*pb.ParameterValue),
+				targetValue:  proto.Clone(initialValue).(*pb.ParameterValue),
 			},
 		}
+		initialValueDimension.value.isAssumedState.Store(false)
 
 		parameterDimensions[parameterID] = generateDimensions(parameterDetail.Dimensions, &initialValueDimension)
 	}

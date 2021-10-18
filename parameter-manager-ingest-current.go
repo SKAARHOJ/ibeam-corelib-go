@@ -252,7 +252,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			assumed = !parameterBuffer.currentEquals(parameterBuffer.targetValue)
 		}
 
-		parameterBuffer.isAssumedState = assumed
+		parameterBuffer.isAssumedState.Store(assumed)
 
 		if !assumed {
 			parameterBuffer.tryCount = 0
