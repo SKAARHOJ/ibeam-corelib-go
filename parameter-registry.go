@@ -656,6 +656,10 @@ func validateParameter(detail *pb.ParameterDetail) {
 		log.Fatalf("Parameter '%v': Any non assumed value (FeedbackStyle_NoFeedback) needs to have RetryCount set", detail.Name)
 	}
 
+	if detail.RetryCount != 0 && detail.ControlDelayMs == 0 {
+		log.Fatalf("Parameter '%v': RetryCount will not work without ControlDelayMs being set", detail.Name)
+	}
+
 	if detail.InputCurve != pb.InputCurve_NormalInputCurve && detail.ValueType != pb.ValueType_Integer && detail.ValueType != pb.ValueType_Floating {
 		log.Fatalf("Parameter '%v': InputCurves can only be used on Integer or Float values", detail.Name)
 	}
