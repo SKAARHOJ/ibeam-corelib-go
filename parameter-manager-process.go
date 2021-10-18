@@ -99,7 +99,9 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 			parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
 			// send out assumed value to clients immediately
 			m.serverClientsStream <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue())
-		} else {
+		}
+
+		if parameterDetail.FeedbackStyle != pb.FeedbackStyle_NoFeedback && parameterDetail.ControlDelayMs != 0 {
 			m.reevaluateIn(time.Millisecond*time.Duration(parameterDetail.ControlDelayMs), parameterBuffer, parameterID, deviceID)
 		}
 	case pb.ControlStyle_Incremental:
