@@ -8,7 +8,7 @@ import (
 
 func TestIBeamParameterDimension_isValue(t *testing.T) {
 	type fields struct {
-		subDimensions []*IBeamParameterDimension
+		subDimensions map[uint32]*iBeamParameterDimension
 		value         *ibeamParameterValueBuffer
 	}
 	tests := []struct {
@@ -21,7 +21,7 @@ func TestIBeamParameterDimension_isValue(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pd := &IBeamParameterDimension{
+			pd := &iBeamParameterDimension{
 				subDimensions: tt.fields.subDimensions,
 				value:         tt.fields.value,
 			}
@@ -34,7 +34,7 @@ func TestIBeamParameterDimension_isValue(t *testing.T) {
 
 func TestIBeamParameterDimension_Value(t *testing.T) {
 	type fields struct {
-		subDimensions []*IBeamParameterDimension
+		subDimensions map[uint32]*iBeamParameterDimension
 		value         *ibeamParameterValueBuffer
 	}
 	buffer := &ibeamParameterValueBuffer{}
@@ -50,11 +50,11 @@ func TestIBeamParameterDimension_Value(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pd := &IBeamParameterDimension{
+			pd := &iBeamParameterDimension{
 				subDimensions: tt.fields.subDimensions,
 				value:         tt.fields.value,
 			}
-			got, err := pd.Value()
+			got, err := pd.getValue()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("IBeamParameterDimension.Value() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -68,17 +68,18 @@ func TestIBeamParameterDimension_Value(t *testing.T) {
 
 func TestIBeamParameterDimension_Subdimensions(t *testing.T) {
 	type fields struct {
-		subDimensions []*IBeamParameterDimension
+		subDimensions map[uint32]*iBeamParameterDimension
 		value         *ibeamParameterValueBuffer
 	}
 	buffer := &ibeamParameterValueBuffer{}
-	dim := &IBeamParameterDimension{}
-	dimRay := []*IBeamParameterDimension{dim}
+	dim := &iBeamParameterDimension{}
+	dimRay := map[uint32]*iBeamParameterDimension{}
+	dimRay[1] = dim
 
 	tests := []struct {
 		name    string
 		fields  fields
-		want    []*IBeamParameterDimension
+		want    map[uint32]*iBeamParameterDimension
 		wantErr bool
 	}{
 		{name: "Test Subdimensions with subdim", fields: fields{subDimensions: dimRay}, want: dimRay},
@@ -86,11 +87,11 @@ func TestIBeamParameterDimension_Subdimensions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pd := &IBeamParameterDimension{
+			pd := &iBeamParameterDimension{
 				subDimensions: tt.fields.subDimensions,
 				value:         tt.fields.value,
 			}
-			got, err := pd.Subdimensions()
+			got, err := pd.getSubdimensions()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("IBeamParameterDimension.Subdimensions() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -104,23 +105,33 @@ func TestIBeamParameterDimension_Subdimensions(t *testing.T) {
 
 func TestIBeamParameterDimension_MultiIndexHasValue(t *testing.T) {
 	type fields struct {
-		subDimensions []*IBeamParameterDimension
+		subDimensions map[uint32]*iBeamParameterDimension
 		value         *ibeamParameterValueBuffer
 	}
 	type args struct {
 		dimensionID []uint32
 	}
 
-	initialValueDimension := &IBeamParameterDimension{
+	initialValueDimension := &iBeamParameterDimension{
 		value: &ibeamParameterValueBuffer{
-			dimensionID:    make([]uint32, 0),
-			available:      true,
-			isAssumedState: true,
-			lastUpdate:     time.Now(),
+			dimensionID: make([]uint32, 0),
+			available:   true,
+			lastUpdate:  time.Now(),
 		},
 	}
+	initialValueDimension.value.isAssumedState.Store(false)
 
-	dimensions1 := generateDimensions([]uint32{2, 3, 5}, initialValueDimension)
+	dimensions1 := generateDimensions(DimensionDetails{
+		{
+			Count: 2,
+		},
+		{
+			Count: 3,
+		},
+		{
+			Count: 5,
+		},
+	}, initialValueDimension)
 
 	tests := []struct {
 		name   string
@@ -155,11 +166,11 @@ func TestIBeamParameterDimension_MultiIndexHasValue(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pd := &IBeamParameterDimension{
+			pd := &iBeamParameterDimension{
 				subDimensions: tt.fields.subDimensions,
 				value:         tt.fields.value,
 			}
-			if got := pd.MultiIndexHasValue(tt.args.dimensionID); got != tt.want {
+			if got := pd.multiIndexHasValue(tt.args.dimensionID); got != tt.want {
 				t.Errorf("IBeamParameterDimension.MultiIndexHasValue() = %v, want %v", got, tt.want)
 			}
 		})
@@ -168,28 +179,39 @@ func TestIBeamParameterDimension_MultiIndexHasValue(t *testing.T) {
 
 func TestIBeamParameterDimension_MultiIndex(t *testing.T) {
 	type fields struct {
-		subDimensions []*IBeamParameterDimension
+		subDimensions map[uint32]*iBeamParameterDimension
 		value         *ibeamParameterValueBuffer
 	}
 	type args struct {
 		dimensionID []uint32
 	}
 
-	initialValueDimension := &IBeamParameterDimension{
+	initialValueDimension := &iBeamParameterDimension{
 		value: &ibeamParameterValueBuffer{
-			dimensionID:    make([]uint32, 0),
-			available:      true,
-			isAssumedState: true,
-			lastUpdate:     time.Now(),
+			dimensionID: make([]uint32, 0),
+			available:   true,
+			lastUpdate:  time.Now(),
 		},
 	}
-	dimensions1 := generateDimensions([]uint32{2, 3, 5}, initialValueDimension)
+	initialValueDimension.value.isAssumedState.Store(false)
+
+	dimensions1 := generateDimensions(DimensionDetails{
+		{
+			Count: 2,
+		},
+		{
+			Count: 3,
+		},
+		{
+			Count: 5,
+		},
+	}, initialValueDimension)
 
 	tests := []struct {
 		name    string
 		fields  fields
 		args    args
-		want    *IBeamParameterDimension
+		want    *iBeamParameterDimension
 		wantErr bool
 	}{
 		{
@@ -220,11 +242,11 @@ func TestIBeamParameterDimension_MultiIndex(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pd := &IBeamParameterDimension{
+			pd := &iBeamParameterDimension{
 				subDimensions: tt.fields.subDimensions,
 				value:         tt.fields.value,
 			}
-			got, err := pd.MultiIndex(tt.args.dimensionID)
+			got, err := pd.multiIndex(tt.args.dimensionID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("IBeamParameterDimension.MultiIndex() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -238,28 +260,33 @@ func TestIBeamParameterDimension_MultiIndex(t *testing.T) {
 
 func TestIBeamParameterDimension_index(t *testing.T) {
 	type fields struct {
-		subDimensions []*IBeamParameterDimension
+		subDimensions map[uint32]*iBeamParameterDimension
 		value         *ibeamParameterValueBuffer
 	}
 	type args struct {
 		index uint32
 	}
 
-	initialValueDimension := &IBeamParameterDimension{
+	initialValueDimension := &iBeamParameterDimension{
 		value: &ibeamParameterValueBuffer{
-			dimensionID:    make([]uint32, 0),
-			available:      true,
-			isAssumedState: true,
-			lastUpdate:     time.Now(),
+			dimensionID: make([]uint32, 0),
+			available:   true,
+			lastUpdate:  time.Now(),
 		},
 	}
-	dimensions1 := generateDimensions([]uint32{5}, initialValueDimension)
+	initialValueDimension.value.isAssumedState.Store(true)
+
+	dimensions1 := generateDimensions(DimensionDetails{
+		{
+			Count: 5,
+		},
+	}, initialValueDimension)
 
 	tests := []struct {
 		name    string
 		fields  fields
 		args    args
-		want    *IBeamParameterDimension
+		want    *iBeamParameterDimension
 		wantErr bool
 	}{
 		{
@@ -281,7 +308,7 @@ func TestIBeamParameterDimension_index(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			pd := &IBeamParameterDimension{
+			pd := &iBeamParameterDimension{
 				subDimensions: tt.fields.subDimensions,
 				value:         tt.fields.value,
 			}

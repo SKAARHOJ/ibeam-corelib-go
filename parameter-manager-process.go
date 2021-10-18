@@ -28,7 +28,7 @@ func (m *IBeamParameterManager) processParameter(address paramDimensionAddress) 
 	parameterDetail := m.parameterRegistry.parameterDetail[modelID][paramID]
 
 	if !rootDimension.multiIndexHasValue(address.dimensionID) {
-		log.Error("Invalid dimension ID %v for %d", address.dimensionID, address)
+		log.Errorf("Invalid dimension ID %v for %d", address.dimensionID, address)
 		return
 	}
 	parameterDimension, err := rootDimension.multiIndex(address.dimensionID)
