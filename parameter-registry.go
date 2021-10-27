@@ -176,12 +176,11 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 		if !exists {
 			log.Fatalf("Could not register parameter '%s' for model with ID: %d", detail.Name, modelID)
 		}
+
 		if paramID == 0 {
-			if !r.ModelAutoIDs {
-				log.Fatalf("Missing ID on parameter '%s'", detail.Name)
-			}
-			paramID = uint32(len(r.parameterDetail[0]) + 1)
+			paramID = idFromName(detail.Name)
 		}
+
 		r.muDetail.RUnlock()
 		detail.Id = &pb.ModelParameterID{
 			Parameter: paramID,
