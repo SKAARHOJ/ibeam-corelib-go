@@ -182,6 +182,13 @@ valueLoop:
 				}
 			}
 
+			m.out <- &pb.Parameter{
+				Id:    parameter.Id,
+				Error: 0,
+				Value: []*pb.ParameterValue{newParameterValue},
+			}
+			continue
+
 		case *pb.ParameterValue_Floating:
 			if parameterConfig.ValueType != pb.ValueType_Floating {
 				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
@@ -244,6 +251,7 @@ valueLoop:
 				Error: 0,
 				Value: []*pb.ParameterValue{newParameterValue},
 			}
+			continue
 		case *pb.ParameterValue_Binary:
 			if parameterConfig.ValueType != pb.ValueType_Binary {
 				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
