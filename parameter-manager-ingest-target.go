@@ -155,7 +155,7 @@ valueLoop:
 			}
 		case *pb.ParameterValue_IncDecSteps:
 			// inc dec currently only works with integers or no values, float is kind of missing, action lists need to be evaluated
-			if parameterConfig.ValueType != pb.ValueType_Integer && parameterConfig.ValueType == pb.ValueType_NoValue {
+			if parameterConfig.ValueType != pb.ValueType_Integer && parameterConfig.ValueType != pb.ValueType_NoValue {
 				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
 				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
 				continue
