@@ -38,6 +38,11 @@ func OptIndex(val int, dimensionID ...uint32) *pb.ParameterValue {
 	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_CurrentOption{CurrentOption: uint32(val)}}
 }
 
+// IncDecSteps just returns a parameter value of type ParameterValue_IncDecSteps
+func IncDecSteps(val int, dimensionID ...uint32) *pb.ParameterValue {
+	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_IncDecSteps{IncDecSteps: int32(val)}}
+}
+
 // Png returns a parameter value of type ParameterValue_Png
 func Png(val []byte, dimensionID ...uint32) *pb.ParameterValue {
 	// TODO: pass image.Image and do some validation ? or just decide to not care ?
