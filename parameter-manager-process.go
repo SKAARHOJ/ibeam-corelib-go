@@ -205,12 +205,12 @@ func (m *IBeamParameterManager) reevaluateIn(t time.Duration, buffer *ibeamParam
 			return
 		}
 
-		log.Info("Resceduling in ", t.Milliseconds(), "milliseconds")
+		log.Traceln("Resceduling in", t.Milliseconds(), "milliseconds")
 		buffer.reEvaluationTimer.timer.Reset(t)
 		return
 	}
 
-	log.Info("Scheduling reevaluation in ", t.Milliseconds(), "milliseconds")
+	log.Traceln("Scheduling reevaluation in", t.Milliseconds(), "milliseconds")
 
 	addr := paramDimensionAddress{
 		parameter:   parameterID,
