@@ -24,17 +24,18 @@ type parameterStates map[uint32]map[uint32]*iBeamParameterDimension //Parameter 
 // IBeamParameterRegistry is the storage of the core.
 // It saves all Infos about the Core, Device and Models and stores the Details and current Values of the Parameter.
 type IBeamParameterRegistry struct {
-	muInfo          sync.RWMutex // Protects both Model and DeviceInfos
-	muDetail        sync.RWMutex
-	muValue         sync.RWMutex
-	coreInfo        *pb.CoreInfo
-	deviceInfos     map[uint32]*pb.DeviceInfo
-	modelInfos      map[uint32]*pb.ModelInfo
-	parameterDetail parameterDetails //Parameter Details: model, parameter
-	parameterValue  parameterStates  //Parameter States: device,parameter,dimension
-	ModelAutoIDs    bool             // This is not recommended to use, please do use the proper IDs for models
-	modelsDone      bool             // Sanity flag set on first call to add parameters to ensure order
-	parametersDone  bool             // Sanity flag set on first call to add devices to ensure order
+	muInfo           sync.RWMutex // Protects both Model and DeviceInfos
+	muDetail         sync.RWMutex
+	muValue          sync.RWMutex
+	coreInfo         *pb.CoreInfo
+	deviceInfos      map[uint32]*pb.DeviceInfo
+	modelInfos       map[uint32]*pb.ModelInfo
+	parameterDetail  parameterDetails //Parameter Details: model, parameter
+	parameterValue   parameterStates  //Parameter States: device,parameter,dimension
+	ModelAutoIDs     bool             // This is not recommended to use, please do use the proper IDs for models
+	modelsDone       bool             // Sanity flag set on first call to add parameters to ensure order
+	parametersDone   bool             // Sanity flag set on first call to add devices to ensure order
+	connectionExists bool
 }
 
 func idFromName(name string) uint32 {
@@ -205,6 +206,9 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 		}
 	}
 
+	if detail.GenericType == pb.GenericType_ConnectionState {
+		r.connectionExists = true
+	}
 	log.Debugf("ParameterDetail '%v' registered with ID: %v for Model %v", detail.Name, detail.Id.Parameter, detail.Id.Model)
 	return
 }
@@ -407,10 +411,7 @@ func (r *IBeamParameterRegistry) ReRegisterDevice(deviceID, modelID uint32) erro
 // Make sure to handle the error properly
 func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint32, error) {
 	if !r.parametersDone {
-		r.muDetail.Lock()
-		id := r.parameterIDByName("connection", 0)
-		r.muDetail.Unlock()
-		if id != 1 {
+		if !r.connectionExists {
 			// Autoregister connection parameter
 			r.RegisterParameter(&pb.ParameterDetail{
 				Id:            &pb.ModelParameterID{Parameter: 1},
