@@ -234,15 +234,17 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 		didSetTarget := false
 		didScheduleReEval := false
 
-		if time.Since(parameterBuffer.lastUpdate).Milliseconds()+1 > int64(parameterConfig.QuarantineDelayMs) {
-			if !proto.Equal(parameterBuffer.targetValue, newParameterValue) {
-				parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
-				didSetTarget = true
+		if parameterBuffer.tryCount == 0 { // Make sure we are not in the process of trying atm
+			if time.Since(parameterBuffer.lastUpdate).Milliseconds()+1 > int64(parameterConfig.QuarantineDelayMs) {
+				if !proto.Equal(parameterBuffer.targetValue, newParameterValue) {
+					parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
+					didSetTarget = true
+				}
+			} else {
+				timeForRecheck := int64(parameterConfig.QuarantineDelayMs) - time.Since(parameterBuffer.lastUpdate).Milliseconds()
+				m.reevaluateIn(time.Millisecond*time.Duration(timeForRecheck), parameterBuffer, parameterID, deviceID)
+				didScheduleReEval = true
 			}
-		} else {
-			timeForRecheck := int64(parameterConfig.QuarantineDelayMs) - time.Since(parameterBuffer.lastUpdate).Milliseconds()
-			m.reevaluateIn(time.Millisecond*time.Duration(timeForRecheck), parameterBuffer, parameterID, deviceID)
-			didScheduleReEval = true
 		}
 
 		assumed := false
@@ -270,7 +272,14 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				device:      deviceID,
 				dimensionID: parameterBuffer.getParameterValue().DimensionID,
 			}
-			m.reEvaluate(addr)
+			//Trigger process main, only after control delay has passed
+
+			if parameterConfig.ControlDelayMs != 0 && time.Since(parameterBuffer.lastUpdate).Milliseconds() < int64(parameterConfig.ControlDelayMs) {
+				m.reevaluateIn(time.Millisecond*time.Duration(parameterConfig.ControlDelayMs)-time.Since(parameterBuffer.lastUpdate), parameterBuffer, parameterID, deviceID)
+				return
+			} else {
+				m.reEvaluate(addr)
+			}
 		}
 	}
 }

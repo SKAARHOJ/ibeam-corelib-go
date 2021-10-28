@@ -1,6 +1,7 @@
 package ibeamcorelib
 
 import (
+	"fmt"
 	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
@@ -59,6 +60,7 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 
 	// Is is send after Control Delay time
 	if parameterDetail.ControlDelayMs != 0 && time.Since(parameterBuffer.lastUpdate).Milliseconds() < int64(parameterDetail.ControlDelayMs) {
+		m.reevaluateIn(time.Millisecond*time.Duration(parameterDetail.ControlDelayMs)-time.Since(parameterBuffer.lastUpdate), parameterBuffer, parameterID, deviceID)
 		return
 	}
 
@@ -71,6 +73,7 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 			perr := paramError(parameterID, deviceID, pb.ParameterError_MaxRetrys)
 			perr.Value = []*pb.ParameterValue{parameterBuffer.getParameterValue()}
 			m.serverClientsStream <- perr
+			parameterBuffer.tryCount = 0
 			return
 		}
 	}
@@ -102,7 +105,7 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 		}
 
 		if parameterDetail.FeedbackStyle != pb.FeedbackStyle_NoFeedback && parameterDetail.ControlDelayMs != 0 {
-			m.reevaluateIn(time.Millisecond*time.Duration(parameterDetail.ControlDelayMs), parameterBuffer, parameterID, deviceID)
+			m.reevaluateIn(time.Millisecond*time.Duration(parameterDetail.ControlDelayMs+1), parameterBuffer, parameterID, deviceID)
 		}
 	case pb.ControlStyle_Incremental:
 		m.out <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue())
@@ -210,7 +213,7 @@ func (m *IBeamParameterManager) reevaluateIn(t time.Duration, buffer *ibeamParam
 		return
 	}
 
-	log.Traceln("Scheduling reevaluation in", t.Milliseconds(), "milliseconds")
+	log.Traceln("Scheduling reevaluation of "+fmt.Sprint(parameterID)+" in", t.Milliseconds(), "milliseconds")
 
 	addr := paramDimensionAddress{
 		parameter:   parameterID,
