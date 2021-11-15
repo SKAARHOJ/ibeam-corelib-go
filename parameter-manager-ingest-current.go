@@ -206,13 +206,24 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				continue
 			}
 
-			if newParameterValue.Value.(*pb.ParameterValue_Integer).Integer > int32(parameterConfig.Maximum) {
+			minimum := parameterConfig.Minimum
+			maximum := parameterConfig.Maximum
+			if parameterConfig.MinMaxIsDynamic {
+				if parameterBuffer.dynamicMin != nil {
+					minimum = *parameterBuffer.dynamicMin
+				}
+				if parameterBuffer.dynamicMax != nil {
+					maximum = *parameterBuffer.dynamicMax
+				}
+			}
+
+			if newParameterValue.Value.(*pb.ParameterValue_Integer).Integer > int32(maximum) {
 				if !isDescreteValue(parameterConfig, float64(newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)) {
 					log.Errorf("Ingest Current Loop: Max violation for parameter %v, got %d", parameterID, newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)
 					continue
 				}
 			}
-			if newParameterValue.Value.(*pb.ParameterValue_Integer).Integer < int32(parameterConfig.Minimum) {
+			if newParameterValue.Value.(*pb.ParameterValue_Integer).Integer < int32(minimum) {
 				if !isDescreteValue(parameterConfig, float64(newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)) {
 					log.Errorf("Ingest Current Loop: Min violation for parameter %v, got %d", parameterID, newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)
 					continue
@@ -228,7 +239,6 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			log.Errorf("Parameter with ID %v has No Value but got %T", parameter.Id.Parameter, parameterConfig.ValueType)
 			continue
 		}
-
 		parameterBuffer.currentValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
 
 		didSetTarget := false
