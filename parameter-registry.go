@@ -316,7 +316,7 @@ func (r *IBeamParameterRegistry) GetParameterDetail(parameterID, modelID uint32)
 	return nil, fmt.Errorf("could not find Parameter with id %v", parameterID)
 }
 
-// GetParameterValue gets a copy of the parameter value from the state by pid, did and dimensionIDs
+// GetParameterValue gets a copy of the new parameter value from the state by pid, did and dimensionIDs
 func (r *IBeamParameterRegistry) GetParameterValue(parameterID, deviceID uint32, dimensionID ...uint32) (*pb.ParameterValue, error) {
 	r.muValue.RLock()
 	defer r.muValue.RUnlock()
@@ -345,6 +345,89 @@ func (r *IBeamParameterRegistry) GetParameterValue(parameterID, deviceID uint32,
 
 	valueCopy := proto.Clone(parameterBuffer.getParameterValue()).(*pb.ParameterValue)
 	return valueCopy, nil
+}
+
+// GetParameterCurrentValue gets a copy of the current parameter value from the state by pid, did and dimensionIDs
+func (r *IBeamParameterRegistry) GetParameterCurrentValue(parameterID, deviceID uint32, dimensionID ...uint32) (*pb.ParameterValue, error) {
+	r.muValue.RLock()
+	defer r.muValue.RUnlock()
+	state := r.parameterValue
+
+	// first check param and deviceID
+	if _, exists := state[deviceID][parameterID]; !exists {
+		return nil, fmt.Errorf("getcurrentparametervalue: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
+	}
+
+	// Check if Dimension is Valid
+	if !state[deviceID][parameterID].multiIndexHasValue(dimensionID) {
+
+		return nil, fmt.Errorf("getcurrentparametervalue: invalid dimension id  %v for parameter %d and device %d", dimensionID, parameterID, deviceID)
+	}
+
+	parameterDimension, err := state[deviceID][parameterID].multiIndex(dimensionID)
+	if err != nil {
+		return nil, err
+	}
+
+	parameterBuffer, err := parameterDimension.getValue()
+	if err != nil {
+		return nil, err
+	}
+
+	valueCopy := proto.Clone(parameterBuffer.getCurrentParameterValue()).(*pb.ParameterValue)
+	return valueCopy, nil
+}
+
+// GetParameterCurrentValue gets a copy of the current parameter value from the state by pid, did and dimensionIDs
+func (r *IBeamParameterRegistry) GetParameterOptions(parameterID, deviceID uint32, dimensionID ...uint32) (*pb.OptionList, error) {
+	model := r.GetModelIDByDeviceID(deviceID)
+
+	r.muDetail.RLock()
+	// first check param and model
+	if _, exists := r.parameterDetail[model][parameterID]; !exists {
+		r.muDetail.RUnlock()
+		return nil, fmt.Errorf("getcurrentparametervalue: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
+	}
+
+	options := proto.Clone(r.parameterDetail[model][parameterID].OptionList).(*pb.OptionList)
+
+	if !r.parameterDetail[model][parameterID].OptionListIsDynamic {
+		r.muDetail.RUnlock()
+		return options, nil
+	}
+	r.muDetail.RUnlock()
+
+	r.muValue.RLock()
+	defer r.muValue.RUnlock()
+	state := r.parameterValue
+
+	// first check param and deviceID
+	if _, exists := state[deviceID][parameterID]; !exists {
+		return nil, fmt.Errorf("getcurrentparametervalue: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
+	}
+
+	// Check if Dimension is Valid
+	if !state[deviceID][parameterID].multiIndexHasValue(dimensionID) {
+
+		return nil, fmt.Errorf("getcurrentparametervalue: invalid dimension id  %v for parameter %d and device %d", dimensionID, parameterID, deviceID)
+	}
+
+	parameterDimension, err := state[deviceID][parameterID].multiIndex(dimensionID)
+	if err != nil {
+		return nil, err
+	}
+
+	parameterBuffer, err := parameterDimension.getValue()
+	if err != nil {
+		return nil, err
+	}
+
+	if parameterBuffer.dynamicOptions != nil {
+		options := proto.Clone(parameterBuffer.dynamicOptions).(*pb.OptionList)
+		return options, nil
+	}
+
+	return options, nil
 }
 
 // GetModelIDByDeviceID is a helper to get the modelid for a specific device
@@ -697,7 +780,7 @@ func validateParameter(detail *pb.ParameterDetail) {
 		fallthrough
 	case pb.ValueType_Integer:
 		if detail.Minimum == 0 && detail.Maximum == 0 {
-			log.Fatalf("Parameter: '%v': Integer needs min/max set", detail.Name)
+			log.Fatalf("Parameter: '%v': Integer or Floating needs min/max set", detail.Name)
 		}
 	case pb.ValueType_Binary:
 		if detail.ControlStyle == pb.ControlStyle_Incremental {
@@ -709,6 +792,10 @@ func validateParameter(detail *pb.ParameterDetail) {
 		}
 		if detail.Minimum != 0 || detail.Maximum != 0 {
 			log.Fatalf("Parameter: '%v': NoValue can not min/max", detail.Name)
+		}
+	case pb.ValueType_Opt:
+		if !detail.OptionListIsDynamic && (detail.OptionList == nil || detail.OptionList.Options == nil || len(detail.OptionList.Options) == 0) {
+			log.Fatalf("Parameter: '%v': Missing option list", detail.Name)
 		}
 	}
 
