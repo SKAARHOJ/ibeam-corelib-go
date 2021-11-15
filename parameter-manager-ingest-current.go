@@ -68,6 +68,12 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			if newParameterValue.Invalid {
 				// if invalid is true set it
 				parameterBuffer.currentValue.Invalid = newParameterValue.Invalid
+
+				if parameterBuffer.tryCount == 0 { // Make sure we are not in the process of trying atm
+					if time.Since(parameterBuffer.lastUpdate).Milliseconds()+1 > int64(parameterConfig.QuarantineDelayMs) {
+						parameterBuffer.targetValue.Invalid = newParameterValue.Invalid
+					}
+				}
 			} else {
 				// else set available
 				parameterBuffer.available = newParameterValue.Available
@@ -162,6 +168,11 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				log.Errorf("Parameter with ID %v is Type Float but got %T", parameterID, parameterConfig.ValueType)
 				continue
 			}
+
+			// Limit the maximum float precision to ensure we do not cause troubles on parsing, // LB: Currently disabled
+			//log.Warn("Ingest Current ", newParameterValue.Value.(*pb.ParameterValue_Floating).Floating)
+			//newParameterValue.Value.(*pb.ParameterValue_Floating).Floating = math.Round(newParameterValue.Value.(*pb.ParameterValue_Floating).Floating*10000) / 10000
+			//log.Warn("Ingest Current round ", math.Round(newParameterValue.Value.(*pb.ParameterValue_Floating).Floating*10000)/10000)
 
 			if newParameterValue.Value.(*pb.ParameterValue_Floating).Floating > maximum {
 				if !isDescreteValue(parameterConfig, newParameterValue.Value.(*pb.ParameterValue_Floating).Floating) {
