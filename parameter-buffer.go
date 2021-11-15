@@ -43,6 +43,18 @@ func (b *ibeamParameterValueBuffer) getParameterValue() *pb.ParameterValue {
 	}
 }
 
+func (b *ibeamParameterValueBuffer) getCurrentParameterValue() *pb.ParameterValue {
+	b.isAssumedState.Store(!b.currentEquals(b.targetValue))
+	return &pb.ParameterValue{
+		DimensionID:    b.dimensionID,
+		Available:      b.available,
+		IsAssumedState: b.isAssumedState.Load(),
+		Value:          b.currentValue.Value,
+		Invalid:        b.currentValue.Invalid,
+		MetaValues:     b.currentValue.MetaValues,
+	}
+}
+
 func (b *ibeamParameterValueBuffer) incrementParameterValue() *pb.ParameterValue {
 	return &pb.ParameterValue{
 		DimensionID:    b.dimensionID,
