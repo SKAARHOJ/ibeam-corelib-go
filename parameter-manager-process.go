@@ -66,7 +66,14 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 
 	// Is the Retry Limit reached
 	if parameterDetail.RetryCount != 0 && parameterDetail.FeedbackStyle != pb.FeedbackStyle_NoFeedback {
+
 		if parameterBuffer.tryCount >= parameterDetail.RetryCount {
+			// Is is send after Quarantine Delay time ? Do not fire an error max retry before quarantine delay is over
+			if parameterDetail.QuarantineDelayMs != 0 && time.Since(parameterBuffer.lastUpdate).Milliseconds() < int64(parameterDetail.QuarantineDelayMs) {
+				m.reevaluateIn(time.Millisecond*time.Duration(parameterDetail.QuarantineDelayMs)-time.Since(parameterBuffer.lastUpdate), parameterBuffer, parameterID, deviceID)
+				return
+			}
+
 			log.Errorf("Failed to set parameter %v '%v' in %v tries on device %v", parameterID, parameterDetail.Name, parameterDetail.RetryCount, deviceID)
 			parameterBuffer.targetValue = proto.Clone(parameterBuffer.currentValue).(*pb.ParameterValue)
 
