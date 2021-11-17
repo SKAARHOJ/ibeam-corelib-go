@@ -1,6 +1,11 @@
 package paramhelpers
 
-import pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
+import (
+	"fmt"
+	"strconv"
+
+	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
+)
 
 // Param is the main function of the parameter helpers suite. It is used to create a pb.Parameter with a specified id and device.
 // After that you can add as many parameter values as needed for the specific parameter (usually onbly one, more for parameters with dimensions that you want to update at the same time)
@@ -21,6 +26,12 @@ func Int(val int, dimensionID ...uint32) *pb.ParameterValue {
 // Float just returns a parameter value of type ParameterValue_Floating
 func Float(val float64, dimensionID ...uint32) *pb.ParameterValue {
 	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_Floating{Floating: val}}
+}
+
+// Float just returns a parameter value of type ParameterValue_Floating that is correctly converted, this is an experimental helper, its implementation might change in the future
+func Float32(val float32, dimensionID ...uint32) *pb.ParameterValue {
+	val64, _ := strconv.ParseFloat(fmt.Sprint(val), 64)
+	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_Floating{Floating: val64}}
 }
 
 // Bool just returns a parameter value of type ParameterValue_Binary
