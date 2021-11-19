@@ -9,6 +9,11 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+// OptionFloatCurrentOverridesTargetDuringRetry allows to make the manager accept any value sent by the camera for a float as if it would be the correct target value
+// This is needed on devices that do some rounding on their own, making it impossible to get the accurate desired value
+// Warning: this option basically disables the manager for floats, in a leter version of corelib this needs replacement with something configurable per parameter
+var OptionFloatCurrentOverridesTargetDuringRetry bool = false
+
 func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) {
 
 	if err := m.checkValidParameter(parameter); err != nil {
@@ -255,11 +260,11 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 		didSetTarget := false
 		didScheduleReEval := false
 
-		if parameterBuffer.tryCount == 0 { // Make sure we are not in the process of trying atm
+		if (OptionFloatCurrentOverridesTargetDuringRetry && parameterConfig.ValueType == pb.ValueType_Floating) || parameterBuffer.tryCount == 0 { // Make sure we are not in the process of trying atm
 			if time.Since(parameterBuffer.lastUpdate).Milliseconds()+1 > int64(parameterConfig.QuarantineDelayMs) {
+				didSetTarget = true
 				if !proto.Equal(parameterBuffer.targetValue, newParameterValue) {
 					parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
-					didSetTarget = true
 				}
 			} else {
 				timeForRecheck := int64(parameterConfig.QuarantineDelayMs) - time.Since(parameterBuffer.lastUpdate).Milliseconds()

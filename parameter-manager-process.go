@@ -66,7 +66,6 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 
 	// Is the Retry Limit reached
 	if parameterDetail.RetryCount != 0 && parameterDetail.FeedbackStyle != pb.FeedbackStyle_NoFeedback {
-
 		if parameterBuffer.tryCount >= parameterDetail.RetryCount {
 			// Is is send after Quarantine Delay time ? Do not fire an error max retry before quarantine delay is over
 			if parameterDetail.QuarantineDelayMs != 0 && time.Since(parameterBuffer.lastUpdate).Milliseconds() < int64(parameterDetail.QuarantineDelayMs) {
