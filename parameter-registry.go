@@ -329,7 +329,6 @@ func (r *IBeamParameterRegistry) GetParameterValue(parameterID, deviceID uint32,
 
 	// Check if Dimension is Valid
 	if !state[deviceID][parameterID].multiIndexHasValue(dimensionID) {
-
 		return nil, fmt.Errorf("getparametervalue: invalid dimension id  %v for parameter %d and device %d", dimensionID, parameterID, deviceID)
 	}
 
@@ -360,7 +359,6 @@ func (r *IBeamParameterRegistry) GetParameterCurrentValue(parameterID, deviceID 
 
 	// Check if Dimension is Valid
 	if !state[deviceID][parameterID].multiIndexHasValue(dimensionID) {
-
 		return nil, fmt.Errorf("getcurrentparametervalue: invalid dimension id  %v for parameter %d and device %d", dimensionID, parameterID, deviceID)
 	}
 
@@ -408,7 +406,6 @@ func (r *IBeamParameterRegistry) GetParameterOptions(parameterID, deviceID uint3
 
 	// Check if Dimension is Valid
 	if !state[deviceID][parameterID].multiIndexHasValue(dimensionID) {
-
 		return nil, fmt.Errorf("getcurrentparametervalue: invalid dimension id  %v for parameter %d and device %d", dimensionID, parameterID, deviceID)
 	}
 

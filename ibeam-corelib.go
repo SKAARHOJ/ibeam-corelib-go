@@ -378,3 +378,7 @@ func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelI
 	registry.RegisterModel(defaultModel)
 	return
 }
+
+func (m *IBeamParameterManager) pName(id *pb.DeviceParameterID) string {
+	return fmt.Sprintf("parameter %s (P:%d, D: %d)", m.parameterRegistry.PName(id.Parameter), id.Parameter, id.Device)
+}

@@ -32,7 +32,7 @@ valueLoop:
 	for _, newParameterValue := range parameter.Value {
 		// Check if the NewValue has a Value
 		if newParameterValue.Value == nil {
-			log.Errorf("Received no value for parameter %d on device %d", parameterID, parameter.Id.Device)
+			log.Error("Received no value for ", m.pName(parameter.Id))
 			m.serverClientsStream <- &pb.Parameter{
 				Id:    parameter.Id,
 				Error: pb.ParameterError_HasNoValue,
@@ -43,7 +43,7 @@ valueLoop:
 
 		// Check if dimension of the value is valid
 		if !state[deviceID][parameterID].multiIndexHasValue(newParameterValue.DimensionID) {
-			log.Errorf("Received invalid Dimension %d for parameter %d on device %d", newParameterValue.DimensionID, parameterID, parameter.Id.Device)
+			log.Errorf("Received invalid Dimension %d for %s", newParameterValue.DimensionID, m.pName(parameter.Id))
 			m.serverClientsStream <- &pb.Parameter{
 				Id:    parameter.Id,
 				Error: pb.ParameterError_UnknownID,
@@ -63,7 +63,7 @@ valueLoop:
 		}
 
 		if !dimension.value.available {
-			log.Errorf("Ingest Target Loop: Unavailable for parameter %v, DimensionID: %v", parameterID, newParameterValue.DimensionID)
+			log.Errorf("Ingest Target Loop: Unavailable for %s, DimensionID: %v", m.pName(parameter.Id), newParameterValue.DimensionID)
 			m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_Unavailable)
 			continue
 		}
@@ -90,7 +90,7 @@ valueLoop:
 
 				mConfig, exists := parameterConfig.MetaDetails[name]
 				if !exists {
-					log.Warnf("Received undefined meta value called %s for parameter id %v", name, parameter.Id)
+					log.Warnf("Received undefined meta value called %s for %s", name, m.pName(parameter.Id))
 					continue // accept invalid options
 				}
 
@@ -103,11 +103,11 @@ valueLoop:
 						v = float64(mValue.GetInteger())
 					}
 					if v > mConfig.Maximum {
-						log.Errorf("MaxViolation for parameter meta value %s for parameter id %v : %f > %f", name, parameter.Id, v, mConfig.Maximum)
+						log.Errorf("MaxViolation for meta value %s of %s : %f > %f", name, m.pName(parameter.Id), v, mConfig.Maximum)
 						m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MaxViolation)
 						continue valueLoop
 					} else if v < mConfig.Minimum {
-						log.Errorf("MinViolation for parameter meta value %s for parameter id %v : %f < %f", name, parameter.Id, v, mConfig.Minimum)
+						log.Errorf("MinViolation for parameter meta value %s for %s : %f < %f", name, m.pName(parameter.Id), v, mConfig.Minimum)
 						m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MinViolation)
 						continue valueLoop
 					}
@@ -115,7 +115,7 @@ valueLoop:
 
 				if mConfig.MetaType == pb.ParameterMetaType_MetaOption {
 					if !containsString(mValue.GetStr(), mConfig.Options) {
-						log.Errorf("Received undefined meta option value called %s for metavalue %s for parameter id %v", mValue.GetStr(), name, parameter.Id)
+						log.Errorf("Received undefined meta option value called %s for metavalue %s for %s", mValue.GetStr(), name, m.pName(parameter.Id))
 						m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_UnknownID)
 						continue valueLoop
 					}
@@ -134,21 +134,21 @@ valueLoop:
 		switch newValue := newParameterValue.Value.(type) {
 		case *pb.ParameterValue_Integer:
 			if parameterConfig.ValueType != pb.ValueType_Integer {
-				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
+				log.Errorf("Got Value with Type %T for %s, but it needs %v", newValue, m.pName(parameter.Id), pb.ValueType_name[int32(parameterConfig.ValueType)])
 				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
 				continue
 			}
 
 			if newValue.Integer > int32(maximum) {
 				if !isDescreteValue(parameterConfig, float64(newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)) {
-					log.Errorf("Ingest Target Loop: Max violation for parameter %v, %d", parameterID, newValue.Integer)
+					log.Errorf("Ingest Target Loop: Max violation for %s, %d", m.pName(parameter.Id), newValue.Integer)
 					m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MaxViolation)
 					continue
 				}
 			}
 			if newValue.Integer < int32(minimum) {
 				if !isDescreteValue(parameterConfig, float64(newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)) {
-					log.Errorf("Ingest Target Loop: Min violation for parameter %v, %d", parameterID, newValue.Integer)
+					log.Errorf("Ingest Target Loop: Min violation for %s, %d", m.pName(parameter.Id), newValue.Integer)
 					m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MinViolation)
 					continue
 				}
@@ -156,13 +156,13 @@ valueLoop:
 		case *pb.ParameterValue_IncDecSteps:
 			// inc dec currently only works with integers or no values, float is kind of missing, action lists need to be evaluated
 			if parameterConfig.ValueType != pb.ValueType_Integer && parameterConfig.ValueType != pb.ValueType_NoValue {
-				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
+				log.Errorf("Got Value with Type %T for %s, but it needs %v", newValue, m.pName(parameter.Id), pb.ValueType_name[int32(parameterConfig.ValueType)])
 				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
 				continue
 			}
 
 			if newValue.IncDecSteps > parameterConfig.IncDecStepsUpperLimit || newValue.IncDecSteps < parameterConfig.IncDecStepsLowerLimit {
-				log.Errorf("In- or Decrementation Step %v is outside of limits [%v,%v] of the parameter %v", newValue.IncDecSteps, parameterConfig.IncDecStepsLowerLimit, parameterConfig.IncDecStepsUpperLimit, parameterID)
+				log.Errorf("In- or Decrementation Step %v is outside of limits [%v,%v] of %s", newValue.IncDecSteps, parameterConfig.IncDecStepsLowerLimit, parameterConfig.IncDecStepsUpperLimit, m.pName(parameter.Id))
 				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_StepSizeViolation)
 				continue
 			}
@@ -191,28 +191,28 @@ valueLoop:
 
 		case *pb.ParameterValue_Floating:
 			if parameterConfig.ValueType != pb.ValueType_Floating {
-				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
+				log.Errorf("Got Value with Type %T for %s, but it needs %v", newValue, m.pName(parameter.Id), parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
 				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
 				continue
 			}
 
 			if newValue.Floating > maximum {
 				if !isDescreteValue(parameterConfig, newParameterValue.Value.(*pb.ParameterValue_Floating).Floating) {
-					log.Errorf("Max violation for parameter %v", parameterID)
+					log.Errorln("Max violation for", m.pName(parameter.Id))
 					m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MaxViolation)
 					continue
 				}
 			}
 			if newValue.Floating < minimum {
 				if !isDescreteValue(parameterConfig, newParameterValue.Value.(*pb.ParameterValue_Floating).Floating) {
-					log.Errorf("Min violation for parameter %v", parameterID)
+					log.Errorln("Min violation for", m.pName(parameter.Id))
 					m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MinViolation)
 					continue
 				}
 			}
 		case *pb.ParameterValue_Str:
 			if parameterConfig.ValueType != pb.ValueType_String {
-				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
+				log.Errorf("Got Value with Type %T for %s, but it needs %v", newValue, m.pName(parameter.Id), pb.ValueType_name[int32(parameterConfig.ValueType)])
 				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
 				continue
 			}
@@ -222,7 +222,7 @@ valueLoop:
 		case *pb.ParameterValue_CurrentOption:
 
 			if optionlist == nil {
-				log.Errorf("No option List found for Parameter %v", newValue)
+				log.Errorln("No option List found", m.pName(parameter.Id))
 				continue
 			}
 
@@ -236,13 +236,13 @@ valueLoop:
 			}
 
 			if !found {
-				log.Errorf("Invalid operation index for parameter %v", parameterID)
+				log.Errorln("Invalid operation index for", m.pName(parameter.Id))
 				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_UnknownID)
 				continue
 			}
 		case *pb.ParameterValue_Cmd:
 			if parameterConfig.ControlStyle == pb.ControlStyle_Normal {
-				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it has ControlStyle Normal and needs a Value", newValue, parameterID, parameterConfig.Name)
+				log.Errorf("Got Value with Type %T for %s, but it has ControlStyle Normal and needs a Value", newValue, m.pName(parameter.Id))
 				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
 				continue
 			}
@@ -254,7 +254,7 @@ valueLoop:
 			continue
 		case *pb.ParameterValue_Binary:
 			if parameterConfig.ValueType != pb.ValueType_Binary {
-				log.Errorf("Got Value with Type %T for Parameter %v (%v), but it needs %v", newValue, parameterID, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
+				log.Errorf("Got Value with Type %T for %s, but it needs %v", newValue, m.pName(parameter.Id), pb.ValueType_name[int32(parameterConfig.ValueType)])
 				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
 				continue
 			}
@@ -269,7 +269,7 @@ valueLoop:
 
 		if !parameterBuffer.currentEquals(newParameterValue) {
 			if parameterConfig.ValueType != pb.ValueType_PNG && parameterConfig.ValueType != pb.ValueType_JPEG {
-				log.Debugf("Set new TargetValue '%v', for Parameter %v (%v), Device: %v", newParameterValue.Value, parameterID, parameterConfig.Name, deviceID)
+				log.Debugf("Set new TargetValue '%v', for %s, Device: %v", newParameterValue.Value, m.pName(parameter.Id), deviceID)
 			}
 			parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
 			parameterBuffer.isAssumedState.Store(true)
