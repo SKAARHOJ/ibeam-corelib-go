@@ -6,11 +6,12 @@ import (
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
 	b "github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers"
-	log "github.com/s00500/env_logger"
 	"google.golang.org/protobuf/proto"
 )
 
 func (m *IBeamParameterManager) processParameter(address paramDimensionAddress) {
+	mlog := m.log
+
 	m.parameterRegistry.muInfo.RLock()
 	defer m.parameterRegistry.muInfo.RUnlock()
 
@@ -29,17 +30,17 @@ func (m *IBeamParameterManager) processParameter(address paramDimensionAddress) 
 	parameterDetail := m.parameterRegistry.parameterDetail[modelID][paramID]
 
 	if !rootDimension.multiIndexHasValue(address.dimensionID) {
-		log.Errorf("Invalid dimension ID %v for %d", address.dimensionID, address)
+		mlog.Errorf("Invalid dimension ID %v for %d", address.dimensionID, address)
 		return
 	}
 	parameterDimension, err := rootDimension.multiIndex(address.dimensionID)
 	if err != nil {
-		log.Errorf("could not get parameter buffer for dimension %v of param %v: %v", address.dimensionID, address, err)
+		mlog.Errorf("could not get parameter buffer for dimension %v of param %v: %v", address.dimensionID, address, err)
 		return
 	}
 	parameterBuffer, err := parameterDimension.getValue()
 	if err != nil {
-		log.Errorf("could not get parameter buffer value for dimension %v of param %v: %v", address.dimensionID, address, err)
+		mlog.Errorf("could not get parameter buffer value for dimension %v of param %v: %v", address.dimensionID, address, err)
 		return
 	}
 	m.handleSingleParameterBuffer(parameterBuffer, parameterDetail, deviceID)
@@ -47,6 +48,11 @@ func (m *IBeamParameterManager) processParameter(address paramDimensionAddress) 
 }
 
 func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibeamParameterValueBuffer, parameterDetail *pb.ParameterDetail, deviceID uint32) {
+	//mlog := m.log.WithField("parameter", fmt.Sprintf("%s (P:%d, D: %d)", m.parameterRegistry.PName(parameterDetail.Id.Parameter), parameterDetail.Id.Parameter, deviceID))
+	mlog := m.log.WithField("pname", m.parameterRegistry.PName(parameterDetail.Id.Parameter))
+	mlog = mlog.WithField("pid", parameterDetail.Id.Parameter)
+	mlog = mlog.WithField("did", deviceID)
+
 	// Function assumes mutexes are already locked
 
 	parameterID := parameterDetail.Id.Parameter
@@ -73,7 +79,7 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 				return
 			}
 
-			log.Errorf("Failed to set parameter %v '%v' in %v tries on device %v", parameterID, parameterDetail.Name, parameterDetail.RetryCount, deviceID)
+			mlog.Errorf("Failed to set parameter %v '%v' in %v tries on device %v", parameterID, parameterDetail.Name, parameterDetail.RetryCount, deviceID)
 			parameterBuffer.targetValue = proto.Clone(parameterBuffer.currentValue).(*pb.ParameterValue)
 
 			perr := paramError(parameterID, deviceID, pb.ParameterError_MaxRetrys)
@@ -166,7 +172,7 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 				}
 			}
 		default:
-			log.Errorf("Could not match Valuetype %T", value)
+			mlog.Errorf("Could not match Valuetype %T", value)
 		}
 
 		var cmdValue *pb.ParameterValue
@@ -181,11 +187,11 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 		}
 		parameterBuffer.lastUpdate = time.Now()
 		if parameterDetail.Id == nil {
-			log.Errorf("No DeviceParameterID")
+			mlog.Errorf("No DeviceParameterID")
 			return
 		}
 
-		log.Debugf("Send value '%v' to Device", cmdValue)
+		mlog.Debugf("Send value '%v' to Device", cmdValue)
 		m.out <- b.Param(parameterID, deviceID, cmdValue)
 		parameterBuffer.tryCount++
 		m.reevaluateIn(time.Millisecond*time.Duration(parameterDetail.ControlDelayMs), parameterBuffer, parameterID, deviceID)
@@ -195,7 +201,7 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 		}
 
 	default:
-		log.Errorf("Could not match controlltype")
+		mlog.Errorf("Could not match controlltype")
 		return
 	}
 }
@@ -214,12 +220,12 @@ func (m *IBeamParameterManager) reevaluateIn(t time.Duration, buffer *ibeamParam
 			return
 		}
 
-		log.Traceln("Resceduling in", t.Milliseconds(), "milliseconds")
+		m.log.Traceln("Resceduling in", t.Milliseconds(), "milliseconds")
 		buffer.reEvaluationTimer.timer.Reset(t)
 		return
 	}
 
-	log.Traceln("Scheduling reevaluation of "+fmt.Sprint(parameterID)+" in", t.Milliseconds(), "milliseconds")
+	m.log.Traceln("Scheduling reevaluation of "+fmt.Sprint(parameterID)+" in", t.Milliseconds(), "milliseconds")
 
 	addr := paramDimensionAddress{
 		parameter:   parameterID,
@@ -238,6 +244,6 @@ func (m *IBeamParameterManager) reEvaluate(addr paramDimensionAddress) {
 	select {
 	case m.parameterEvent <- addr:
 	default:
-		log.Error("Parameter Event Channel would block, dropped reevaluation trigger to avoid deadlock")
+		m.log.Error("Parameter Event Channel would block, dropped reevaluation trigger to avoid deadlock")
 	}
 }

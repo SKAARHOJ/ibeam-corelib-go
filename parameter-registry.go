@@ -36,6 +36,7 @@ type IBeamParameterRegistry struct {
 	modelsDone       bool             // Sanity flag set on first call to add parameters to ensure order
 	parametersDone   bool             // Sanity flag set on first call to add devices to ensure order
 	connectionExists bool
+	log              *log.Entry
 }
 
 func idFromName(name string) uint32 {
@@ -50,24 +51,24 @@ func (r *IBeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID, i
 	parameterIndex := dpID.Parameter
 	_, dExists := r.parameterValue[deviceID]
 	if dpID.Device == 0 || dpID.Parameter == 0 || !dExists {
-		log.Error("Could not get instance values for DeviceParameterID: Device:", dpID.Device, " and param: ", dpID.Parameter)
+		r.log.Error("Could not get instance values for DeviceParameterID: Device:", dpID.Device, " and param: ", dpID.Parameter)
 		return nil
 	}
 
 	if _, ok := r.parameterValue[deviceID][parameterIndex]; !ok {
-		log.Info(r.parameterValue[deviceID])
-		log.Error("Could not get instance values for DeviceParameterID: Device:", dpID.Device, " and param: ", dpID.Parameter, " param does not exist")
+		r.log.Info(r.parameterValue[deviceID])
+		r.log.Error("Could not get instance values for DeviceParameterID: Device:", dpID.Device, " and param: ", dpID.Parameter, " param does not exist")
 		return nil
 	}
 
-	return getValues(r.parameterValue[deviceID][parameterIndex], includeDynamicConfig)
+	return getValues(r.log, r.parameterValue[deviceID][parameterIndex], includeDynamicConfig)
 }
 
-func getValues(dimension *iBeamParameterDimension, includeDynamicConfig bool) (values []*pb.ParameterValue) {
+func getValues(rlog *log.Entry, dimension *iBeamParameterDimension, includeDynamicConfig bool) (values []*pb.ParameterValue) {
 	if dimension.isValue() {
 		value, err := dimension.getValue()
 		if err != nil {
-			log.Error(log.Wrap(err, "Critical error in getting value"))
+			rlog.Error(log.Wrap(err, "Critical error in getting value"))
 			return nil
 		}
 
@@ -92,7 +93,7 @@ func getValues(dimension *iBeamParameterDimension, includeDynamicConfig bool) (v
 	}
 
 	for _, dimension := range dimension.subDimensions {
-		values = append(values, getValues(dimension, includeDynamicConfig)...)
+		values = append(values, getValues(rlog, dimension, includeDynamicConfig)...)
 	}
 	return values
 }
@@ -101,7 +102,7 @@ func (r *IBeamParameterRegistry) getModelID(deviceID uint32) uint32 {
 	// This function assumes that mutexes are already locked
 	_, dExists := r.deviceInfos[deviceID]
 	if !dExists || deviceID == 0 {
-		log.Fatalf("Could not get model for device with id %v.", deviceID)
+		r.log.Fatalf("Could not get model for device with id %v.", deviceID)
 	}
 	return r.deviceInfos[deviceID].ModelID
 }
@@ -110,7 +111,7 @@ func (r *IBeamParameterRegistry) getModelID(deviceID uint32) uint32 {
 func (r *IBeamParameterRegistry) RegisterParameterForModels(modelIDs []uint32, detail *pb.ParameterDetail) {
 	for _, id := range modelIDs {
 		if id == 0 {
-			log.Fatal("RegisterParameterForModels: do not use this function with the generic model")
+			r.log.Fatal("RegisterParameterForModels: do not use this function with the generic model")
 		}
 		dt := proto.Clone(detail).(*pb.ParameterDetail)
 		r.RegisterParameterForModel(id, dt)
@@ -130,7 +131,7 @@ func (r *IBeamParameterRegistry) RegisterParameterForModel(modelID uint32, detai
 func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (paramID uint32) {
 	r.modelsDone = true
 	if r.parametersDone {
-		log.Fatal("Can not unregister a parameter after registering the first device")
+		r.log.Fatal("Can not unregister a parameter after registering the first device")
 	}
 
 	modelID := uint32(0)
@@ -145,7 +146,7 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 
 		id := r.parameterIDByName(detail.Name, modelID)
 		if id != 0 {
-			log.Fatal("Duplicate parameter name for ", detail.Name)
+			r.log.Fatal("Duplicate parameter name for ", detail.Name)
 		}
 
 		if paramID == 0 {
@@ -157,7 +158,7 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 			Model:     modelID,
 		}
 
-		validateParameter(detail)
+		validateParameter(r.log, detail)
 
 		r.muDetail.Lock()
 		for aMid, modelconfig := range r.parameterDetail {
@@ -175,7 +176,7 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 
 		modelconfig, exists := r.parameterDetail[modelID]
 		if !exists {
-			log.Fatalf("Could not register parameter '%s' for model with ID: %d", detail.Name, modelID)
+			r.log.Fatalf("Could not register parameter '%s' for model with ID: %d", detail.Name, modelID)
 		}
 
 		if paramID == 0 {
@@ -188,7 +189,7 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 			Model:     modelID,
 		}
 
-		validateParameter(detail)
+		validateParameter(r.log, detail)
 		r.muDetail.Lock()
 
 		modelconfig[paramID] = detail
@@ -201,7 +202,7 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 		}
 		r.muDetail.Unlock()
 		if pid == 0 {
-			log.Debugf("ParameterDetail '%v' with ID: %v was overridden for Model %v", detail.Name, detail.Id.Parameter, detail.Id.Model)
+			r.log.Debugf("ParameterDetail '%v' with ID: %v was overridden for Model %v", detail.Name, detail.Id.Parameter, detail.Id.Model)
 			return
 		}
 	}
@@ -209,7 +210,7 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 	if detail.GenericType == pb.GenericType_ConnectionState {
 		r.connectionExists = true
 	}
-	log.Debugf("ParameterDetail '%v' registered with ID: %v for Model %v", detail.Name, detail.Id.Parameter, detail.Id.Model)
+	r.log.Debugf("ParameterDetail '%v' registered with ID: %v for Model %v", detail.Name, detail.Id.Parameter, detail.Id.Model)
 	return
 }
 
@@ -223,49 +224,49 @@ func (r *IBeamParameterRegistry) UnregisterParameterForModels(modelIDs []uint32,
 // UnregisterParameterForModel removes a specific parameter for a specific model.
 func (r *IBeamParameterRegistry) UnregisterParameterForModel(modelID uint32, parameterName string) {
 	if r.parametersDone {
-		log.Fatal("Can not unregister a parameter after registering the first device")
+		r.log.Fatal("Can not unregister a parameter after registering the first device")
 	}
 
 	if modelID == 0 {
-		log.Fatal("Do not unregister parameters on the default model")
+		r.log.Fatal("Do not unregister parameters on the default model")
 	}
 
 	r.muDetail.Lock()
 	id := r.parameterIDByName(parameterName, modelID)
 
 	if id == 0 {
-		log.Fatalf("Unknown parameter %s to be unregistered for model %d", parameterName, modelID)
+		r.log.Fatalf("Unknown parameter %s to be unregistered for model %d", parameterName, modelID)
 	}
 
 	delete(r.parameterDetail[modelID], id)
 	r.muDetail.Unlock()
 
-	log.Debugf("ParameterDetail with ID: %d removed for Model %d", id, modelID)
+	r.log.Debugf("ParameterDetail with ID: %d removed for Model %d", id, modelID)
 }
 
 // RegisterModel registers a new Model in the Registry with given ModelInfo
 func (r *IBeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32 {
 	if r.modelsDone {
-		log.Fatal("Can not register a new model after registering parameters")
+		r.log.Fatal("Can not register a new model after registering parameters")
 	}
 
 	if model.Name == "" {
-		log.Fatal("please specify a name for all models")
+		r.log.Fatal("please specify a name for all models")
 	}
 
 	if model.Description == "" {
-		log.Fatal("please specify a description for all models")
+		r.log.Fatal("please specify a description for all models")
 	}
 
 	r.muInfo.Lock()
 	if _, exists := r.modelInfos[model.Id]; exists {
 		// if the id already exists count it up
 		if !r.ModelAutoIDs {
-			log.Fatalf("Refusing to autoassign id for model '%s', please specify an explicit ID", model.Name)
+			r.log.Fatalf("Refusing to autoassign id for model '%s', please specify an explicit ID", model.Name)
 		}
 		r.muDetail.RLock()
 		model.Id = uint32(len(r.parameterDetail))
-		log.Warnf("Autoassigning id %d for model '%s'", model.Id, model.Name)
+		r.log.Warnf("Autoassigning id %d for model '%s'", model.Id, model.Name)
 		r.muDetail.RUnlock()
 	}
 
@@ -276,7 +277,7 @@ func (r *IBeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32 {
 	r.parameterDetail[model.Id] = map[uint32]*pb.ParameterDetail{}
 	r.muDetail.Unlock()
 
-	log.Debugf("Model '%v' registered with ID: %v ", model.Name, model.Id)
+	r.log.Debugf("Model '%v' registered with ID: %v ", model.Name, model.Id)
 	return model.Id
 }
 
@@ -434,7 +435,7 @@ func (r *IBeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32 {
 
 	device, exists := r.deviceInfos[deviceID]
 	if !exists {
-		log.Warnf("can not get model: no device with ID %d found", deviceID)
+		r.log.Warnf("can not get model: no device with ID %d found", deviceID)
 		return 0
 	}
 	return device.ModelID
@@ -451,7 +452,7 @@ func (r *IBeamParameterRegistry) RegisterDeviceWithModelName(deviceID uint32, mo
 		}
 	}
 	r.muInfo.RUnlock()
-	log.Warnf("Could not find model for '%s', using generic model", modelName)
+	r.log.Warnf("Could not find model for '%s', using generic model", modelName)
 	return r.RegisterDevice(deviceID, modelID)
 }
 
@@ -469,7 +470,7 @@ func (r *IBeamParameterRegistry) ReRegisterDevice(deviceID, modelID uint32) erro
 	r.muDetail.RLock()
 	if _, exists := r.parameterDetail[modelID]; !exists {
 		r.muDetail.RUnlock()
-		log.Fatalf("Could not register device for nonexistent model with id: %v", modelID)
+		r.log.Fatalf("Could not register device for nonexistent model with id: %v", modelID)
 	}
 	r.muDetail.RUnlock()
 
@@ -556,14 +557,14 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 		}
 
 		if len(parameterDetail.Dimensions) > 3 {
-			log.Fatalf("It is not recommended to use more than 3 dimensions, if needed please contact the maintainer")
+			r.log.Fatalf("It is not recommended to use more than 3 dimensions, if needed please contact the maintainer")
 		}
 
 		initialValueDimension := iBeamParameterDimension{
 			value: &ibeamParameterValueBuffer{
 				dimensionID:  make([]uint32, 0),
 				available:    true,
-				lastUpdate:   time.Now().Add(-time.Hour), // This is to ensure all delays do nothing weird on init
+				lastUpdate:   time.Now(), //.Add(-time.Hour), // This is to ensure all delays do nothing weird on init
 				currentValue: proto.Clone(initialValue).(*pb.ParameterValue),
 				targetValue:  proto.Clone(initialValue).(*pb.ParameterValue),
 			},
@@ -576,7 +577,7 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 	r.muInfo.Lock()
 	if deviceID == 0 {
 		deviceID = uint32(len(r.deviceInfos) + 1)
-		log.Warnf("Automatically assigning DeviceID %d to device with model %d", deviceID, modelID)
+		r.log.Warnf("Automatically assigning DeviceID %d to device with model %d", deviceID, modelID)
 	}
 	r.deviceInfos[deviceID] = &pb.DeviceInfo{
 		DeviceID: deviceID,
@@ -588,7 +589,7 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 	r.parameterValue[deviceID] = parameterDimensions
 	r.muValue.Unlock()
 
-	log.Debugf("Device '%v' registered with model: %v (%v)", deviceID, modelID, r.modelInfos[modelID].Name)
+	r.log.Debugf("Device '%v' registered with model: %v (%v)", deviceID, modelID, r.modelInfos[modelID].Name)
 	return deviceID, nil
 }
 
@@ -631,7 +632,7 @@ func (r *IBeamParameterRegistry) ParameterNameByID(parameterID uint32) string {
 func (r *IBeamParameterRegistry) PName(parameterID uint32) string {
 	// check for device registered
 	if !r.parametersDone {
-		log.Error("ParameterNameByID: only call after registering the first device")
+		r.log.Error("ParameterNameByID: only call after registering the first device")
 		return ""
 	}
 
@@ -654,7 +655,7 @@ func (r *IBeamParameterRegistry) PName(parameterID uint32) string {
 func (r *IBeamParameterRegistry) PID(parameterName string) uint32 {
 	// check for device registered
 	if !r.parametersDone {
-		log.Error("ParameterNameByID: only call after registering the first device")
+		r.log.Error("ParameterNameByID: only call after registering the first device")
 		return 0
 	}
 
@@ -677,7 +678,7 @@ func (r *IBeamParameterRegistry) PID(parameterName string) uint32 {
 func (r *IBeamParameterRegistry) GetNameMap() map[uint32]string {
 	// check for device registered
 	if !r.parametersDone {
-		log.Error("GetNameMap: only call after registering the first device")
+		r.log.Error("GetNameMap: only call after registering the first device")
 		return nil
 	}
 
@@ -699,7 +700,7 @@ func (r *IBeamParameterRegistry) GetNameMap() map[uint32]string {
 func (r *IBeamParameterRegistry) parameterIDByName(parameterName string, modelID uint32) uint32 {
 	// Function requires mutex to be fully locked before invocation
 	if uint32(len(r.parameterDetail)) <= (modelID) {
-		log.Fatalln("Could not register parameter for nonexistent model", modelID)
+		r.log.Fatalln("Could not register parameter for nonexistent model", modelID)
 	}
 
 	for id, param := range r.parameterDetail[modelID] {
@@ -710,48 +711,48 @@ func (r *IBeamParameterRegistry) parameterIDByName(parameterName string, modelID
 	return 0
 }
 
-func validateParameter(detail *pb.ParameterDetail) {
+func validateParameter(rlog *log.Entry, detail *pb.ParameterDetail) {
 	// Fatals
 	if detail.Name == "" {
-		log.Fatalf("Parameter: ID %v: No name set", detail.Id)
+		rlog.Fatalf("Parameter: ID %v: No name set", detail.Id)
 	}
 	if detail.ControlStyle == pb.ControlStyle_NoControl && detail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
-		log.Fatalf("Parameter: '%v': Can not have no control and no feedback", detail.Name)
+		rlog.Fatalf("Parameter: '%v': Can not have no control and no feedback", detail.Name)
 	}
 	if detail.ControlStyle == pb.ControlStyle_ControlledIncremental && detail.ValueType != pb.ValueType_Integer {
-		log.Fatalf("Parameter: '%v': Controlled Incremental only supported on integers right now", detail.Name)
+		rlog.Fatalf("Parameter: '%v': Controlled Incremental only supported on integers right now", detail.Name)
 	}
 	if detail.ControlStyle == pb.ControlStyle_Incremental && detail.IncDecStepsLowerLimit == 0 && detail.IncDecStepsUpperLimit == 0 {
-		log.Fatalf("Parameter: '%v': Incremental: please provide lower and upper range for incDecSteps", detail.Name)
+		rlog.Fatalf("Parameter: '%v': Incremental: please provide lower and upper range for incDecSteps", detail.Name)
 	}
 	if detail.ControlStyle != pb.ControlStyle_Incremental &&
 		detail.ControlStyle != pb.ControlStyle_ControlledIncremental &&
 		(detail.IncDecStepsLowerLimit != 0 || detail.IncDecStepsUpperLimit != 0) {
-		log.Fatalf("Parameter: '%v': Lower and upper limit are only valid on Incremental Control Mode", detail.Name)
+		rlog.Fatalf("Parameter: '%v': Lower and upper limit are only valid on Incremental Control Mode", detail.Name)
 	}
 	if detail.Label == "" {
-		log.Fatalf("Parameter: '%v': No label set", detail.Name)
+		rlog.Fatalf("Parameter: '%v': No label set", detail.Name)
 	}
 	if detail.ControlStyle != pb.ControlStyle_NoControl && detail.FeedbackStyle != pb.FeedbackStyle_NoFeedback && detail.RetryCount == 0 {
-		log.Fatalf("Parameter '%v': Any non assumed value (FeedbackStyle_NoFeedback) needs to have RetryCount set", detail.Name)
+		rlog.Fatalf("Parameter '%v': Any non assumed value (FeedbackStyle_NoFeedback) needs to have RetryCount set", detail.Name)
 	}
 
 	if detail.RetryCount != 0 && detail.ControlDelayMs == 0 {
-		log.Fatalf("Parameter '%v': RetryCount will not work without ControlDelayMs being set", detail.Name)
+		rlog.Fatalf("Parameter '%v': RetryCount will not work without ControlDelayMs being set", detail.Name)
 	}
 
 	if detail.InputCurve != pb.InputCurve_NormalInputCurve && detail.ValueType != pb.ValueType_Integer && detail.ValueType != pb.ValueType_Floating {
-		log.Fatalf("Parameter '%v': InputCurves can only be used on Integer or Float values", detail.Name)
+		rlog.Fatalf("Parameter '%v': InputCurves can only be used on Integer or Float values", detail.Name)
 	}
 
 	if detail.DisplayFloatPrecision != pb.FloatPrecision_UndefinedFloatPrecision && detail.ValueType != pb.ValueType_Floating {
-		log.Fatalf("Parameter '%v': Float Percision is only usable on floats", detail.Name)
+		rlog.Fatalf("Parameter '%v': Float Percision is only usable on floats", detail.Name)
 	}
 
 	// Dimension check
 	for dId, dimensionDetail := range detail.Dimensions {
 		if dimensionDetail.Count == 0 && len(dimensionDetail.ElementLabels) == 0 {
-			log.Fatalf("Parameter '%v' Dimension '%d': Count is 0 and element labels are empty, this will cause a staleless parameter", detail.Name, dId)
+			rlog.Fatalf("Parameter '%v' Dimension '%d': Count is 0 and element labels are empty, this will cause a staleless parameter", detail.Name, dId)
 		}
 	}
 
@@ -759,14 +760,14 @@ func validateParameter(detail *pb.ParameterDetail) {
 	for mName, mDetail := range detail.MetaDetails {
 		if mDetail.MetaType != pb.ParameterMetaType_MetaInteger && mDetail.MetaType != pb.ParameterMetaType_MetaFloating {
 			if mDetail.Minimum != 0 || mDetail.Maximum != 0 {
-				log.Warnf("Parameter metavalue '%s' of type %v has useless min / max values", mName, mDetail.MetaType)
+				rlog.Warnf("Parameter metavalue '%s' of type %v has useless min / max values", mName, mDetail.MetaType)
 			}
 		}
 
 		if mDetail.MetaType == pb.ParameterMetaType_MetaOption && len(mDetail.Options) == 0 {
-			log.Fatalf("Parameter metavalue '%s' of type MetaOption has no option list", mName)
+			rlog.Fatalf("Parameter metavalue '%s' of type MetaOption has no option list", mName)
 		} else if mDetail.MetaType != pb.ParameterMetaType_MetaOption && len(mDetail.Options) > 0 {
-			log.Warnf("Parameter metavalue '%s' of type %v has useless option list", mName, mDetail.MetaType)
+			rlog.Warnf("Parameter metavalue '%s' of type %v has useless option list", mName, mDetail.MetaType)
 		}
 
 	}
@@ -777,27 +778,27 @@ func validateParameter(detail *pb.ParameterDetail) {
 		fallthrough
 	case pb.ValueType_Integer:
 		if detail.Minimum == 0 && detail.Maximum == 0 {
-			log.Fatalf("Parameter: '%v': Integer or Floating needs min/max set", detail.Name)
+			rlog.Fatalf("Parameter: '%v': Integer or Floating needs min/max set", detail.Name)
 		}
 	case pb.ValueType_Binary:
 		if detail.ControlStyle == pb.ControlStyle_Incremental {
-			log.Fatalf("Parameter: '%v': Binary can not have incremental control", detail.Name)
+			rlog.Fatalf("Parameter: '%v': Binary can not have incremental control", detail.Name)
 		}
 	case pb.ValueType_NoValue:
 		if detail.FeedbackStyle != pb.FeedbackStyle_NoFeedback {
-			log.Fatalf("Parameter: '%v': NoValue can not have Feedback", detail.Name)
+			rlog.Fatalf("Parameter: '%v': NoValue can not have Feedback", detail.Name)
 		}
 		if detail.Minimum != 0 || detail.Maximum != 0 {
-			log.Fatalf("Parameter: '%v': NoValue can not min/max", detail.Name)
+			rlog.Fatalf("Parameter: '%v': NoValue can not min/max", detail.Name)
 		}
 	case pb.ValueType_Opt:
 		if !detail.OptionListIsDynamic && (detail.OptionList == nil || detail.OptionList.Options == nil || len(detail.OptionList.Options) == 0) {
-			log.Fatalf("Parameter: '%v': Missing option list", detail.Name)
+			rlog.Fatalf("Parameter: '%v': Missing option list", detail.Name)
 		}
 	}
 
 	// Warnings
 	if detail.Description == "" {
-		log.Warnf("Parameter '%v': No description set", detail.Name)
+		rlog.Warnf("Parameter '%v': No description set", detail.Name)
 	}
 }

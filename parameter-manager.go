@@ -27,6 +27,7 @@ type IBeamParameterManager struct {
 	serverClientsStream chan *pb.Parameter
 	parameterEvent      chan paramDimensionAddress
 	server              *IBeamServer
+	log                 *log.Entry
 }
 
 // StartWithServer Starts the ibeam parameter routine and the GRPC server in one call. This is blocking and should be called at the end of main.
@@ -44,7 +45,7 @@ func (m *IBeamParameterManager) StartWithServer(address string) {
 	if strings.HasPrefix(address, "/var/ibeam/sockets") {
 		err := os.Remove(address)
 		if err != nil {
-			log.Trace(log.Wrap(err, "on removing old socket file"))
+			m.log.Trace(log.Wrap(err, "on removing old socket file"))
 		}
 	}
 
@@ -86,7 +87,7 @@ func (m *IBeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb
 	if parameter.Id == nil {
 		// Client sees what he has send
 		parameter.Error = pb.ParameterError_UnknownID
-		log.Errorf("Given Parameter %v has no ID", parameter)
+		m.log.Errorf("Given Parameter %v has no ID", parameter)
 
 		return &pb.Parameter{
 			Id:    parameter.Id,
@@ -106,7 +107,7 @@ func (m *IBeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb
 	parameterConfig := m.parameterRegistry.parameterDetail[modelIndex][parameterIndex]
 	// Check if device and param id are valid and in the State
 	if _, exists := state[deviceID][parameterIndex]; !exists {
-		log.Errorf("Invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
+		m.log.Errorf("Invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
 
 		return &pb.Parameter{
 			Id:    parameter.Id,
@@ -121,7 +122,7 @@ func (m *IBeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb
 
 	// Check if the configured type of the Parameter has a value
 	if parameterConfig.ValueType == pb.ValueType_NoValue && parameterConfig.ControlStyle == pb.ControlStyle_NoControl {
-		log.Errorf("Want to set Parameter with ID %v (%v), but it is configured as Type NoValue with no Control", parameterID, parameterConfig.Name)
+		m.log.Errorf("Want to set Parameter with ID %v (%v), but it is configured as Type NoValue with no Control", parameterID, parameterConfig.Name)
 		return &pb.Parameter{
 			Id:    parameter.Id,
 			Error: pb.ParameterError_HasNoValue,
@@ -132,7 +133,7 @@ func (m *IBeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb
 	if parameterConfig.ValueType == pb.ValueType_NoValue && parameterConfig.ControlStyle == pb.ControlStyle_Oneshot {
 		if cmd, ok := parameter.Value[0].Value.(*pb.ParameterValue_Cmd); ok {
 			if cmd.Cmd != pb.Command_Trigger {
-				log.Errorf("Want to set Parameter with ID %v (%v), but it is configured as Type NoValue with ControlStyle OneShot. Accept only Command:Trigger", parameterID, parameterConfig.Name)
+				m.log.Errorf("Want to set Parameter with ID %v (%v), but it is configured as Type NoValue with ControlStyle OneShot. Accept only Command:Trigger", parameterID, parameterConfig.Name)
 				return &pb.Parameter{
 					Id:    parameter.Id,
 					Error: pb.ParameterError_InvalidType,
@@ -140,7 +141,7 @@ func (m *IBeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb
 				}
 			}
 		} else {
-			log.Errorf("Want to set Parameter with ID %v (%v), but it is configured as Type NoValue with ControlStyle OneShot. Accept only Command:Trigger", parameterID, parameterConfig.Name)
+			m.log.Errorf("Want to set Parameter with ID %v (%v), but it is configured as Type NoValue with ControlStyle OneShot. Accept only Command:Trigger", parameterID, parameterConfig.Name)
 			return &pb.Parameter{
 				Id:    parameter.Id,
 				Error: pb.ParameterError_InvalidType,
@@ -159,13 +160,13 @@ func (m *IBeamParameterManager) Start() {
 		for {
 			select {
 			case parameter = <-m.clientsSetterStream:
-				//				log.Info("Got set from client")
+				//				m.log.Info("Got set from client")
 				m.ingestTargetParameter(parameter)
 			case parameter = <-m.in:
-				//				log.Info("Got result from device")
+				//				m.log.Info("Got result from device")
 				m.ingestCurrentParameter(parameter)
 			case address := <-m.parameterEvent:
-				//				log.Info("Gonna proccess param")
+				//				m.log.Info("Gonna proccess param")
 				m.processParameter(address)
 			}
 		}

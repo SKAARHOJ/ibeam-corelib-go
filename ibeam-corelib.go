@@ -8,7 +8,7 @@ import (
 	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
-	log "github.com/s00500/env_logger"
+	elog "github.com/s00500/env_logger"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/proto"
 )
@@ -21,6 +21,7 @@ type IBeamServer struct {
 	serverClientsStream      chan *pb.Parameter
 	serverClientsDistributor map[chan *pb.Parameter]bool
 	muDistributor            sync.RWMutex
+	log                      *elog.Entry
 }
 
 // GetCoreInfo returns the CoreInfo of the IBeamCore
@@ -35,8 +36,7 @@ func (s *IBeamServer) GetCoreInfo(_ context.Context, _ *pb.Empty) (*pb.CoreInfo,
 // GetDeviceInfo returns the DeviceInfos for given DeviceIDs.
 // If no IDs are given, all DeviceInfos will be returned.
 func (s *IBeamServer) GetDeviceInfo(_ context.Context, deviceIDs *pb.DeviceIDs) (*pb.DeviceInfos, error) {
-
-	log.Debugf("Client asks for DeviceInfo with ids %v", deviceIDs.Ids)
+	s.log.Debugf("Client asks for DeviceInfo with ids %v", deviceIDs.Ids)
 	s.parameterRegistry.muInfo.RLock()
 	defer s.parameterRegistry.muInfo.RUnlock()
 
@@ -182,7 +182,7 @@ func (s *IBeamServer) GetParameterDetails(c context.Context, mpIDs *pb.ModelPara
 	p, _ := peer.FromContext(c)
 	clientIP := p.Addr.String()
 
-	log.Debugln("Got a GetParameterDetails from", clientIP)
+	s.log.Debugln("Got a GetParameterDetails from", clientIP)
 	rParameterDetails := &pb.ParameterDetails{}
 	s.parameterRegistry.muInfo.RLock()
 	defer s.parameterRegistry.muInfo.RUnlock()
@@ -200,20 +200,20 @@ func (s *IBeamServer) GetParameterDetails(c context.Context, mpIDs *pb.ModelPara
 				rParameterDetails.Details = append(rParameterDetails.Details, modelDetail)
 			}
 		} else {
-			log.Error("Invalid model ID specified")
+			s.log.Error("Invalid model ID specified")
 		}
 	} else {
 		for _, mpID := range mpIDs.Ids {
 			d, err := s.getParameterDetail(mpID)
 			if err != nil {
-				log.Errorf(err.Error())
+				s.log.Errorf(err.Error())
 				return nil, err
 			}
 			rParameterDetails.Details = append(rParameterDetails.Details, d)
 
 		}
 	}
-	log.Debugf("Send ParameterDetails for %v parameters", len(rParameterDetails.Details))
+	s.log.Debugf("Send ParameterDetails for %v parameters", len(rParameterDetails.Details))
 	return rParameterDetails, nil
 }
 
@@ -246,7 +246,7 @@ func (s *IBeamServer) Set(_ context.Context, ps *pb.Parameters) (*pb.Empty, erro
 func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCore_SubscribeServer) error {
 	p, _ := peer.FromContext(stream.Context())
 	clientIP := p.Addr.String()
-	log.Debug("New Client subscribed from ", clientIP)
+	s.log.Debug("New Client subscribed from ", clientIP)
 
 	// Fist send all parameters
 	parameters, err := s.Get(stream.Context(), dpIDs)
@@ -255,8 +255,8 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 	}
 
 	for _, parameter := range parameters.Parameters {
-		log.Debugf("Send Parameter with ID '%v' to client", parameter.Id)
-		log.Tracef("Param: %+v", parameter)
+		s.log.Debugf("Send Parameter with ID '%v' to client", parameter.Id)
+		s.log.Tracef("Param: %+v", parameter)
 		stream.Send(parameter)
 	}
 
@@ -264,7 +264,7 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 	s.muDistributor.Lock()
 	s.serverClientsDistributor[distributor] = true
 
-	log.Debugf("Added distributor number %v", len(s.serverClientsDistributor))
+	s.log.Debugf("Added distributor number %v", len(s.serverClientsDistributor))
 	s.muDistributor.Unlock()
 
 	ping := time.NewTicker(time.Second / 2)
@@ -276,7 +276,7 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 				s.muDistributor.Lock()
 				delete(s.serverClientsDistributor, distributor)
 				s.muDistributor.Unlock()
-				log.Debug("Connection to client for subscription lost")
+				s.log.Debug("Connection to client for subscription lost")
 				return nil
 			}
 		case parameter := <-distributor:
@@ -285,17 +285,17 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 			}
 			// Check if Device is Subscribed
 			if len(dpIDs.Ids) == 1 && dpIDs.Ids[0].Parameter == 0 && dpIDs.Ids[0].Device != parameter.Id.Device {
-				log.Tracef("Blocked sending out of change because of devicefilter Want: %d, Got: %d", dpIDs.Ids[0].Device, parameter.Id.Device)
+				s.log.Tracef("Blocked sending out of change because of devicefilter Want: %d, Got: %d", dpIDs.Ids[0].Device, parameter.Id.Device)
 				continue
 			}
 
 			// Check for parameter filtering
 			if len(dpIDs.Ids) >= 1 && dpIDs.Ids[0].Parameter != 0 && !containsDeviceParameter(parameter.Id, dpIDs) {
-				log.Tracef("Blocked sending out of change of parameter %d (D: %d) because of device parameter id filter, %v", parameter.Id.Parameter, parameter.Id.Device, dpIDs)
+				s.log.Tracef("Blocked sending out of change of parameter %d (D: %d) because of device parameter id filter, %v", parameter.Id.Parameter, parameter.Id.Device, dpIDs)
 				continue
 			}
 
-			log.Debugf("Send Parameter with ID '%v' to client from ServerClientsStream", parameter.Id)
+			s.log.Debugf("Send Parameter with ID '%v' to client from ServerClientsStream", parameter.Id)
 			stream.Send(parameter)
 		}
 	}
@@ -337,13 +337,16 @@ func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelI
 		modelInfos:      map[uint32]*pb.ModelInfo{},
 		parameterDetail: map[uint32]map[uint32]*pb.ParameterDetail{},
 		parameterValue:  map[uint32]map[uint32]*iBeamParameterDimension{},
+		log:             elog.GetLoggerForPrefix("ib/registry"),
 	}
 
+	sLog := elog.GetLoggerForPrefix("ib/server")
 	server := IBeamServer{
 		parameterRegistry:        registry,
 		clientsSetterStream:      clientsSetter,
 		serverClientsStream:      watcher,
 		serverClientsDistributor: make(map[chan *pb.Parameter]bool),
+		log:                      sLog,
 	}
 
 	manager = &IBeamParameterManager{
@@ -354,6 +357,7 @@ func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelI
 		serverClientsStream: watcher,
 		parameterEvent:      make(chan paramDimensionAddress, 100),
 		server:              &server,
+		log:                 elog.GetLoggerForPrefix("ib/manager"),
 	}
 
 	go func() {
@@ -364,7 +368,7 @@ func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelI
 				if isOpen {
 					channel <- parameter
 				} else {
-					log.Debugf("Deleted Channel %v", channel)
+					sLog.Debugf("Deleted Channel %v", channel)
 					server.muDistributor.RUnlock()
 					server.muDistributor.Lock()
 					delete(server.serverClientsDistributor, channel)

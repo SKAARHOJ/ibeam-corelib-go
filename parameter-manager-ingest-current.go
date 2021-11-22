@@ -5,7 +5,6 @@ import (
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
 	b "github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers"
-	log "github.com/s00500/env_logger"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -15,9 +14,10 @@ import (
 var OptionFloatCurrentOverridesTargetDuringRetry bool = false
 
 func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) {
+	mlog := m.log
 
 	if err := m.checkValidParameter(parameter); err != nil {
-		log.Error(err)
+		mlog.Error(err)
 		return
 	}
 
@@ -36,23 +36,23 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 	for _, newParameterValue := range parameter.Value {
 
 		if newParameterValue == nil {
-			log.Warnf("Received nil value for ", m.pName(parameter.Id))
+			mlog.Warnf("Received nil value for ", m.pName(parameter.Id))
 			continue
 		}
 		// Check if Dimension is Valid
 		if !state[deviceID][parameterID].multiIndexHasValue(newParameterValue.DimensionID) {
-			log.Errorf("Received invalid dimension id  %v for %s", newParameterValue.DimensionID, m.pName(parameter.Id))
+			mlog.Errorf("Received invalid dimension id  %v for %s", newParameterValue.DimensionID, m.pName(parameter.Id))
 			continue
 		}
 
 		parameterDimension, err := state[deviceID][parameterID].multiIndex(newParameterValue.DimensionID)
 		if err != nil {
-			log.Error(err)
+			mlog.Error(err)
 			continue
 		}
 		parameterBuffer, err := parameterDimension.getValue()
 		if err != nil {
-			log.Error(err)
+			mlog.Error(err)
 			continue
 		}
 
@@ -103,7 +103,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 
 				id, err := getIDFromOptionListByElementName(optionlist, v.Str)
 				if err != nil {
-					log.Error("on optionlist name lookup: ", err)
+					mlog.Error("on optionlist name lookup: ", err)
 					continue
 				}
 
@@ -113,7 +113,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 
 			case *pb.ParameterValue_OptionListUpdate:
 				if !parameterConfig.OptionListIsDynamic {
-					log.Errorf("Parameter with ID %v has no Dynamic OptionList", parameterID)
+					mlog.Errorf("Parameter with ID %v has no Dynamic OptionList", parameterID)
 					continue
 				}
 
@@ -124,19 +124,19 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			case *pb.ParameterValue_CurrentOption:
 				// Handled below
 			default:
-				log.Errorf("Valuetype of Parameter is Opt and so we should get a String or Opt or currentOpt, but got %T", newParameterValue)
+				mlog.Errorf("Valuetype of Parameter is Opt and so we should get a String or Opt or currentOpt, but got %T", newParameterValue)
 				continue
 			}
 		case pb.ValueType_Binary:
 			if _, ok := newParameterValue.Value.(*pb.ParameterValue_Binary); !ok {
-				log.Errorf("Parameter with ID %v is Type Binary but got %T", parameterID, parameterConfig.ValueType)
+				mlog.Errorf("Parameter with ID %v is Type Binary but got %T", parameterID, parameterConfig.ValueType)
 				continue
 			}
 		case pb.ValueType_Floating:
 			switch v := newParameterValue.Value.(type) {
 			case *pb.ParameterValue_MinimumUpdate:
 				if !parameterConfig.MinMaxIsDynamic {
-					log.Errorf("Parameter with ID %v has no dynamic min / max values", parameterID)
+					mlog.Errorf("Parameter with ID %v has no dynamic min / max values", parameterID)
 					continue
 				}
 
@@ -147,7 +147,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				continue
 			case *pb.ParameterValue_MaximumUpdate:
 				if !parameterConfig.MinMaxIsDynamic {
-					log.Errorf("Parameter with ID %v has no dynamic min / max values", parameterID)
+					mlog.Errorf("Parameter with ID %v has no dynamic min / max values", parameterID)
 					continue
 				}
 
@@ -170,7 +170,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			}
 
 			if _, ok := newParameterValue.Value.(*pb.ParameterValue_Floating); !ok {
-				log.Errorf("Parameter with ID %v is Type Float but got %T", parameterID, parameterConfig.ValueType)
+				mlog.Errorf("Parameter with ID %v is Type Float but got %T", parameterID, parameterConfig.ValueType)
 				continue
 			}
 
@@ -181,13 +181,13 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 
 			if newParameterValue.Value.(*pb.ParameterValue_Floating).Floating > maximum {
 				if !isDescreteValue(parameterConfig, newParameterValue.Value.(*pb.ParameterValue_Floating).Floating) {
-					log.Error("Ingest Current Loop: Max violation for ", m.pName(parameter.Id))
+					mlog.Error("Ingest Current Loop: Max violation for ", m.pName(parameter.Id))
 					continue
 				}
 			}
 			if newParameterValue.Value.(*pb.ParameterValue_Floating).Floating < minimum {
 				if !isDescreteValue(parameterConfig, newParameterValue.Value.(*pb.ParameterValue_Floating).Floating) {
-					log.Error("Ingest Current Loop: Min violation for ", m.pName(parameter.Id))
+					mlog.Error("Ingest Current Loop: Min violation for ", m.pName(parameter.Id))
 					continue
 				}
 			}
@@ -195,7 +195,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			switch v := newParameterValue.Value.(type) {
 			case *pb.ParameterValue_MinimumUpdate:
 				if !parameterConfig.MinMaxIsDynamic {
-					log.Error("No dynamic minmax set on ", m.pName(parameter.Id))
+					mlog.Error("No dynamic minmax set on ", m.pName(parameter.Id))
 					continue
 				}
 
@@ -206,7 +206,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				continue
 			case *pb.ParameterValue_MaximumUpdate:
 				if !parameterConfig.MinMaxIsDynamic {
-					log.Error("No dynamic minmax set on ", m.pName(parameter.Id))
+					mlog.Error("No dynamic minmax set on ", m.pName(parameter.Id))
 					continue
 				}
 
@@ -218,7 +218,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			}
 
 			if _, ok := newParameterValue.Value.(*pb.ParameterValue_Integer); !ok {
-				log.Errorf("%s is Type Integer but got %T", m.pName(parameter.Id), parameterConfig.ValueType)
+				mlog.Errorf("%s is Type Integer but got %T", m.pName(parameter.Id), parameterConfig.ValueType)
 				continue
 			}
 
@@ -235,24 +235,24 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 
 			if newParameterValue.Value.(*pb.ParameterValue_Integer).Integer > int32(maximum) {
 				if !isDescreteValue(parameterConfig, float64(newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)) {
-					log.Errorf("Ingest Current Loop: Max violation for %s, got %d", m.pName(parameter.Id), newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)
+					mlog.Errorf("Ingest Current Loop: Max violation for %s, got %d", m.pName(parameter.Id), newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)
 					continue
 				}
 			}
 			if newParameterValue.Value.(*pb.ParameterValue_Integer).Integer < int32(minimum) {
 				if !isDescreteValue(parameterConfig, float64(newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)) {
-					log.Errorf("Ingest Current Loop: Min violation for %s, got %d", m.pName(parameter.Id), newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)
+					mlog.Errorf("Ingest Current Loop: Min violation for %s, got %d", m.pName(parameter.Id), newParameterValue.Value.(*pb.ParameterValue_Integer).Integer)
 					continue
 				}
 			}
 
 		case pb.ValueType_String:
 			if _, ok := newParameterValue.Value.(*pb.ParameterValue_Str); !ok {
-				log.Errorf("%s is Type String but got %T", m.pName(parameter.Id), parameterConfig.ValueType)
+				mlog.Errorf("%s is Type String but got %T", m.pName(parameter.Id), parameterConfig.ValueType)
 				continue
 			}
 		case pb.ValueType_NoValue:
-			log.Errorf("%s has No Value but got %T", m.pName(parameter.Id), parameterConfig.ValueType)
+			mlog.Errorf("%s has No Value but got %T", m.pName(parameter.Id), parameterConfig.ValueType)
 			continue
 		}
 		parameterBuffer.currentValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
@@ -292,14 +292,13 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 
 		if !didScheduleReEval {
 			// Trigger processing of the main evaluation
-
 			addr := paramDimensionAddress{
 				parameter:   parameterID,
 				device:      deviceID,
 				dimensionID: parameterBuffer.getParameterValue().DimensionID,
 			}
-			//Trigger process main, only after control delay has passed
 
+			//Trigger process main, only after control delay has passed
 			if parameterConfig.ControlDelayMs != 0 && time.Since(parameterBuffer.lastUpdate).Milliseconds() < int64(parameterConfig.ControlDelayMs) {
 				m.reevaluateIn(time.Millisecond*time.Duration(parameterConfig.ControlDelayMs)-time.Since(parameterBuffer.lastUpdate), parameterBuffer, parameterID, deviceID)
 				return
