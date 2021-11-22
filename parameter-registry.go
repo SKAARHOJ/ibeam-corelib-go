@@ -564,7 +564,7 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 			value: &ibeamParameterValueBuffer{
 				dimensionID:  make([]uint32, 0),
 				available:    true,
-				lastUpdate:   time.Now(), //.Add(-time.Hour), // This is to ensure all delays do nothing weird on init
+				lastUpdate:   time.Now().Add(-time.Hour), // This is to ensure all delays do nothing weird on init
 				currentValue: proto.Clone(initialValue).(*pb.ParameterValue),
 				targetValue:  proto.Clone(initialValue).(*pb.ParameterValue),
 			},
