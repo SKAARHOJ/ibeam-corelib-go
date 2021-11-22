@@ -8,6 +8,7 @@ import (
 	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
+	skconfig "github.com/SKAARHOJ/ibeam-lib-config"
 	elog "github.com/s00500/env_logger"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/proto"
@@ -312,6 +313,20 @@ func containsDeviceParameter(dpID *pb.DeviceParameterID, dpIDs *pb.DeviceParamet
 
 // CreateServer sets up the ibeam server, parameter manager and parameter registry
 func CreateServer(coreInfo *pb.CoreInfo) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan<- *pb.Parameter, getfromManager <-chan *pb.Parameter) {
+	defaultModelInfo := &pb.ModelInfo{
+		Name:        "Generic Model",
+		Description: "default model of the implementation",
+	}
+	return CreateServerWithDefaultModel(coreInfo, defaultModelInfo)
+}
+
+// CreateServer sets up the ibeam server, parameter manager and parameter registry
+func CreateServerWithConfig(coreInfo *pb.CoreInfo, config interface{}) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan<- *pb.Parameter, getfromManager <-chan *pb.Parameter) {
+	// Load configuration
+	skconfig.SetCoreName(coreInfo.Name)
+	err := skconfig.Load(config)
+	elog.MustFatal(err)
+
 	defaultModelInfo := &pb.ModelInfo{
 		Name:        "Generic Model",
 		Description: "default model of the implementation",

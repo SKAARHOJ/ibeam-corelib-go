@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
+	env "github.com/SKAARHOJ/ibeam-lib-env"
 	log "github.com/s00500/env_logger"
 	"google.golang.org/grpc"
 )
@@ -40,6 +41,11 @@ func (m *IBeamParameterManager) StartWithServer(address string) {
 	addressOverride := os.Getenv("IBEAM_CORE_ADDRESS")
 	if addressOverride != "" {
 		address = addressOverride
+	}
+
+	if env.IsSkaarOSProd() {
+		m.server.log.Trace("overriding listeningport with socket")
+		address = "/var/ibeam/sockets/" + m.server.parameterRegistry.coreInfo.Name + ".socket"
 	}
 
 	if strings.HasPrefix(address, "/var/ibeam/sockets") {
