@@ -4,11 +4,11 @@ go 1.15
 
 require (
 	github.com/kr/text v0.2.0 // indirect
-	github.com/mattn/go-isatty v0.0.13 // indirect
-	github.com/s00500/env_logger v0.1.18
+	github.com/mattn/go-colorable v0.1.11 // indirect
+	github.com/s00500/env_logger v0.1.22
 	go.uber.org/atomic v1.9.0
 	golang.org/x/net v0.0.0-20210504132125-bbd867fde50d // indirect
-	golang.org/x/sys v0.0.0-20210603081109-ebe580a85c40 // indirect
+	golang.org/x/sys v0.0.0-20211117180635-dee7805ff2e1 // indirect
 	google.golang.org/genproto v0.0.0-20210504143626-3b2ad6ccc450 // indirect
 	google.golang.org/grpc v1.36.1
 	google.golang.org/protobuf v1.26.0
