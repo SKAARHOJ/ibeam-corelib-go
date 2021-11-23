@@ -3,10 +3,10 @@ module github.com/SKAARHOJ/ibeam-corelib-go
 go 1.15
 
 require (
-	github.com/SKAARHOJ/ibeam-lib-config v0.2.12-0.20211122173138-d9f23f5b5915 // indirect
+	github.com/SKAARHOJ/ibeam-lib-config v0.2.12-0.20211123150310-032e351c27a5 // indirect
 	github.com/SKAARHOJ/ibeam-lib-env v0.0.0-20211122172136-6d06ddff133c // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/mattn/go-colorable v0.1.11 // indirect
+	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/s00500/env_logger v0.1.22
 	go.uber.org/atomic v1.9.0
 	golang.org/x/net v0.0.0-20210504132125-bbd867fde50d // indirect
