@@ -647,7 +647,8 @@ func (r *IBeamParameterRegistry) PName(parameterID uint32) string {
 	if exists {
 		return name
 	}
-
+	
+	r.log.Debug("PName: could not find ", parameterID)
 	return ""
 }
 
@@ -670,7 +671,7 @@ func (r *IBeamParameterRegistry) PID(parameterName string) uint32 {
 	if exists {
 		return id
 	}
-
+	r.log.Debug("PID: could not find ", parameterName)
 	return 0
 }
 
