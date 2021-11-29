@@ -75,7 +75,7 @@ valueLoop:
 			if parameterBuffer.dynamicMin != nil {
 				minimum = *parameterBuffer.dynamicMin
 			}
-			if parameterBuffer.dynamicMin != nil {
+			if parameterBuffer.dynamicMax != nil {
 				maximum = *parameterBuffer.dynamicMax
 			}
 		}
