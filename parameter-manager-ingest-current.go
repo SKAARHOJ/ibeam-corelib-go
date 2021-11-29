@@ -16,11 +16,6 @@ var OptionFloatCurrentOverridesTargetDuringRetry bool = false
 func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) {
 	mlog := m.log
 
-	if err := m.checkValidParameter(parameter); err != nil {
-		mlog.Error(err)
-		return
-	}
-
 	parameterID := parameter.Id.Parameter
 	deviceID := parameter.Id.Device
 	modelID := m.parameterRegistry.getModelID(deviceID)
@@ -32,6 +27,11 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 	m.parameterRegistry.muDetail.RLock()
 	defer m.parameterRegistry.muDetail.RUnlock()
 	parameterConfig := m.parameterRegistry.parameterDetail[modelID][parameterID]
+
+	if err := m.checkValidParameter(parameter); err != nil {
+		mlog.Error(err)
+		return
+	}
 
 	for _, newParameterValue := range parameter.Value {
 

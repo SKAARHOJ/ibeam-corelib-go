@@ -9,11 +9,6 @@ import (
 func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 	mlog := m.log
 
-	if errorParam := m.checkValidParameter(parameter); errorParam != nil {
-		m.serverClientsStream <- errorParam
-		return
-	}
-
 	// Get Index and ID for Device and Parameter and the actual state of all parameters
 	parameterID := parameter.Id.Parameter
 	deviceID := parameter.Id.Device
@@ -27,6 +22,11 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 	m.parameterRegistry.muDetail.RLock()
 	defer m.parameterRegistry.muDetail.RUnlock()
 	parameterConfig := m.parameterRegistry.parameterDetail[modelIndex][parameterID]
+
+	if errorParam := m.checkValidParameter(parameter); errorParam != nil {
+		m.serverClientsStream <- errorParam
+		return
+	}
 
 	// Handle every Value in that was given for the Parameter
 valueLoop:
