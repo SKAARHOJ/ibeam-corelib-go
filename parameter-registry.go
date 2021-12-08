@@ -37,6 +37,10 @@ type IBeamParameterRegistry struct {
 	parametersDone   bool             // Sanity flag set on first call to add devices to ensure order
 	connectionExists bool
 	log              *log.Entry
+
+	// debug info
+	parameterCount uint
+	dimensionCount uint
 }
 
 func idFromName(name string) uint32 {
@@ -140,6 +144,18 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 		modelID = detail.Id.Model
 		paramID = detail.Id.Parameter
 	}
+
+	r.parameterCount++
+
+	// Could make this not do stuff for no value... But this is currently not really true though...
+	//if detail.ValueType != pb.ValueType_NoValue {
+	paramDims := 1
+	for _, dim := range detail.Dimensions {
+		paramDims *= (int(dim.Count) + len(dim.ElementLabels))
+	}
+	r.dimensionCount += uint(paramDims)
+	//}
+
 	r.muDetail.RLock()
 	if modelID == 0 {
 		// append to all models, need to check for ids
@@ -506,6 +522,7 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 				ValueType:     pb.ValueType_Binary,
 			})
 		}
+		r.log.Debugf("Registered %d Parameters with %d Dimensional Values", r.parameterCount, r.dimensionCount)
 	}
 	r.parametersDone = true
 
