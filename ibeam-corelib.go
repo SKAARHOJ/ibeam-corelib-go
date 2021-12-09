@@ -2,6 +2,7 @@ package ibeamcorelib
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sync"
@@ -22,6 +23,8 @@ type IBeamServer struct {
 	serverClientsStream      chan *pb.Parameter
 	serverClientsDistributor map[chan *pb.Parameter]bool
 	muDistributor            sync.RWMutex
+	configPtr                interface{} // TODO: can I not make this better ? as a fix ptr ?
+	schemaBytes              []byte
 	log                      *elog.Entry
 }
 
@@ -32,6 +35,53 @@ func (s *IBeamServer) GetCoreInfo(_ context.Context, _ *pb.Empty) (*pb.CoreInfo,
 	coreInfo.ConnectedClients = uint32(len(s.serverClientsDistributor))
 	s.muDistributor.RUnlock()
 	return coreInfo, nil
+}
+
+// GetCoreInfo returns the CoreInfo of the IBeamCore
+func (s *IBeamServer) RestartCore(_ context.Context, _ *pb.RestartInfo) (*pb.Empty, error) {
+	go func() {
+		s.log.Warn("Restart requested via core protocol, executing...")
+		time.Sleep(time.Millisecond * 300)
+		err := execReload()
+		s.log.Should(err)
+	}()
+	return &pb.Empty{}, nil
+}
+
+// GetCoreInfo returns the configuration schema of the core
+func (s *IBeamServer) GetCoreConfigSchema(_ context.Context, _ *pb.Empty) (*pb.ByteData, error) {
+	return &pb.ByteData{Data: s.schemaBytes}, nil
+}
+
+// GetCoreInfo returns the current active configuration of the core
+func (s *IBeamServer) GetCoreConfig(_ context.Context, _ *pb.Empty) (*pb.ByteData, error) {
+	jsonBytes, err := json.Marshal(s.configPtr)
+	s.log.Should(err)
+	return &pb.ByteData{Data: jsonBytes}, nil
+}
+
+// SetCoreConfig validates and saves the new config to the config file, it does not load it into the core without a restart
+func (s *IBeamServer) SetCoreConfig(_ context.Context, input *pb.ByteData) (*pb.Empty, error) {
+	// first we need to validate config, if valid we can store it into the config file
+
+	var configMap interface{}
+	s.log.Trace("Incoming Config ", string(input.GetData()))
+	err := json.Unmarshal(input.Data, &configMap)
+	if s.log.Should(err) {
+		return nil, fmt.Errorf("could not parse config: %w", err)
+	}
+
+	cleaned, err := skconfig.ValidateConfig(skconfig.GetSchema(s.configPtr), configMap, false)
+	if err != nil {
+		return nil, fmt.Errorf("could not validate config: %w", err)
+	}
+
+	// save json to files
+	err = skconfig.Save(&cleaned)
+	if s.log.Should(err) {
+		return nil, fmt.Errorf("could not save config")
+	}
+	return &pb.Empty{}, nil
 }
 
 // GetDeviceInfo returns the DeviceInfos for given DeviceIDs.
@@ -317,25 +367,27 @@ func CreateServer(coreInfo *pb.CoreInfo) (manager *IBeamParameterManager, regist
 		Name:        "Generic Model",
 		Description: "default model of the implementation",
 	}
-	return CreateServerWithDefaultModel(coreInfo, defaultModelInfo)
+	return CreateServerWithDefaultModelAndConfig(coreInfo, defaultModelInfo, nil)
 }
 
 // CreateServer sets up the ibeam server, parameter manager and parameter registry
 func CreateServerWithConfig(coreInfo *pb.CoreInfo, config interface{}) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan<- *pb.Parameter, getfromManager <-chan *pb.Parameter) {
-	// Load configuration
-	skconfig.SetCoreName(coreInfo.Name)
-	err := skconfig.Load(config)
-	elog.MustFatal(err)
-
 	defaultModelInfo := &pb.ModelInfo{
 		Name:        "Generic Model",
 		Description: "default model of the implementation",
 	}
-	return CreateServerWithDefaultModel(coreInfo, defaultModelInfo)
+	return CreateServerWithDefaultModelAndConfig(coreInfo, defaultModelInfo, config)
 }
 
 // CreateServerWithDefaultModel sets up the ibeam server, parameter manager and parameter registry and allows to specify a default model
-func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelInfo) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, setToManager chan<- *pb.Parameter, getFromManager <-chan *pb.Parameter) {
+func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *pb.ModelInfo, config interface{}) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, setToManager chan<- *pb.Parameter, getFromManager <-chan *pb.Parameter) {
+	// Load configuration
+	if config != nil {
+		skconfig.SetCoreName(coreInfo.Name)
+		err := skconfig.Load(config)
+		elog.MustFatal(err)
+	}
+
 	clientsSetter := make(chan *pb.Parameter, 100)
 	getfromManagerChannel := make(chan *pb.Parameter, 100)
 	settoManagerChannel := make(chan *pb.Parameter, 100)
@@ -362,6 +414,12 @@ func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelI
 		serverClientsStream:      watcher,
 		serverClientsDistributor: make(map[chan *pb.Parameter]bool),
 		log:                      sLog,
+	}
+
+	if config != nil {
+		server.configPtr = config
+		schemaValue := skconfig.GetSchema(server.configPtr)
+		server.schemaBytes, _ = json.Marshal(schemaValue)
 	}
 
 	manager = &IBeamParameterManager{

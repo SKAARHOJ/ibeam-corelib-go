@@ -83,6 +83,7 @@ func (m *IBeamParameterManager) StartWithServer(address string) {
 	wg.Wait()
 
 	if sig == SIGUSR2 {
+		log.Info("Restart requested via Signal")
 		err := execReload()
 		log.Should(err)
 	}
