@@ -60,7 +60,6 @@ func (r *IBeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID, i
 	}
 
 	if _, ok := r.parameterValue[deviceID][parameterIndex]; !ok {
-		r.log.Info(r.parameterValue[deviceID])
 		r.log.Error("Could not get instance values for DeviceParameterID: Device:", dpID.Device, " and param: ", dpID.Parameter, " param does not exist")
 		return nil
 	}
@@ -758,8 +757,11 @@ func validateParameter(rlog *log.Entry, detail *pb.ParameterDetail) {
 		rlog.Fatalf("Parameter '%v': RetryCount will not work without ControlDelayMs being set", detail.Name)
 	}
 
-	if detail.InputCurve != pb.InputCurve_NormalInputCurve && detail.ValueType != pb.ValueType_Integer && detail.ValueType != pb.ValueType_Floating {
+	if detail.InputCurveExpo != 0 && detail.ValueType != pb.ValueType_Integer && detail.ValueType != pb.ValueType_Floating {
 		rlog.Fatalf("Parameter '%v': InputCurves can only be used on Integer or Float values", detail.Name)
+	}
+	if detail.InputCurveExpo >= 1 || detail.InputCurveExpo == 0.5 || detail.InputCurveExpo < 0 {
+		rlog.Fatalf("Parameter '%v': InputCurveExpo can not be bigger or equals 1, smaller than 0 or exactly 0.5 (which would be liniar anyways)", detail.Name)
 	}
 
 	if detail.DisplayFloatPrecision != pb.FloatPrecision_UndefinedFloatPrecision && detail.ValueType != pb.ValueType_Floating {
