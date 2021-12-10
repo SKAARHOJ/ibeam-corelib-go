@@ -11,6 +11,7 @@ import (
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
 	skconfig "github.com/SKAARHOJ/ibeam-lib-config"
 	elog "github.com/s00500/env_logger"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/proto"
 )
@@ -21,11 +22,16 @@ type IBeamServer struct {
 	parameterRegistry        *IBeamParameterRegistry
 	clientsSetterStream      chan *pb.Parameter
 	serverClientsStream      chan *pb.Parameter
-	serverClientsDistributor map[chan *pb.Parameter]bool
+	serverClientsDistributor map[chan *pb.Parameter]*SubscribeData
 	muDistributor            sync.RWMutex
 	configPtr                interface{} // TODO: can I not make this better ? as a fix ptr ?
 	schemaBytes              []byte
 	log                      *elog.Entry
+}
+
+type SubscribeData struct {
+	IDs        *pb.DeviceParameterIDs
+	Identifier string
 }
 
 // GetCoreInfo returns the CoreInfo of the IBeamCore
@@ -297,6 +303,54 @@ func (s *IBeamServer) Set(_ context.Context, ps *pb.Parameters) (*pb.Empty, erro
 func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCore_SubscribeServer) error {
 	p, _ := peer.FromContext(stream.Context())
 	clientIP := p.Addr.String()
+	subscribeId := ""
+	md, ok := metadata.FromIncomingContext(stream.Context())
+	if ok {
+		if val, exists := md["x-ibeam-subscribeid"]; exists {
+			if len(val) < 1 {
+				return fmt.Errorf("Metadata not holding any data")
+			}
+
+			subscribeId = val[0]
+			// got subscribe ID
+			s.muDistributor.RLock()
+			for dChan, distData := range s.serverClientsDistributor {
+				if subscribeId == distData.Identifier {
+					// redefine filter! but only do a get on new params!
+					s.muDistributor.RUnlock()
+
+					s.muDistributor.Lock()
+					sendParams := make([]*pb.DeviceParameterID, 0)
+					s.log.Debugf("Resubscribe %s %v", subscribeId, distData.IDs)
+					for _, id := range dpIDs.Ids {
+						if !containsDeviceParameter(id, distData.IDs) {
+							sendParams = append(sendParams, &pb.DeviceParameterID{Parameter: id.Parameter, Device: id.Device})
+						}
+					}
+					s.serverClientsDistributor[dChan] = &SubscribeData{Identifier: subscribeId, IDs: dpIDs}
+					s.muDistributor.Unlock()
+
+					//only get new dpids
+					if len(sendParams) > 0 {
+						parameters, err := s.Get(stream.Context(), &pb.DeviceParameterIDs{Ids: sendParams})
+						if err != nil {
+							return err
+						}
+
+						for _, param := range parameters.Parameters {
+							dChan <- param
+						}
+					}
+
+					return nil
+				}
+			}
+			s.muDistributor.RUnlock()
+		}
+	}
+
+	// Get the current subscription ID, check if it has been used before, if so just perform a get on the new parameters and update the filtering
+
 	s.log.Debug("New Client subscribed from ", clientIP)
 
 	// Fist send all parameters
@@ -313,7 +367,7 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 
 	distributor := make(chan *pb.Parameter, 100)
 	s.muDistributor.Lock()
-	s.serverClientsDistributor[distributor] = true
+	s.serverClientsDistributor[distributor] = &SubscribeData{Identifier: subscribeId, IDs: dpIDs}
 
 	s.log.Debugf("Added distributor number %v", len(s.serverClientsDistributor))
 	s.muDistributor.Unlock()
@@ -331,21 +385,7 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 				return nil
 			}
 		case parameter := <-distributor:
-			if parameter.Id == nil || parameter.Id.Device == 0 || parameter.Id.Parameter == 0 {
-				continue
-			}
-			// Check if Device is Subscribed
-			if len(dpIDs.Ids) == 1 && dpIDs.Ids[0].Parameter == 0 && dpIDs.Ids[0].Device != parameter.Id.Device {
-				s.log.Tracef("Blocked sending out of change because of devicefilter Want: %d, Got: %d", dpIDs.Ids[0].Device, parameter.Id.Device)
-				continue
-			}
-
-			// Check for parameter filtering
-			if len(dpIDs.Ids) >= 1 && dpIDs.Ids[0].Parameter != 0 && !containsDeviceParameter(parameter.Id, dpIDs) {
-				s.log.Tracef("Blocked sending out of change of parameter %d (D: %d) because of device parameter id filter, %v", parameter.Id.Parameter, parameter.Id.Device, dpIDs)
-				continue
-			}
-
+			// Filtering already happened in the distributor
 			s.log.Debugf("Send Parameter with ID '%v' to client from ServerClientsStream", parameter.Id)
 			stream.Send(parameter)
 		}
@@ -412,7 +452,7 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 		parameterRegistry:        registry,
 		clientsSetterStream:      clientsSetter,
 		serverClientsStream:      watcher,
-		serverClientsDistributor: make(map[chan *pb.Parameter]bool),
+		serverClientsDistributor: make(map[chan *pb.Parameter]*SubscribeData),
 		log:                      sLog,
 	}
 
@@ -437,17 +477,35 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 		for {
 			parameter := <-watcher
 			server.muDistributor.RLock()
-			for channel, isOpen := range server.serverClientsDistributor {
-				if isOpen {
+			for channel, subscribeData := range server.serverClientsDistributor {
+				if subscribeData != nil && subscribeData.IDs != nil {
+					paramfilter := subscribeData.IDs
+					// Filtering as specified by the original request
+					if parameter.Id == nil || parameter.Id.Device == 0 || parameter.Id.Parameter == 0 {
+						continue
+					}
+					// Check if Device is Subscribed
+					if len(paramfilter.Ids) == 1 && paramfilter.Ids[0].Parameter == 0 && paramfilter.Ids[0].Device != parameter.Id.Device {
+						sLog.Tracef("Blocked sending out of change because of devicefilter Want: %d, Got: %d", paramfilter.Ids[0].Device, parameter.Id.Device)
+						continue
+					}
+
+					// Check for parameter filtering
+					if len(paramfilter.Ids) >= 1 && paramfilter.Ids[0].Parameter != 0 && !containsDeviceParameter(parameter.Id, paramfilter) {
+						sLog.Tracef("Blocked sending out of change of parameter %d (D: %d) because of device parameter id filter, %v", parameter.Id.Parameter, parameter.Id.Device, paramfilter)
+						continue
+					}
+
 					channel <- parameter
-				} else {
-					sLog.Debugf("Deleted Channel %v", channel)
-					server.muDistributor.RUnlock()
-					server.muDistributor.Lock()
-					delete(server.serverClientsDistributor, channel)
-					server.muDistributor.Unlock()
-					server.muDistributor.RLock()
+					continue
 				}
+
+				sLog.Debugf("Deleted Channel %v", channel)
+				server.muDistributor.RUnlock()
+				server.muDistributor.Lock()
+				delete(server.serverClientsDistributor, channel)
+				server.muDistributor.Unlock()
+				server.muDistributor.RLock()
 			}
 			server.muDistributor.RUnlock()
 		}
