@@ -736,14 +736,10 @@ func validateParameter(rlog *log.Entry, detail *pb.ParameterDetail) {
 	if detail.ControlStyle == pb.ControlStyle_NoControl && detail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
 		rlog.Fatalf("Parameter: '%v': Can not have no control and no feedback", detail.Name)
 	}
-	if detail.ControlStyle == pb.ControlStyle_ControlledIncremental && detail.ValueType != pb.ValueType_Integer {
-		rlog.Fatalf("Parameter: '%v': Controlled Incremental only supported on integers right now", detail.Name)
-	}
 	if detail.ControlStyle == pb.ControlStyle_Incremental && detail.IncDecStepsLowerLimit == 0 && detail.IncDecStepsUpperLimit == 0 {
 		rlog.Fatalf("Parameter: '%v': Incremental: please provide lower and upper range for incDecSteps", detail.Name)
 	}
 	if detail.ControlStyle != pb.ControlStyle_Incremental &&
-		detail.ControlStyle != pb.ControlStyle_ControlledIncremental &&
 		(detail.IncDecStepsLowerLimit != 0 || detail.IncDecStepsUpperLimit != 0) {
 		rlog.Fatalf("Parameter: '%v': Lower and upper limit are only valid on Incremental Control Mode", detail.Name)
 	}
