@@ -123,78 +123,7 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 		m.out <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue())
 		parameterBuffer.tryCount++
 		m.reevaluateIn(time.Millisecond*time.Duration(parameterDetail.ControlDelayMs), parameterBuffer, parameterID, deviceID)
-	case pb.ControlStyle_ControlledIncremental:
-		if parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
-			return
-		}
 
-		type action string
-		const (
-			// Increment ...
-			Increment action = "Increment"
-			// Decrement ...
-			Decrement action = "Decrement"
-			// NoOperation ...
-			NoOperation action = "NoOperation"
-		)
-
-		var cmdAction action
-
-		switch value := parameterBuffer.currentValue.Value.(type) {
-		case *pb.ParameterValue_Integer:
-			if targetValue, ok := parameterBuffer.targetValue.Value.(*pb.ParameterValue_Integer); ok {
-				if value.Integer < targetValue.Integer {
-					cmdAction = Increment
-				} else if value.Integer > targetValue.Integer {
-					cmdAction = Decrement
-				} else {
-					cmdAction = NoOperation
-				}
-			}
-		case *pb.ParameterValue_Floating:
-			if targetValue, ok := parameterBuffer.targetValue.Value.(*pb.ParameterValue_Floating); ok {
-				if value.Floating < targetValue.Floating {
-					cmdAction = Increment
-				} else if value.Floating > targetValue.Floating {
-					cmdAction = Decrement
-				} else {
-					cmdAction = NoOperation
-				}
-			}
-		case *pb.ParameterValue_CurrentOption:
-			if targetValue, ok := parameterBuffer.targetValue.Value.(*pb.ParameterValue_CurrentOption); ok {
-				if value.CurrentOption < targetValue.CurrentOption {
-					cmdAction = Increment
-				} else if value.CurrentOption > targetValue.CurrentOption {
-					cmdAction = Decrement
-				} else {
-					cmdAction = NoOperation
-				}
-			}
-		default:
-			mlog.Errorf("Could not match Valuetype %T", value)
-		}
-
-		var cmdValue *pb.ParameterValue
-
-		switch cmdAction {
-		case Increment:
-			cmdValue = parameterBuffer.incrementParameterValue()
-		case Decrement:
-			cmdValue = parameterBuffer.decrementParameterValue()
-		case NoOperation:
-			return
-		}
-		parameterBuffer.lastUpdate = time.Now()
-		if parameterDetail.Id == nil {
-			mlog.Errorf("No DeviceParameterID")
-			return
-		}
-
-		mlog.Debugf("Send value '%v' to Device", cmdValue)
-		m.out <- b.Param(parameterID, deviceID, cmdValue)
-		parameterBuffer.tryCount++
-		m.reevaluateIn(time.Millisecond*time.Duration(parameterDetail.ControlDelayMs), parameterBuffer, parameterID, deviceID)
 	case pb.ControlStyle_NoControl, pb.ControlStyle_Oneshot:
 		if parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
 			parameterBuffer.targetValue = proto.Clone(parameterBuffer.currentValue).(*pb.ParameterValue)
