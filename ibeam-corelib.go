@@ -436,7 +436,7 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 
 	watcher := make(chan *pb.Parameter)
 
-	coreInfo.IbeamVersion = pb.File_ibeam_core_proto.Options().ProtoReflect().Get(pb.E_IbeamVersion.TypeDescriptor()).String()
+	coreInfo.IbeamVersion = GetProtocolVersion()
 
 	registry = &IBeamParameterRegistry{
 		coreInfo:        proto.Clone(coreInfo).(*pb.CoreInfo),
@@ -516,4 +516,8 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 
 func (m *IBeamParameterManager) pName(id *pb.DeviceParameterID) string {
 	return fmt.Sprintf("parameter %s (P:%d, D: %d)", m.parameterRegistry.PName(id.Parameter), id.Parameter, id.Device)
+}
+
+func GetProtocolVersion() string {
+	return pb.File_ibeam_core_proto.Options().ProtoReflect().Get(pb.E_IbeamVersion.TypeDescriptor()).String()
 }
