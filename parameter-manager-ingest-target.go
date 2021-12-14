@@ -124,6 +124,18 @@ valueLoop:
 			}
 		}
 
+		// Check if required meta are set
+		for mName, meta := range parameterConfig.MetaDetails {
+			if meta.Required {
+				_, exists := newParameterValue.MetaValues[mName]
+				if !exists {
+					mlog.Errorf("Required MetaValue missing for parameter meta value %s for %s", mName, m.pName(parameter.Id))
+					m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_HasNoValue)
+					continue valueLoop
+				}
+			}
+		}
+
 		// Check if th evalue is already set!
 		newParameterValue.Available = parameterBuffer.currentValue.Available // on an incoming request we can savely ignore the available, it will likely be false anyways
 		if parameterBuffer.currentEquals(newParameterValue) {
