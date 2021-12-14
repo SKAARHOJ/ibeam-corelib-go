@@ -8,43 +8,52 @@ import "github.com/SKAARHOJ/ibeam-corelib-go"
 
 ## Index
 
+- [Constants](<#constants>)
 - [Variables](<#variables>)
-- [func CreateServer(coreInfo *pb.CoreInfo) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan *pb.Parameter, getfromManager chan *pb.Parameter)](<#func-createserver>)
-- [func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelInfo) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan *pb.Parameter, getfromManager chan *pb.Parameter)](<#func-createserverwithdefaultmodel>)
+- [func CreateServer(coreInfo *pb.CoreInfo) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan<- *pb.Parameter, getfromManager <-chan *pb.Parameter)](<#func-createserver>)
+- [func CreateServerWithConfig(coreInfo *pb.CoreInfo, config interface{}) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan<- *pb.Parameter, getfromManager <-chan *pb.Parameter)](<#func-createserverwithconfig>)
+- [func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *pb.ModelInfo, config interface{}) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, setToManager chan<- *pb.Parameter, getFromManager <-chan *pb.Parameter)](<#func-createserverwithdefaultmodelandconfig>)
 - [func GenerateOptionList(options ...string) (optionList *pb.OptionList)](<#func-generateoptionlist>)
+- [func GetProtocolVersion() string](<#func-getprotocolversion>)
+- [func HashedID(name string) uint32](<#func-hashedid>)
+- [func ReloadHook()](<#func-reloadhook>)
+- [func bytesEqual(a, b []byte) bool](<#func-bytesequal>)
 - [func containsDeviceParameter(dpID *pb.DeviceParameterID, dpIDs *pb.DeviceParameterIDs) bool](<#func-containsdeviceparameter>)
 - [func containsString(value string, slice []string) bool](<#func-containsstring>)
+- [func execReload() error](<#func-execreload>)
+- [func forkExec() error](<#func-forkexec>)
 - [func getIDFromOptionListByElementName(list *pb.OptionList, name string) (uint32, error)](<#func-getidfromoptionlistbyelementname>)
 - [func getModelWithID(s *IBeamServer, mID uint32) *pb.ModelInfo](<#func-getmodelwithid>)
-- [func getValues(dimension *IBeamParameterDimension) (values []*pb.ParameterValue)](<#func-getvalues>)
+- [func getValues(rlog *log.Entry, dimension *iBeamParameterDimension, includeDynamicConfig bool) (values []*pb.ParameterValue)](<#func-getvalues>)
+- [func idFromName(name string) uint32](<#func-idfromname>)
+- [func isChild() bool](<#func-ischild>)
 - [func isDescreteValue(parameterConfig *pb.ParameterDetail, value float64) bool](<#func-isdescretevalue>)
+- [func kill() error](<#func-kill>)
+- [func lookPath() (argv0 string, err error)](<#func-lookpath>)
 - [func paramError(pid uint32, did uint32, e pb.ParameterError) *pb.Parameter](<#func-paramerror>)
-- [func validateParameter(detail *pb.ParameterDetail)](<#func-validateparameter>)
+- [func validateParameter(rlog *log.Entry, detail *pb.ParameterDetail)](<#func-validateparameter>)
+- [func wait() (syscall.Signal, error)](<#func-wait>)
 - [type DescreteValueDetails](<#type-descretevaluedetails>)
 - [type DimensionDetails](<#type-dimensiondetails>)
-- [type IBeamParameterDimension](<#type-ibeamparameterdimension>)
-  - [func generateDimensions(dimensionConfig []uint32, initialValueDimension *IBeamParameterDimension) *IBeamParameterDimension](<#func-generatedimensions>)
-  - [func (pd *IBeamParameterDimension) MultiIndex(dimensionID []uint32) (*IBeamParameterDimension, error)](<#func-ibeamparameterdimension-multiindex>)
-  - [func (pd *IBeamParameterDimension) MultiIndexHasValue(dimensionID []uint32) bool](<#func-ibeamparameterdimension-multiindexhasvalue>)
-  - [func (pd *IBeamParameterDimension) Subdimensions() ([]*IBeamParameterDimension, error)](<#func-ibeamparameterdimension-subdimensions>)
-  - [func (pd *IBeamParameterDimension) Value() (*ibeamParameterValueBuffer, error)](<#func-ibeamparameterdimension-value>)
-  - [func (pd *IBeamParameterDimension) index(index uint32) (*IBeamParameterDimension, error)](<#func-ibeamparameterdimension-index>)
-  - [func (pd *IBeamParameterDimension) isValue() bool](<#func-ibeamparameterdimension-isvalue>)
 - [type IBeamParameterManager](<#type-ibeamparametermanager>)
   - [func (m *IBeamParameterManager) Start()](<#func-ibeamparametermanager-start>)
-  - [func (m *IBeamParameterManager) StartWithServer(network, address string)](<#func-ibeamparametermanager-startwithserver>)
+  - [func (m *IBeamParameterManager) StartWithServer(address string)](<#func-ibeamparametermanager-startwithserver>)
   - [func (m *IBeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb.Parameter](<#func-ibeamparametermanager-checkvalidparameter>)
   - [func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibeamParameterValueBuffer, parameterDetail *pb.ParameterDetail, deviceID uint32)](<#func-ibeamparametermanager-handlesingleparameterbuffer>)
   - [func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter)](<#func-ibeamparametermanager-ingestcurrentparameter>)
   - [func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter)](<#func-ibeamparametermanager-ingesttargetparameter>)
+  - [func (m *IBeamParameterManager) pName(id *pb.DeviceParameterID) string](<#func-ibeamparametermanager-pname>)
   - [func (m *IBeamParameterManager) processParameter(address paramDimensionAddress)](<#func-ibeamparametermanager-processparameter>)
   - [func (m *IBeamParameterManager) reEvaluate(addr paramDimensionAddress)](<#func-ibeamparametermanager-reevaluate>)
   - [func (m *IBeamParameterManager) reevaluateIn(t time.Duration, buffer *ibeamParameterValueBuffer, parameterID, deviceID uint32)](<#func-ibeamparametermanager-reevaluatein>)
 - [type IBeamParameterRegistry](<#type-ibeamparameterregistry>)
-  - [func (r *IBeamParameterRegistry) AllowAutoIDs()](<#func-ibeamparameterregistry-allowautoids>)
   - [func (r *IBeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32](<#func-ibeamparameterregistry-getmodelidbydeviceid>)
   - [func (r *IBeamParameterRegistry) GetNameMap() map[uint32]string](<#func-ibeamparameterregistry-getnamemap>)
+  - [func (r *IBeamParameterRegistry) GetParameterCurrentValue(parameterID, deviceID uint32, dimensionID ...uint32) (*pb.ParameterValue, error)](<#func-ibeamparameterregistry-getparametercurrentvalue>)
+  - [func (r *IBeamParameterRegistry) GetParameterDetail(parameterID, modelID uint32) (*pb.ParameterDetail, error)](<#func-ibeamparameterregistry-getparameterdetail>)
   - [func (r *IBeamParameterRegistry) GetParameterNameOfModel(parameterID, modelID uint32) (string, error)](<#func-ibeamparameterregistry-getparameternameofmodel>)
+  - [func (r *IBeamParameterRegistry) GetParameterOptions(parameterID, deviceID uint32, dimensionID ...uint32) (*pb.OptionList, error)](<#func-ibeamparameterregistry-getparameteroptions>)
+  - [func (r *IBeamParameterRegistry) GetParameterValue(parameterID, deviceID uint32, dimensionID ...uint32) (*pb.ParameterValue, error)](<#func-ibeamparameterregistry-getparametervalue>)
   - [func (r *IBeamParameterRegistry) PID(parameterName string) uint32](<#func-ibeamparameterregistry-pid>)
   - [func (r *IBeamParameterRegistry) PName(parameterID uint32) string](<#func-ibeamparameterregistry-pname>)
   - [func (r *IBeamParameterRegistry) ParameterNameByID(parameterID uint32) string](<#func-ibeamparameterregistry-parameternamebyid>)
@@ -58,21 +67,36 @@ import "github.com/SKAARHOJ/ibeam-corelib-go"
   - [func (r *IBeamParameterRegistry) UnregisterParameterForModel(modelID uint32, parameterName string)](<#func-ibeamparameterregistry-unregisterparameterformodel>)
   - [func (r *IBeamParameterRegistry) UnregisterParameterForModels(modelIDs []uint32, parameterName string)](<#func-ibeamparameterregistry-unregisterparameterformodels>)
   - [func (r *IBeamParameterRegistry) cacheIDMaps()](<#func-ibeamparameterregistry-cacheidmaps>)
-  - [func (r *IBeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID) (values []*pb.ParameterValue)](<#func-ibeamparameterregistry-getinstancevalues>)
+  - [func (r *IBeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID, includeDynamicConfig bool) (values []*pb.ParameterValue)](<#func-ibeamparameterregistry-getinstancevalues>)
   - [func (r *IBeamParameterRegistry) getModelID(deviceID uint32) uint32](<#func-ibeamparameterregistry-getmodelid>)
   - [func (r *IBeamParameterRegistry) parameterIDByName(parameterName string, modelID uint32) uint32](<#func-ibeamparameterregistry-parameteridbyname>)
 - [type IBeamServer](<#type-ibeamserver>)
   - [func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rParameters *pb.Parameters, err error)](<#func-ibeamserver-get>)
+  - [func (s *IBeamServer) GetCoreConfig(_ context.Context, _ *pb.Empty) (*pb.ByteData, error)](<#func-ibeamserver-getcoreconfig>)
+  - [func (s *IBeamServer) GetCoreConfigSchema(_ context.Context, _ *pb.Empty) (*pb.ByteData, error)](<#func-ibeamserver-getcoreconfigschema>)
   - [func (s *IBeamServer) GetCoreInfo(_ context.Context, _ *pb.Empty) (*pb.CoreInfo, error)](<#func-ibeamserver-getcoreinfo>)
   - [func (s *IBeamServer) GetDeviceInfo(_ context.Context, deviceIDs *pb.DeviceIDs) (*pb.DeviceInfos, error)](<#func-ibeamserver-getdeviceinfo>)
   - [func (s *IBeamServer) GetModelInfo(_ context.Context, mIDs *pb.ModelIDs) (*pb.ModelInfos, error)](<#func-ibeamserver-getmodelinfo>)
   - [func (s *IBeamServer) GetParameterDetails(c context.Context, mpIDs *pb.ModelParameterIDs) (*pb.ParameterDetails, error)](<#func-ibeamserver-getparameterdetails>)
+  - [func (s *IBeamServer) RestartCore(_ context.Context, _ *pb.RestartInfo) (*pb.Empty, error)](<#func-ibeamserver-restartcore>)
   - [func (s *IBeamServer) Set(_ context.Context, ps *pb.Parameters) (*pb.Empty, error)](<#func-ibeamserver-set>)
+  - [func (s *IBeamServer) SetCoreConfig(_ context.Context, input *pb.ByteData) (*pb.Empty, error)](<#func-ibeamserver-setcoreconfig>)
   - [func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCore_SubscribeServer) error](<#func-ibeamserver-subscribe>)
   - [func (s *IBeamServer) getParameterDetail(mpID *pb.ModelParameterID) (*pb.ParameterDetail, error)](<#func-ibeamserver-getparameterdetail>)
 - [type MetaElements](<#type-metaelements>)
+- [type SubscribeData](<#type-subscribedata>)
+- [type iBeamParameterDimension](<#type-ibeamparameterdimension>)
+  - [func generateDimensions(dimensionConfig []*pb.DimensionDetail, initialValueDimension *iBeamParameterDimension) *iBeamParameterDimension](<#func-generatedimensions>)
+  - [func (pd *iBeamParameterDimension) getSubdimensions() (map[uint32]*iBeamParameterDimension, error)](<#func-ibeamparameterdimension-getsubdimensions>)
+  - [func (pd *iBeamParameterDimension) getValue() (*ibeamParameterValueBuffer, error)](<#func-ibeamparameterdimension-getvalue>)
+  - [func (pd *iBeamParameterDimension) index(index uint32) (*iBeamParameterDimension, error)](<#func-ibeamparameterdimension-index>)
+  - [func (pd *iBeamParameterDimension) isValue() bool](<#func-ibeamparameterdimension-isvalue>)
+  - [func (pd *iBeamParameterDimension) multiIndex(dimensionID []uint32) (*iBeamParameterDimension, error)](<#func-ibeamparameterdimension-multiindex>)
+  - [func (pd *iBeamParameterDimension) multiIndexHasValue(dimensionID []uint32) bool](<#func-ibeamparameterdimension-multiindexhasvalue>)
 - [type ibeamParameterValueBuffer](<#type-ibeamparametervaluebuffer>)
+  - [func (b *ibeamParameterValueBuffer) currentEquals(new *pb.ParameterValue) bool](<#func-ibeamparametervaluebuffer-currentequals>)
   - [func (b *ibeamParameterValueBuffer) decrementParameterValue() *pb.ParameterValue](<#func-ibeamparametervaluebuffer-decrementparametervalue>)
+  - [func (b *ibeamParameterValueBuffer) getCurrentParameterValue() *pb.ParameterValue](<#func-ibeamparametervaluebuffer-getcurrentparametervalue>)
   - [func (b *ibeamParameterValueBuffer) getParameterValue() *pb.ParameterValue](<#func-ibeamparametervaluebuffer-getparametervalue>)
   - [func (b *ibeamParameterValueBuffer) incrementParameterValue() *pb.ParameterValue](<#func-ibeamparametervaluebuffer-incrementparametervalue>)
 - [type paramDimensionAddress](<#type-paramdimensionaddress>)
@@ -81,7 +105,24 @@ import "github.com/SKAARHOJ/ibeam-corelib-go"
 - [type timeTimer](<#type-timetimer>)
 
 
+## Constants
+
+```go
+const (
+    SIGINT  = syscall.SIGINT
+    SIGQUIT = syscall.SIGQUIT
+    SIGTERM = syscall.SIGTERM
+    SIGUSR2 = syscall.SIGUSR2
+)
+```
+
 ## Variables
+
+OptionFloatCurrentOverridesTargetDuringRetry allows to make the manager accept any value sent by the camera for a float as if it would be the correct target value This is needed on devices that do some rounding on their own\, making it impossible to get the accurate desired value Warning: this option basically disables the manager for floats\, in a leter version of corelib this needs replacement with something configurable per parameter
+
+```go
+var OptionFloatCurrentOverridesTargetDuringRetry bool = false
+```
 
 ```go
 var cachedIDMap map[uint32]map[uint32]string
@@ -99,18 +140,26 @@ var cachedNameMap map[uint32]map[string]uint32
 var cachedNameMapMu sync.RWMutex
 ```
 
-## func [CreateServer](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L307>)
+## func [CreateServer](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L405>)
 
 ```go
-func CreateServer(coreInfo *pb.CoreInfo) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan *pb.Parameter, getfromManager chan *pb.Parameter)
+func CreateServer(coreInfo *pb.CoreInfo) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan<- *pb.Parameter, getfromManager <-chan *pb.Parameter)
 ```
 
 CreateServer sets up the ibeam server\, parameter manager and parameter registry
 
-## func [CreateServerWithDefaultModel](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L316>)
+## func [CreateServerWithConfig](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L414>)
 
 ```go
-func CreateServerWithDefaultModel(coreInfo *pb.CoreInfo, defaultModel *pb.ModelInfo) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan *pb.Parameter, getfromManager chan *pb.Parameter)
+func CreateServerWithConfig(coreInfo *pb.CoreInfo, config interface{}) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan<- *pb.Parameter, getfromManager <-chan *pb.Parameter)
+```
+
+CreateServer sets up the ibeam server\, parameter manager and parameter registry
+
+## func [CreateServerWithDefaultModelAndConfig](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L423>)
+
+```go
+func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *pb.ModelInfo, config interface{}) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, setToManager chan<- *pb.Parameter, getFromManager <-chan *pb.Parameter)
 ```
 
 CreateServerWithDefaultModel sets up the ibeam server\, parameter manager and parameter registry and allows to specify a default model
@@ -123,17 +172,57 @@ func GenerateOptionList(options ...string) (optionList *pb.OptionList)
 
 GenerateOptionList returns a new OptionList with ascending IDs
 
-## func [containsDeviceParameter](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L297>)
+## func [GetProtocolVersion](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L521>)
+
+```go
+func GetProtocolVersion() string
+```
+
+## func [HashedID](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/helpers.go#L46>)
+
+```go
+func HashedID(name string) uint32
+```
+
+## func [ReloadHook](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/reload.go#L126>)
+
+```go
+func ReloadHook()
+```
+
+## func [bytesEqual](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-buffer.go#L147>)
+
+```go
+func bytesEqual(a, b []byte) bool
+```
+
+## func [containsDeviceParameter](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L395>)
 
 ```go
 func containsDeviceParameter(dpID *pb.DeviceParameterID, dpIDs *pb.DeviceParameterIDs) bool
 ```
 
-## func [containsString](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-ingest-target.go#L255>)
+## func [containsString](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-ingest-target.go#L304>)
 
 ```go
 func containsString(value string, slice []string) bool
 ```
+
+## func [execReload](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/reload.go#L28>)
+
+```go
+func execReload() error
+```
+
+Re\-exec this same image
+
+## func [forkExec](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/reload.go#L52>)
+
+```go
+func forkExec() error
+```
+
+Fork and exec this same image
 
 ## func [getIDFromOptionListByElementName](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/helpers.go#L30>)
 
@@ -141,22 +230,48 @@ func containsString(value string, slice []string) bool
 func getIDFromOptionListByElementName(list *pb.OptionList, name string) (uint32, error)
 ```
 
-## func [getModelWithID](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L89>)
+## func [getModelWithID](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L147>)
 
 ```go
 func getModelWithID(s *IBeamServer, mID uint32) *pb.ModelInfo
 ```
 
-## func [getValues](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L63>)
+## func [getValues](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L70>)
 
 ```go
-func getValues(dimension *IBeamParameterDimension) (values []*pb.ParameterValue)
+func getValues(rlog *log.Entry, dimension *iBeamParameterDimension, includeDynamicConfig bool) (values []*pb.ParameterValue)
 ```
 
-## func [isDescreteValue](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-ingest-current.go#L275>)
+## func [idFromName](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L46>)
+
+```go
+func idFromName(name string) uint32
+```
+
+## func [isChild](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/reload.go#L136>)
+
+```go
+func isChild() bool
+```
+
+## func [isDescreteValue](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager.go#L183>)
 
 ```go
 func isDescreteValue(parameterConfig *pb.ParameterDetail, value float64) bool
+```
+
+## func [kill](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/reload.go#L104>)
+
+```go
+func kill() error
+```
+
+kill process specified in the environment with the signal specified in the environment; default to SIGQUIT\.
+
+## func [lookPath](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/reload.go#L203>)
+
+```go
+func lookPath() (argv0 string, err error)
 ```
 
 ## func [paramError](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/helpers.go#L39>)
@@ -165,11 +280,19 @@ func isDescreteValue(parameterConfig *pb.ParameterDetail, value float64) bool
 func paramError(pid uint32, did uint32, e pb.ParameterError) *pb.Parameter
 ```
 
-## func [validateParameter](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L553>)
+## func [validateParameter](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L731>)
 
 ```go
-func validateParameter(detail *pb.ParameterDetail)
+func validateParameter(rlog *log.Entry, detail *pb.ParameterDetail)
 ```
+
+## func [wait](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/reload.go#L142>)
+
+```go
+func wait() (syscall.Signal, error)
+```
+
+Block this goroutine awaiting signals\.  Signals are handled as they are by Nginx and Unicorn: \<http://unicorn.bogomips.org/SIGNALS.html\>\.
 
 ## type [DescreteValueDetails](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/helpers.go#L16>)
 
@@ -187,84 +310,24 @@ DimensionDetails Type alias to make parameter definition nicer
 type DimensionDetails []*pb.DimensionDetail
 ```
 
-## type [IBeamParameterDimension](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L12-L15>)
-
-IBeamParameterDimension is a recursive structure to enable the state management of parameters with several dimensions
-
-```go
-type IBeamParameterDimension struct {
-    subDimensions []*IBeamParameterDimension
-    value         *ibeamParameterValueBuffer
-}
-```
-
-### func [generateDimensions](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L89>)
-
-```go
-func generateDimensions(dimensionConfig []uint32, initialValueDimension *IBeamParameterDimension) *IBeamParameterDimension
-```
-
-### func \(\*IBeamParameterDimension\) [MultiIndex](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L63>)
-
-```go
-func (pd *IBeamParameterDimension) MultiIndex(dimensionID []uint32) (*IBeamParameterDimension, error)
-```
-
-MultiIndex gets a specific dimension by dimensionID
-
-### func \(\*IBeamParameterDimension\) [MultiIndexHasValue](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L38>)
-
-```go
-func (pd *IBeamParameterDimension) MultiIndexHasValue(dimensionID []uint32) bool
-```
-
-MultiIndexHasValue checks for a specific dimension ids existence
-
-### func \(\*IBeamParameterDimension\) [Subdimensions](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L30>)
-
-```go
-func (pd *IBeamParameterDimension) Subdimensions() ([]*IBeamParameterDimension, error)
-```
-
-Subdimensions of the Dimension
-
-### func \(\*IBeamParameterDimension\) [Value](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L22>)
-
-```go
-func (pd *IBeamParameterDimension) Value() (*ibeamParameterValueBuffer, error)
-```
-
-Value of the Dimension
-
-### func \(\*IBeamParameterDimension\) [index](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L82>)
-
-```go
-func (pd *IBeamParameterDimension) index(index uint32) (*IBeamParameterDimension, error)
-```
-
-### func \(\*IBeamParameterDimension\) [isValue](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L17>)
-
-```go
-func (pd *IBeamParameterDimension) isValue() bool
-```
-
-## type [IBeamParameterManager](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager.go#L19-L27>)
+## type [IBeamParameterManager](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager.go#L23-L32>)
 
 IBeamParameterManager manages parameter changes\.
 
 ```go
 type IBeamParameterManager struct {
     parameterRegistry   *IBeamParameterRegistry
-    out                 chan *pb.Parameter
-    in                  chan *pb.Parameter
+    out                 chan<- *pb.Parameter
+    in                  <-chan *pb.Parameter
     clientsSetterStream chan *pb.Parameter
     serverClientsStream chan *pb.Parameter
     parameterEvent      chan paramDimensionAddress
     server              *IBeamServer
+    log                 *log.Entry
 }
 ```
 
-### func \(\*IBeamParameterManager\) [Start](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager.go#L119>)
+### func \(\*IBeamParameterManager\) [Start](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager.go#L164>)
 
 ```go
 func (m *IBeamParameterManager) Start()
@@ -272,36 +335,42 @@ func (m *IBeamParameterManager) Start()
 
 Start the communication between client and server\.
 
-### func \(\*IBeamParameterManager\) [StartWithServer](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager.go#L31>)
+### func \(\*IBeamParameterManager\) [StartWithServer](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager.go#L35>)
 
 ```go
-func (m *IBeamParameterManager) StartWithServer(network, address string)
+func (m *IBeamParameterManager) StartWithServer(address string)
 ```
 
-StartWithServer Starts the ibeam parameter routine and the GRPC server in one call\. This is blocking and should be called at the end of main\. The network must be "tcp"\, "tcp4"\, "tcp6"\, "unix" or "unixpacket"\.
+StartWithServer Starts the ibeam parameter routine and the GRPC server in one call\. This is blocking and should be called at the end of main\.
 
-### func \(\*IBeamParameterManager\) [checkValidParameter](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager.go#L47>)
+### func \(\*IBeamParameterManager\) [checkValidParameter](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager.go#L92>)
 
 ```go
 func (m *IBeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb.Parameter
 ```
 
-### func \(\*IBeamParameterManager\) [handleSingleParameterBuffer](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-process.go#L48>)
+### func \(\*IBeamParameterManager\) [handleSingleParameterBuffer](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-process.go#L50>)
 
 ```go
 func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibeamParameterValueBuffer, parameterDetail *pb.ParameterDetail, deviceID uint32)
 ```
 
-### func \(\*IBeamParameterManager\) [ingestCurrentParameter](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-ingest-current.go#L12>)
+### func \(\*IBeamParameterManager\) [ingestCurrentParameter](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-ingest-current.go#L16>)
 
 ```go
 func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter)
 ```
 
-### func \(\*IBeamParameterManager\) [ingestTargetParameter](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-ingest-target.go#L10>)
+### func \(\*IBeamParameterManager\) [ingestTargetParameter](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-ingest-target.go#L9>)
 
 ```go
 func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter)
+```
+
+### func \(\*IBeamParameterManager\) [pName](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L517>)
+
+```go
+func (m *IBeamParameterManager) pName(id *pb.DeviceParameterID) string
 ```
 
 ### func \(\*IBeamParameterManager\) [processParameter](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-process.go#L12>)
@@ -310,47 +379,45 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter)
 func (m *IBeamParameterManager) processParameter(address paramDimensionAddress)
 ```
 
-### func \(\*IBeamParameterManager\) [reEvaluate](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-process.go#L225>)
+### func \(\*IBeamParameterManager\) [reEvaluate](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-process.go#L172>)
 
 ```go
 func (m *IBeamParameterManager) reEvaluate(addr paramDimensionAddress)
 ```
 
-### func \(\*IBeamParameterManager\) [reevaluateIn](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-process.go#L191>)
+### func \(\*IBeamParameterManager\) [reevaluateIn](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager-process.go#L138>)
 
 ```go
 func (m *IBeamParameterManager) reevaluateIn(t time.Duration, buffer *ibeamParameterValueBuffer, parameterID, deviceID uint32)
 ```
 
-## type [IBeamParameterRegistry](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L24-L36>)
+## type [IBeamParameterRegistry](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L26-L44>)
 
 IBeamParameterRegistry is the storage of the core\. It saves all Infos about the Core\, Device and Models and stores the Details and current Values of the Parameter\.
 
 ```go
 type IBeamParameterRegistry struct {
-    muInfo          sync.RWMutex // Protects both Model and DeviceInfos
-    muDetail        sync.RWMutex
-    muValue         sync.RWMutex
-    coreInfo        *pb.CoreInfo
-    deviceInfos     map[uint32]*pb.DeviceInfo
-    modelInfos      map[uint32]*pb.ModelInfo
-    parameterDetail parameterDetails //Parameter Details: model, parameter
-    parameterValue  parameterStates  //Parameter States: device,parameter,dimension
-    allowAutoIDs    bool
-    modelsDone      bool // Sanity flag set on first call to add parameters to ensure order
-    parametersDone  bool // Sanity flag set on first call to add devices to ensure order
+    muInfo           sync.RWMutex // Protects both Model and DeviceInfos
+    muDetail         sync.RWMutex
+    muValue          sync.RWMutex
+    coreInfo         *pb.CoreInfo
+    deviceInfos      map[uint32]*pb.DeviceInfo
+    modelInfos       map[uint32]*pb.ModelInfo
+    parameterDetail  parameterDetails //Parameter Details: model, parameter
+    parameterValue   parameterStates  //Parameter States: device,parameter,dimension
+    ModelAutoIDs     bool             // This is not recommended to use, please do use the proper IDs for models
+    modelsDone       bool             // Sanity flag set on first call to add parameters to ensure order
+    parametersDone   bool             // Sanity flag set on first call to add devices to ensure order
+    connectionExists bool
+    log              *log.Entry
+
+    // debug info
+    parameterCount uint
+    dimensionCount uint
 }
 ```
 
-### func \(\*IBeamParameterRegistry\) [AllowAutoIDs](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L39>)
-
-```go
-func (r *IBeamParameterRegistry) AllowAutoIDs()
-```
-
-AllowAutoIDs Allowing Automatic IDs for parameters\, this is only meant for initial development
-
-### func \(\*IBeamParameterRegistry\) [GetModelIDByDeviceID](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L282>)
+### func \(\*IBeamParameterRegistry\) [GetModelIDByDeviceID](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L447>)
 
 ```go
 func (r *IBeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32
@@ -358,7 +425,7 @@ func (r *IBeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32
 
 GetModelIDByDeviceID is a helper to get the modelid for a specific device
 
-### func \(\*IBeamParameterRegistry\) [GetNameMap](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L517>)
+### func \(\*IBeamParameterRegistry\) [GetNameMap](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L695>)
 
 ```go
 func (r *IBeamParameterRegistry) GetNameMap() map[uint32]string
@@ -366,7 +433,23 @@ func (r *IBeamParameterRegistry) GetNameMap() map[uint32]string
 
 GetNameMap returns a map of all parameter names\, usefull for initial state requests
 
-### func \(\*IBeamParameterRegistry\) [GetParameterNameOfModel](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L264>)
+### func \(\*IBeamParameterRegistry\) [GetParameterCurrentValue](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L366>)
+
+```go
+func (r *IBeamParameterRegistry) GetParameterCurrentValue(parameterID, deviceID uint32, dimensionID ...uint32) (*pb.ParameterValue, error)
+```
+
+GetParameterCurrentValue gets a copy of the current parameter value from the state by pid\, did and dimensionIDs
+
+### func \(\*IBeamParameterRegistry\) [GetParameterDetail](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L318>)
+
+```go
+func (r *IBeamParameterRegistry) GetParameterDetail(parameterID, modelID uint32) (*pb.ParameterDetail, error)
+```
+
+GetParameterDetail gets the details of a parameter by id and model id
+
+### func \(\*IBeamParameterRegistry\) [GetParameterNameOfModel](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L300>)
 
 ```go
 func (r *IBeamParameterRegistry) GetParameterNameOfModel(parameterID, modelID uint32) (string, error)
@@ -374,7 +457,23 @@ func (r *IBeamParameterRegistry) GetParameterNameOfModel(parameterID, modelID ui
 
 GetParameterNameOfModel gets the name of a parameter by id and model id
 
-### func \(\*IBeamParameterRegistry\) [PID](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L494>)
+### func \(\*IBeamParameterRegistry\) [GetParameterOptions](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L396>)
+
+```go
+func (r *IBeamParameterRegistry) GetParameterOptions(parameterID, deviceID uint32, dimensionID ...uint32) (*pb.OptionList, error)
+```
+
+GetParameterCurrentValue gets a copy of the current parameter value from the state by pid\, did and dimensionIDs
+
+### func \(\*IBeamParameterRegistry\) [GetParameterValue](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L336>)
+
+```go
+func (r *IBeamParameterRegistry) GetParameterValue(parameterID, deviceID uint32, dimensionID ...uint32) (*pb.ParameterValue, error)
+```
+
+GetParameterValue gets a copy of the new parameter value from the state by pid\, did and dimensionIDs
+
+### func \(\*IBeamParameterRegistry\) [PID](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L672>)
 
 ```go
 func (r *IBeamParameterRegistry) PID(parameterName string) uint32
@@ -382,7 +481,7 @@ func (r *IBeamParameterRegistry) PID(parameterName string) uint32
 
 PID Get a parameterID by name\, returns 0 if not found\, always uses model 0
 
-### func \(\*IBeamParameterRegistry\) [PName](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L471>)
+### func \(\*IBeamParameterRegistry\) [PName](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L648>)
 
 ```go
 func (r *IBeamParameterRegistry) PName(parameterID uint32) string
@@ -390,7 +489,7 @@ func (r *IBeamParameterRegistry) PName(parameterID uint32) string
 
 PName Get a parameter Name by ID\, returns "" if not found\, always uses model 0
 
-### func \(\*IBeamParameterRegistry\) [ParameterNameByID](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L466>)
+### func \(\*IBeamParameterRegistry\) [ParameterNameByID](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L643>)
 
 ```go
 func (r *IBeamParameterRegistry) ParameterNameByID(parameterID uint32) string
@@ -398,7 +497,7 @@ func (r *IBeamParameterRegistry) ParameterNameByID(parameterID uint32) string
 
 ParameterNameByID Get a parameter Name by ID\, returns "" if not found\, always uses model 0 DEPRECATED: Use PName instead
 
-### func \(\*IBeamParameterRegistry\) [ReRegisterDevice](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L311>)
+### func \(\*IBeamParameterRegistry\) [ReRegisterDevice](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L476>)
 
 ```go
 func (r *IBeamParameterRegistry) ReRegisterDevice(deviceID, modelID uint32) error
@@ -406,7 +505,7 @@ func (r *IBeamParameterRegistry) ReRegisterDevice(deviceID, modelID uint32) erro
 
 ReRegisterDevice registers an existing device again\. This allows to reset it's state and change the type of model if necessary Make sure to handle the error properly
 
-### func \(\*IBeamParameterRegistry\) [RegisterDevice](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L343>)
+### func \(\*IBeamParameterRegistry\) [RegisterDevice](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L508>)
 
 ```go
 func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint32, error)
@@ -414,7 +513,7 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 
 RegisterDevice registers a new Device in the Registry with given DeviceID and ModelID\. If the DeviceID is 0 it will be picked automatically Make sure to handle the error properly
 
-### func \(\*IBeamParameterRegistry\) [RegisterDeviceWithModelName](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L295>)
+### func \(\*IBeamParameterRegistry\) [RegisterDeviceWithModelName](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L460>)
 
 ```go
 func (r *IBeamParameterRegistry) RegisterDeviceWithModelName(deviceID uint32, modelName string) (deviceIndex uint32, err error)
@@ -422,7 +521,7 @@ func (r *IBeamParameterRegistry) RegisterDeviceWithModelName(deviceID uint32, mo
 
 RegisterDeviceWithModelName registers a new Device in the Registry with given Modelname\, if there is no it uses the generic one\. If the DeviceID is 0 it will be picked automatically
 
-### func \(\*IBeamParameterRegistry\) [RegisterModel](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L227>)
+### func \(\*IBeamParameterRegistry\) [RegisterModel](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L263>)
 
 ```go
 func (r *IBeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32
@@ -430,7 +529,7 @@ func (r *IBeamParameterRegistry) RegisterModel(model *pb.ModelInfo) uint32
 
 RegisterModel registers a new Model in the Registry with given ModelInfo
 
-### func \(\*IBeamParameterRegistry\) [RegisterParameter](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L108>)
+### func \(\*IBeamParameterRegistry\) [RegisterParameter](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L134>)
 
 ```go
 func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (paramID uint32)
@@ -438,7 +537,7 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 
 RegisterParameter registers a parameter and its detail struct in the registry\.
 
-### func \(\*IBeamParameterRegistry\) [RegisterParameterForModel](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L99>)
+### func \(\*IBeamParameterRegistry\) [RegisterParameterForModel](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L125>)
 
 ```go
 func (r *IBeamParameterRegistry) RegisterParameterForModel(modelID uint32, detail *pb.ParameterDetail) (parameterIndex uint32)
@@ -446,7 +545,7 @@ func (r *IBeamParameterRegistry) RegisterParameterForModel(modelID uint32, detai
 
 RegisterParameterForModel registers a parameter and its detail struct in the registry for a single specified model and the default model if the id does not exist there yet\.
 
-### func \(\*IBeamParameterRegistry\) [RegisterParameterForModels](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L88>)
+### func \(\*IBeamParameterRegistry\) [RegisterParameterForModels](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L114>)
 
 ```go
 func (r *IBeamParameterRegistry) RegisterParameterForModels(modelIDs []uint32, detail *pb.ParameterDetail)
@@ -454,7 +553,7 @@ func (r *IBeamParameterRegistry) RegisterParameterForModels(modelIDs []uint32, d
 
 RegisterParameterForModels registers a parameter and its detail struct in the registry for multiple models\.
 
-### func \(\*IBeamParameterRegistry\) [UnregisterParameterForModel](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L204>)
+### func \(\*IBeamParameterRegistry\) [UnregisterParameterForModel](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L240>)
 
 ```go
 func (r *IBeamParameterRegistry) UnregisterParameterForModel(modelID uint32, parameterName string)
@@ -462,7 +561,7 @@ func (r *IBeamParameterRegistry) UnregisterParameterForModel(modelID uint32, par
 
 UnregisterParameterForModel removes a specific parameter for a specific model\.
 
-### func \(\*IBeamParameterRegistry\) [UnregisterParameterForModels](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L197>)
+### func \(\*IBeamParameterRegistry\) [UnregisterParameterForModels](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L233>)
 
 ```go
 func (r *IBeamParameterRegistry) UnregisterParameterForModels(modelIDs []uint32, parameterName string)
@@ -470,27 +569,27 @@ func (r *IBeamParameterRegistry) UnregisterParameterForModels(modelIDs []uint32,
 
 UnregisterParameterForModels removes a specific parameter for a list of models\.
 
-### func \(\*IBeamParameterRegistry\) [cacheIDMaps](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L435>)
+### func \(\*IBeamParameterRegistry\) [cacheIDMaps](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L612>)
 
 ```go
 func (r *IBeamParameterRegistry) cacheIDMaps()
 ```
 
-### func \(\*IBeamParameterRegistry\) [getInstanceValues](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L45>)
+### func \(\*IBeamParameterRegistry\) [getInstanceValues](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L53>)
 
 ```go
-func (r *IBeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID) (values []*pb.ParameterValue)
+func (r *IBeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID, includeDynamicConfig bool) (values []*pb.ParameterValue)
 ```
 
 device\,parameter\,instance
 
-### func \(\*IBeamParameterRegistry\) [getModelID](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L78>)
+### func \(\*IBeamParameterRegistry\) [getModelID](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L104>)
 
 ```go
 func (r *IBeamParameterRegistry) getModelID(deviceID uint32) uint32
 ```
 
-### func \(\*IBeamParameterRegistry\) [parameterIDByName](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L539>)
+### func \(\*IBeamParameterRegistry\) [parameterIDByName](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L717>)
 
 ```go
 func (r *IBeamParameterRegistry) parameterIDByName(parameterName string, modelID uint32) uint32
@@ -498,21 +597,25 @@ func (r *IBeamParameterRegistry) parameterIDByName(parameterName string, modelID
 
 parameterIDByName get a parameterID by name\, returns 0 if not found\, not allowed to be public because it needs the mutexlock
 
-## type [IBeamServer](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L17-L23>)
+## type [IBeamServer](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L20-L30>)
 
 IBeamServer implements the IbeamCoreServer interface of the generated protofile library\.
 
 ```go
 type IBeamServer struct {
+    *pb.UnimplementedIbeamCoreServer
     parameterRegistry        *IBeamParameterRegistry
     clientsSetterStream      chan *pb.Parameter
     serverClientsStream      chan *pb.Parameter
-    serverClientsDistributor map[chan *pb.Parameter]bool
+    serverClientsDistributor map[chan *pb.Parameter]*SubscribeData
     muDistributor            sync.RWMutex
+    configPtr                interface{} // TODO: can I not make this better ? as a fix ptr ?
+    schemaBytes              []byte
+    log                      *elog.Entry
 }
 ```
 
-### func \(\*IBeamServer\) [Get](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L100>)
+### func \(\*IBeamServer\) [Get](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L158>)
 
 ```go
 func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rParameters *pb.Parameters, err error)
@@ -520,7 +623,23 @@ func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 
 Get returns the Parameters with their current state for given DeviceParameterIDs\. If no IDs are given\, all Parameters will be returned\.
 
-### func \(\*IBeamServer\) [GetCoreInfo](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L26>)
+### func \(\*IBeamServer\) [GetCoreConfig](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L63>)
+
+```go
+func (s *IBeamServer) GetCoreConfig(_ context.Context, _ *pb.Empty) (*pb.ByteData, error)
+```
+
+GetCoreInfo returns the current active configuration of the core
+
+### func \(\*IBeamServer\) [GetCoreConfigSchema](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L58>)
+
+```go
+func (s *IBeamServer) GetCoreConfigSchema(_ context.Context, _ *pb.Empty) (*pb.ByteData, error)
+```
+
+GetCoreInfo returns the configuration schema of the core
+
+### func \(\*IBeamServer\) [GetCoreInfo](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L38>)
 
 ```go
 func (s *IBeamServer) GetCoreInfo(_ context.Context, _ *pb.Empty) (*pb.CoreInfo, error)
@@ -528,7 +647,7 @@ func (s *IBeamServer) GetCoreInfo(_ context.Context, _ *pb.Empty) (*pb.CoreInfo,
 
 GetCoreInfo returns the CoreInfo of the IBeamCore
 
-### func \(\*IBeamServer\) [GetDeviceInfo](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L36>)
+### func \(\*IBeamServer\) [GetDeviceInfo](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L95>)
 
 ```go
 func (s *IBeamServer) GetDeviceInfo(_ context.Context, deviceIDs *pb.DeviceIDs) (*pb.DeviceInfos, error)
@@ -536,7 +655,7 @@ func (s *IBeamServer) GetDeviceInfo(_ context.Context, deviceIDs *pb.DeviceIDs) 
 
 GetDeviceInfo returns the DeviceInfos for given DeviceIDs\. If no IDs are given\, all DeviceInfos will be returned\.
 
-### func \(\*IBeamServer\) [GetModelInfo](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L66>)
+### func \(\*IBeamServer\) [GetModelInfo](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L124>)
 
 ```go
 func (s *IBeamServer) GetModelInfo(_ context.Context, mIDs *pb.ModelIDs) (*pb.ModelInfos, error)
@@ -544,7 +663,7 @@ func (s *IBeamServer) GetModelInfo(_ context.Context, mIDs *pb.ModelIDs) (*pb.Mo
 
 GetModelInfo returns the ModelInfos for given ModelIDs\. If no IDs are given\, all ModelInfos will be returned\.
 
-### func \(\*IBeamServer\) [GetParameterDetails](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L174>)
+### func \(\*IBeamServer\) [GetParameterDetails](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L238>)
 
 ```go
 func (s *IBeamServer) GetParameterDetails(c context.Context, mpIDs *pb.ModelParameterIDs) (*pb.ParameterDetails, error)
@@ -552,7 +671,15 @@ func (s *IBeamServer) GetParameterDetails(c context.Context, mpIDs *pb.ModelPara
 
 GetParameterDetails returns the Details for given ModelParameterIDs\. If no IDs are given\, the Details from all Parameters will be returned\.
 
-### func \(\*IBeamServer\) [Set](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L229>)
+### func \(\*IBeamServer\) [RestartCore](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L47>)
+
+```go
+func (s *IBeamServer) RestartCore(_ context.Context, _ *pb.RestartInfo) (*pb.Empty, error)
+```
+
+GetCoreInfo returns the CoreInfo of the IBeamCore
+
+### func \(\*IBeamServer\) [Set](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L293>)
 
 ```go
 func (s *IBeamServer) Set(_ context.Context, ps *pb.Parameters) (*pb.Empty, error)
@@ -560,7 +687,15 @@ func (s *IBeamServer) Set(_ context.Context, ps *pb.Parameters) (*pb.Empty, erro
 
 Set will change the Value for the given Parameter\.
 
-### func \(\*IBeamServer\) [Subscribe](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L239>)
+### func \(\*IBeamServer\) [SetCoreConfig](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L70>)
+
+```go
+func (s *IBeamServer) SetCoreConfig(_ context.Context, input *pb.ByteData) (*pb.Empty, error)
+```
+
+SetCoreConfig validates and saves the new config to the config file\, it does not load it into the core without a restart
+
+### func \(\*IBeamServer\) [Subscribe](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L303>)
 
 ```go
 func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCore_SubscribeServer) error
@@ -568,7 +703,7 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 
 Subscribe starts a ServerStream and send updates if a Parameter changes\. On subscribe all current values should be sent back\. If no IDs are given\, subscribe to every Parameter\.
 
-### func \(\*IBeamServer\) [getParameterDetail](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L213>)
+### func \(\*IBeamServer\) [getParameterDetail](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L277>)
 
 ```go
 func (s *IBeamServer) getParameterDetail(mpID *pb.ModelParameterID) (*pb.ParameterDetail, error)
@@ -582,7 +717,77 @@ MetaElements Type alias to make parameter definition nicer
 type MetaElements map[string]*pb.ParameterMetaDetail
 ```
 
-## type [ibeamParameterValueBuffer](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-buffer.go#L13-L23>)
+## type [SubscribeData](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/ibeam-corelib.go#L32-L35>)
+
+```go
+type SubscribeData struct {
+    IDs        *pb.DeviceParameterIDs
+    Identifier string
+}
+```
+
+## type [iBeamParameterDimension](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L12-L15>)
+
+iBeamParameterDimension is a recursive structure to enable the state management of parameters with several dimensions
+
+```go
+type iBeamParameterDimension struct {
+    subDimensions map[uint32]*iBeamParameterDimension
+    value         *ibeamParameterValueBuffer
+}
+```
+
+### func [generateDimensions](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L89>)
+
+```go
+func generateDimensions(dimensionConfig []*pb.DimensionDetail, initialValueDimension *iBeamParameterDimension) *iBeamParameterDimension
+```
+
+### func \(\*iBeamParameterDimension\) [getSubdimensions](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L30>)
+
+```go
+func (pd *iBeamParameterDimension) getSubdimensions() (map[uint32]*iBeamParameterDimension, error)
+```
+
+getSubdimensions of the Dimension
+
+### func \(\*iBeamParameterDimension\) [getValue](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L22>)
+
+```go
+func (pd *iBeamParameterDimension) getValue() (*ibeamParameterValueBuffer, error)
+```
+
+getValue of the Dimension
+
+### func \(\*iBeamParameterDimension\) [index](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L82>)
+
+```go
+func (pd *iBeamParameterDimension) index(index uint32) (*iBeamParameterDimension, error)
+```
+
+### func \(\*iBeamParameterDimension\) [isValue](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L17>)
+
+```go
+func (pd *iBeamParameterDimension) isValue() bool
+```
+
+### func \(\*iBeamParameterDimension\) [multiIndex](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L63>)
+
+```go
+func (pd *iBeamParameterDimension) multiIndex(dimensionID []uint32) (*iBeamParameterDimension, error)
+```
+
+multiIndex gets a specific dimension by dimensionID
+
+### func \(\*iBeamParameterDimension\) [multiIndexHasValue](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-dimension.go#L38>)
+
+```go
+func (pd *iBeamParameterDimension) multiIndexHasValue(dimensionID []uint32) bool
+```
+
+multiIndexHasValue checks for a specific dimension ids existence
+
+## type [ibeamParameterValueBuffer](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-buffer.go#L14-L28>)
 
 ibeamParameterValueBuffer is used for updating a ParameterValue\. It holds a current and a target Value\.
 
@@ -590,35 +795,53 @@ ibeamParameterValueBuffer is used for updating a ParameterValue\. It holds a cur
 type ibeamParameterValueBuffer struct {
     dimensionID         []uint32
     available           bool
-    isAssumedState      bool
+    isAssumedState      atomic.Bool
     lastUpdate          time.Time
     tryCount            uint32
     reEvaluationTimer   *timeTimer
     reEvaluationTimerMu sync.Mutex
     currentValue        *pb.ParameterValue
     targetValue         *pb.ParameterValue
+
+    dynamicOptions *pb.OptionList
+    dynamicMin     *float64
+    dynamicMax     *float64
 }
 ```
 
-### func \(\*ibeamParameterValueBuffer\) [decrementParameterValue](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-buffer.go#L53>)
+### func \(\*ibeamParameterValueBuffer\) [currentEquals](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-buffer.go#L83>)
+
+```go
+func (b *ibeamParameterValueBuffer) currentEquals(new *pb.ParameterValue) bool
+```
+
+This function provides an optimized way of checking against current value without proto\.Equals \(which is an expensive function\)
+
+### func \(\*ibeamParameterValueBuffer\) [decrementParameterValue](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-buffer.go#L70>)
 
 ```go
 func (b *ibeamParameterValueBuffer) decrementParameterValue() *pb.ParameterValue
 ```
 
-### func \(\*ibeamParameterValueBuffer\) [getParameterValue](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-buffer.go#L29>)
+### func \(\*ibeamParameterValueBuffer\) [getCurrentParameterValue](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-buffer.go#L46>)
+
+```go
+func (b *ibeamParameterValueBuffer) getCurrentParameterValue() *pb.ParameterValue
+```
+
+### func \(\*ibeamParameterValueBuffer\) [getParameterValue](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-buffer.go#L34>)
 
 ```go
 func (b *ibeamParameterValueBuffer) getParameterValue() *pb.ParameterValue
 ```
 
-### func \(\*ibeamParameterValueBuffer\) [incrementParameterValue](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-buffer.go#L41>)
+### func \(\*ibeamParameterValueBuffer\) [incrementParameterValue](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-buffer.go#L58>)
 
 ```go
 func (b *ibeamParameterValueBuffer) incrementParameterValue() *pb.ParameterValue
 ```
 
-## type [paramDimensionAddress](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager.go#L12-L16>)
+## type [paramDimensionAddress](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-manager.go#L16-L20>)
 
 Internal version of parameterID\, to not mess with protobuff mechanisma
 
@@ -630,19 +853,19 @@ type paramDimensionAddress struct {
 }
 ```
 
-## type [parameterDetails](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L19>)
+## type [parameterDetails](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L21>)
 
 ```go
 type parameterDetails map[uint32]map[uint32]*pb.ParameterDetail //Parameter Details: model, parameter
 ```
 
-## type [parameterStates](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L20>)
+## type [parameterStates](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L22>)
 
 ```go
-type parameterStates map[uint32]map[uint32]*IBeamParameterDimension //Parameter States: device,parameter,dimension
+type parameterStates map[uint32]map[uint32]*iBeamParameterDimension //Parameter States: device,parameter,dimension
 ```
 
-## type [timeTimer](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-buffer.go#L24-L27>)
+## type [timeTimer](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-buffer.go#L29-L32>)
 
 ```go
 type timeTimer struct {
