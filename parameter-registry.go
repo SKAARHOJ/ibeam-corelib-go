@@ -521,6 +521,9 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 				ValueType:     pb.ValueType_Binary,
 			})
 		}
+		if cachedIDMap == nil {
+			r.cacheIDMaps() // make sure cachedIDMap is initialized for all further usage
+		}
 		r.log.Debugf("Registered %d Parameters with %d Dimensional Values", r.parameterCount, r.dimensionCount)
 	}
 	r.parametersDone = true
@@ -651,9 +654,8 @@ func (r *IBeamParameterRegistry) PName(parameterID uint32) string {
 		r.log.Error("ParameterNameByID: only call after registering the first device")
 		return ""
 	}
-
 	if cachedIDMap == nil {
-		r.cacheIDMaps() // make sure cachedIDMap is initialized
+		r.log.Error("ID Map not initialized yet, register a device first!")
 	}
 	cachedIDMapMu.RLock()
 	defer cachedIDMapMu.RUnlock()
@@ -663,7 +665,7 @@ func (r *IBeamParameterRegistry) PName(parameterID uint32) string {
 	if exists {
 		return name
 	}
-	
+
 	r.log.Debug("PName: could not find ", parameterID)
 	return ""
 }
@@ -676,8 +678,8 @@ func (r *IBeamParameterRegistry) PID(parameterName string) uint32 {
 		return 0
 	}
 
-	if cachedNameMap == nil {
-		r.cacheIDMaps() // make sure cachedIDMap is initialized
+	if cachedIDMap == nil {
+		r.log.Error("ID Map not initialized yet, register a device first!")
 	}
 	cachedNameMapMu.RLock()
 	defer cachedNameMapMu.RUnlock()
@@ -699,8 +701,8 @@ func (r *IBeamParameterRegistry) GetNameMap() map[uint32]string {
 		return nil
 	}
 
-	if cachedNameMap == nil {
-		r.cacheIDMaps() // make sure cachedIDMap is initialized
+	if cachedIDMap == nil {
+		r.log.Error("ID Map not initialized yet, register a device first!")
 	}
 	cachedIDMapMu.RLock()
 	defer cachedIDMapMu.RUnlock()
