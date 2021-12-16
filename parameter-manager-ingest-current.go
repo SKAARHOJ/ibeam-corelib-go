@@ -8,11 +8,6 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-// OptionFloatCurrentOverridesTargetDuringRetry allows to make the manager accept any value sent by the camera for a float as if it would be the correct target value
-// This is needed on devices that do some rounding on their own, making it impossible to get the accurate desired value
-// Warning: this option basically disables the manager for floats, in a leter version of corelib this needs replacement with something configurable per parameter
-var OptionFloatCurrentOverridesTargetDuringRetry bool = false
-
 func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) {
 	mlog := m.log
 
@@ -260,7 +255,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 		didSetTarget := false
 		didScheduleReEval := false
 
-		if (OptionFloatCurrentOverridesTargetDuringRetry && parameterConfig.ValueType == pb.ValueType_Floating) || parameterBuffer.tryCount == 0 { // Make sure we are not in the process of trying atm
+		if parameterBuffer.tryCount == 0 { // Make sure we are not in the process of trying atm
 			if time.Since(parameterBuffer.lastUpdate).Milliseconds()+1 > int64(parameterConfig.QuarantineDelayMs) {
 				didSetTarget = true
 				if !proto.Equal(parameterBuffer.targetValue, newParameterValue) {
@@ -278,6 +273,25 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			assumed = false
 		} else {
 			assumed = !parameterBuffer.currentEquals(parameterBuffer.targetValue)
+			if assumed && (parameterConfig.ValueType == pb.ValueType_Floating || parameterConfig.ValueType == pb.ValueType_Integer) && parameterConfig.AcceptanceThreshold != 0 {
+				isAcceptanceModeOverride := false
+				// ceck for override
+				if parameterConfig.ValueType == pb.ValueType_Floating {
+					cv := parameterBuffer.currentValue.GetFloating()
+					isAcceptanceModeOverride = (cv-parameterConfig.AcceptanceThreshold < cv && cv < cv+parameterConfig.AcceptanceThreshold)
+				}
+
+				if parameterConfig.ValueType == pb.ValueType_Integer {
+					cv := parameterBuffer.currentValue.GetInteger()
+					isAcceptanceModeOverride = (cv-int32(parameterConfig.AcceptanceThreshold) < cv && cv < cv+int32(parameterConfig.AcceptanceThreshold))
+				}
+
+				if isAcceptanceModeOverride {
+					assumed = true
+					didSetTarget = true
+					parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
+				}
+			}
 		}
 
 		parameterBuffer.isAssumedState.Store(assumed)
