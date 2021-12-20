@@ -277,13 +277,15 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				isAcceptanceModeOverride := false
 				// ceck for override
 				if parameterConfig.ValueType == pb.ValueType_Floating {
+					tv := parameterBuffer.targetValue.GetFloating()
 					cv := parameterBuffer.currentValue.GetFloating()
-					isAcceptanceModeOverride = (cv-parameterConfig.AcceptanceThreshold < cv && cv < cv+parameterConfig.AcceptanceThreshold)
+					isAcceptanceModeOverride = (tv-parameterConfig.AcceptanceThreshold < cv && cv < tv+parameterConfig.AcceptanceThreshold)
 				}
 
 				if parameterConfig.ValueType == pb.ValueType_Integer {
+					tv := parameterBuffer.targetValue.GetInteger()
 					cv := parameterBuffer.currentValue.GetInteger()
-					isAcceptanceModeOverride = (cv-int32(parameterConfig.AcceptanceThreshold) < cv && cv < cv+int32(parameterConfig.AcceptanceThreshold))
+					isAcceptanceModeOverride = (tv-int32(parameterConfig.AcceptanceThreshold) < cv && cv < tv+int32(parameterConfig.AcceptanceThreshold))
 				}
 
 				if isAcceptanceModeOverride {
