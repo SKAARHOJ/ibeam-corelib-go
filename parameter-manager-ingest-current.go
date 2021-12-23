@@ -269,6 +269,16 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 		}
 
 		assumed := false
+
+		if parameterConfig.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
+			// always overide full here
+			didSetTarget = true
+			assumed = false
+			if !proto.Equal(parameterBuffer.targetValue, newParameterValue) {
+				parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
+			}
+		}
+
 		if didSetTarget {
 			assumed = false
 		} else {
