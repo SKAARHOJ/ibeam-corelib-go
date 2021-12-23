@@ -6,7 +6,6 @@ import (
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
 	b "github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers"
-	log "github.com/s00500/env_logger"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -115,8 +114,6 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 			return
 		}
 	}
-
-	log.Info("In process")
 
 	// Set the lastUpdate Time
 	parameterBuffer.lastUpdate = time.Now()
