@@ -289,7 +289,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				}
 
 				if isAcceptanceModeOverride {
-					assumed = true
+					assumed = false
 					didSetTarget = true
 					parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
 				}

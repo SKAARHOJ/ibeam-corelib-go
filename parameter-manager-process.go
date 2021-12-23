@@ -6,6 +6,7 @@ import (
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
 	b "github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers"
+	log "github.com/s00500/env_logger"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -64,6 +65,30 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 		return
 	}
 
+	// For edgecases we should ensure that assumed state is true in the context of AcceptanceThjreshold
+	if parameterDetail.ValueType == pb.ValueType_Floating || parameterDetail.ValueType == pb.ValueType_Integer && parameterDetail.AcceptanceThreshold != 0 {
+		isAcceptanceModeOverride := false
+		// ceck for override
+		if parameterDetail.ValueType == pb.ValueType_Floating {
+			tv := parameterBuffer.targetValue.GetFloating()
+			cv := parameterBuffer.currentValue.GetFloating()
+			isAcceptanceModeOverride = (tv-parameterDetail.AcceptanceThreshold < cv && cv < tv+parameterDetail.AcceptanceThreshold)
+		}
+
+		if parameterDetail.ValueType == pb.ValueType_Integer {
+			tv := parameterBuffer.targetValue.GetInteger()
+			cv := parameterBuffer.currentValue.GetInteger()
+			isAcceptanceModeOverride = (tv-int32(parameterDetail.AcceptanceThreshold) < cv && cv < tv+int32(parameterDetail.AcceptanceThreshold))
+		}
+
+		if isAcceptanceModeOverride {
+			parameterBuffer.isAssumedState.Store(false)
+			parameterBuffer.targetValue = proto.Clone(parameterBuffer.currentValue).(*pb.ParameterValue)
+			m.serverClientsStream <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue())
+			return
+		}
+	}
+
 	// Is is send after Control Delay time
 	if parameterDetail.ControlDelayMs != 0 && time.Since(parameterBuffer.lastUpdate).Milliseconds() < int64(parameterDetail.ControlDelayMs) {
 		m.reevaluateIn(time.Millisecond*time.Duration(parameterDetail.ControlDelayMs)-time.Since(parameterBuffer.lastUpdate), parameterBuffer, parameterID, deviceID)
@@ -79,6 +104,7 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 				return
 			}
 
+			mlog.Info(parameterBuffer.getCurrentParameterValue())
 			mlog.Errorf("Failed to set parameter %v '%v' in %v tries on device %v", parameterID, parameterDetail.Name, parameterDetail.RetryCount, deviceID)
 			parameterBuffer.targetValue = proto.Clone(parameterBuffer.currentValue).(*pb.ParameterValue)
 
@@ -89,6 +115,8 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 			return
 		}
 	}
+
+	log.Info("In process")
 
 	// Set the lastUpdate Time
 	parameterBuffer.lastUpdate = time.Now()
