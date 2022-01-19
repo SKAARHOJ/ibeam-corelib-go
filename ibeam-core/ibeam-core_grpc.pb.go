@@ -51,6 +51,8 @@ type IbeamCoreClient interface {
 	SetCoreConfig(ctx context.Context, in *ByteData, opts ...grpc.CallOption) (*Empty, error)
 	// Restart the core (only works on unix based systems)
 	RestartCore(ctx context.Context, in *RestartInfo, opts ...grpc.CallOption) (*Empty, error)
+	// Get Model Images
+	GetModelImages(ctx context.Context, in *ModelImageRequest, opts ...grpc.CallOption) (*ModelImages, error)
 }
 
 type ibeamCoreClient struct {
@@ -183,6 +185,15 @@ func (c *ibeamCoreClient) RestartCore(ctx context.Context, in *RestartInfo, opts
 	return out, nil
 }
 
+func (c *ibeamCoreClient) GetModelImages(ctx context.Context, in *ModelImageRequest, opts ...grpc.CallOption) (*ModelImages, error) {
+	out := new(ModelImages)
+	err := c.cc.Invoke(ctx, "/ibeam_core.IbeamCore/GetModelImages", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // IbeamCoreServer is the server API for IbeamCore service.
 // All implementations must embed UnimplementedIbeamCoreServer
 // for forward compatibility
@@ -220,6 +231,8 @@ type IbeamCoreServer interface {
 	SetCoreConfig(context.Context, *ByteData) (*Empty, error)
 	// Restart the core (only works on unix based systems)
 	RestartCore(context.Context, *RestartInfo) (*Empty, error)
+	// Get Model Images
+	GetModelImages(context.Context, *ModelImageRequest) (*ModelImages, error)
 	mustEmbedUnimplementedIbeamCoreServer()
 }
 
@@ -259,6 +272,9 @@ func (UnimplementedIbeamCoreServer) SetCoreConfig(context.Context, *ByteData) (*
 }
 func (UnimplementedIbeamCoreServer) RestartCore(context.Context, *RestartInfo) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RestartCore not implemented")
+}
+func (UnimplementedIbeamCoreServer) GetModelImages(context.Context, *ModelImageRequest) (*ModelImages, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetModelImages not implemented")
 }
 func (UnimplementedIbeamCoreServer) mustEmbedUnimplementedIbeamCoreServer() {}
 
@@ -474,6 +490,24 @@ func _IbeamCore_RestartCore_Handler(srv interface{}, ctx context.Context, dec fu
 	return interceptor(ctx, in, info, handler)
 }
 
+func _IbeamCore_GetModelImages_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ModelImageRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(IbeamCoreServer).GetModelImages(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/ibeam_core.IbeamCore/GetModelImages",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(IbeamCoreServer).GetModelImages(ctx, req.(*ModelImageRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // IbeamCore_ServiceDesc is the grpc.ServiceDesc for IbeamCore service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -520,6 +554,10 @@ var IbeamCore_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "RestartCore",
 			Handler:    _IbeamCore_RestartCore_Handler,
+		},
+		{
+			MethodName: "GetModelImages",
+			Handler:    _IbeamCore_GetModelImages_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{
