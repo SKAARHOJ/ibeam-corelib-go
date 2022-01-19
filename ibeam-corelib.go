@@ -1,12 +1,22 @@
 package ibeamcorelib
 
 import (
+	"bytes"
 	"context"
+	"crypto/md5"
+	"embed"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"regexp"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
+
+	log "github.com/s00500/env_logger"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
 	skconfig "github.com/SKAARHOJ/ibeam-lib-config"
@@ -15,6 +25,9 @@ import (
 	"google.golang.org/grpc/peer"
 	"google.golang.org/protobuf/proto"
 )
+
+// Global definition as we need to be able to reache it outside of main from the generated scripts
+var imageFS *embed.FS
 
 // IBeamServer implements the IbeamCoreServer interface of the generated protofile library.
 type IBeamServer struct {
@@ -26,6 +39,7 @@ type IBeamServer struct {
 	muDistributor            sync.RWMutex
 	configPtr                interface{} // TODO: can I not make this better ? as a fix ptr ?
 	schemaBytes              []byte
+	imageFS                  *embed.FS
 	log                      *elog.Entry
 }
 
@@ -392,6 +406,75 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 	}
 }
 
+// GetModelImages allows the client to request core images
+func (s *IBeamServer) GetModelImages(_ context.Context, req *pb.ModelImageRequest) (*pb.ModelImages, error) {
+	if !s.parameterRegistry.coreInfo.HasModelImages {
+		return nil, fmt.Errorf("This core does not provide model images yet")
+	}
+
+	if req.Models == nil || len(req.Models.Ids) == 0 { // Fetch all available
+		dirEntries, err := imageFS.ReadDir("model_images")
+		if err != nil {
+			return nil, fmt.Errorf("Could not load image directory")
+		}
+		modelPattern := regexp.MustCompile(`model\-[0-9]+\.png`)
+		images := make([]*pb.ModelImage, 0)
+
+		for _, entry := range dirEntries {
+			if entry.IsDir() {
+				continue
+			}
+			if !modelPattern.Match([]byte(entry.Name())) {
+				continue
+			}
+			data, err := imageFS.ReadFile(fmt.Sprintf("model_images/%s", entry.Name()))
+			if err != nil {
+				return nil, fmt.Errorf("Could not load image for file %s", entry.Name())
+			}
+			mIDstring := strings.TrimPrefix(entry.Name(), "model-")
+			mIDstring = strings.TrimSuffix(mIDstring, ".png")
+			mid, _ := strconv.Atoi(mIDstring)
+			hash, err := md5sum(data)
+			log.Should(log.Wrap(err, "on hashing md5 for GetModelImages"))
+			imageStruct := &pb.ModelImage{ModelID: uint32(mid), Hash: hash}
+			if !req.HashOnly {
+				imageStruct.ImageData = data
+			}
+			images = append(images, imageStruct)
+		}
+		return &pb.ModelImages{Imgs: images}, nil
+	}
+
+	images := make([]*pb.ModelImage, len(req.Models.Ids))
+	for i, mid := range req.Models.Ids {
+		data, err := imageFS.ReadFile(fmt.Sprintf("model_images/model-%d.png", mid))
+		if err != nil {
+			return nil, fmt.Errorf("Could not load image for modelID %d", mid)
+		}
+		hash, err := md5sum(data)
+		log.Should(log.Wrap(err, "on hashing md5 for GetModelImages"))
+		imageStruct := &pb.ModelImage{ModelID: uint32(mid), Hash: hash}
+		if !req.HashOnly {
+			imageStruct.ImageData = data
+		}
+		images[i] = imageStruct
+	}
+
+	return &pb.ModelImages{Imgs: images}, nil
+}
+
+func md5sum(data []byte) (string, error) {
+	var md5string string
+
+	hash := md5.New()
+	if _, err := io.Copy(hash, bytes.NewReader(data)); err != nil {
+		return md5string, err
+	}
+	hashInBytes := hash.Sum(nil)[:16]
+	md5string = hex.EncodeToString(hashInBytes)
+	return md5string, nil
+}
+
 func containsDeviceParameter(dpID *pb.DeviceParameterID, dpIDs *pb.DeviceParameterIDs) bool {
 	for _, ids := range dpIDs.Ids {
 		if ids.Device == dpID.Device && ids.Parameter == dpID.Parameter {
@@ -399,6 +482,13 @@ func containsDeviceParameter(dpID *pb.DeviceParameterID, dpIDs *pb.DeviceParamet
 		}
 	}
 	return false
+}
+
+func SetImageFS(fs *embed.FS) {
+	if imageFS != nil {
+		log.Fatal("Can not set ImageFS a second time")
+	}
+	imageFS = fs
 }
 
 // CreateServer sets up the ibeam server, parameter manager and parameter registry
@@ -437,6 +527,27 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 	watcher := make(chan *pb.Parameter)
 
 	coreInfo.IbeamVersion = GetProtocolVersion()
+
+	coreInfo.HasModelImages = false // Make sure we do not allow the core to control this field
+	if imageFS != nil {
+		dirEntries, err := imageFS.ReadDir("model_images")
+		if err == nil {
+
+		}
+		modelPattern := regexp.MustCompile(`model\-[0-9]+\.png`)
+
+		for _, entry := range dirEntries {
+			if entry.IsDir() {
+				continue
+			}
+			if !modelPattern.Match([]byte(entry.Name())) {
+				continue
+			}
+			// We have found at lease 1 image, so we are good to go
+			coreInfo.HasModelImages = true
+			break
+		}
+	}
 
 	registry = &IBeamParameterRegistry{
 		coreInfo:        proto.Clone(coreInfo).(*pb.CoreInfo),
