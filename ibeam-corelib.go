@@ -28,6 +28,7 @@ import (
 
 // Global definition as we need to be able to reache it outside of main from the generated scripts
 var imageFS *embed.FS
+var statusOverride string
 
 // IBeamServer implements the IbeamCoreServer interface of the generated protofile library.
 type IBeamServer struct {
@@ -484,11 +485,17 @@ func containsDeviceParameter(dpID *pb.DeviceParameterID, dpIDs *pb.DeviceParamet
 	return false
 }
 
+// SetImageFS sets the image folder embedded fs, this needs to be called before eveything else, usefull in generated code
 func SetImageFS(fs *embed.FS) {
 	if imageFS != nil {
 		log.Fatal("Can not set ImageFS a second time")
 	}
 	imageFS = fs
+}
+
+// SetDevStatusOverride sets a override for the development status in coreinfo, this needs to be called before eveything else, usefull in generated code
+func SetDevStatusOverride(status string) {
+	statusOverride = status
 }
 
 // CreateServer sets up the ibeam server, parameter manager and parameter registry
@@ -547,6 +554,10 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 			coreInfo.HasModelImages = true
 			break
 		}
+	}
+
+	if statusOverride != "" {
+		coreInfo.DevelopmentStatus = statusOverride
 	}
 
 	registry = &IBeamParameterRegistry{
