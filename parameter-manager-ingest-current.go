@@ -68,10 +68,12 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			if newParameterValue.Invalid {
 				// if invalid is true set it
 				parameterBuffer.currentValue.Invalid = newParameterValue.Invalid
+				parameterBuffer.currentValue.Value = b.Invalid(newParameterValue.DimensionID...).Value
 
 				if parameterBuffer.tryCount == 0 { // Make sure we are not in the process of trying atm
 					if time.Since(parameterBuffer.lastUpdate).Milliseconds()+1 > int64(parameterConfig.QuarantineDelayMs) {
 						parameterBuffer.targetValue.Invalid = newParameterValue.Invalid
+						parameterBuffer.targetValue.Value = b.Invalid(newParameterValue.DimensionID...).Value
 					}
 				}
 			} else {
