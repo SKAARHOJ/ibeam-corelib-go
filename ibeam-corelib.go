@@ -590,7 +590,7 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 		in:                  settoManagerChannel,
 		clientsSetterStream: clientsSetter,
 		serverClientsStream: watcher,
-		parameterEvent:      make(chan paramDimensionAddress, 100),
+		parameterEvent:      make(chan paramDimensionAddress, 500),
 		server:              &server,
 		log:                 elog.GetLoggerForPrefix("ib/manager"),
 	}
