@@ -3,8 +3,9 @@ package ibeamcorelib
 import (
 	"fmt"
 	"hash/fnv"
-	"sync"
 	"time"
+
+	"sync"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
 	b "github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers"
@@ -529,11 +530,11 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 	r.parametersDone = true
 
 	r.muDetail.RLock()
-	defer r.muDetail.RUnlock()
-
 	if _, exists := r.parameterDetail[modelID]; !exists {
+		r.muDetail.RUnlock()
 		return 0, fmt.Errorf("could not register device for nonexistent model with id: %v", modelID)
 	}
+	r.muDetail.RUnlock()
 
 	r.muInfo.RLock()
 	if _, exists := r.deviceInfos[deviceID]; exists {
@@ -542,6 +543,7 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 	}
 	r.muInfo.RUnlock()
 
+	r.muDetail.RLock()
 	modelConfig := r.parameterDetail[modelID]
 
 	// create device info
@@ -592,6 +594,7 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 
 		parameterDimensions[parameterID] = generateDimensions(parameterDetail.Dimensions, &initialValueDimension)
 	}
+	r.muDetail.RUnlock()
 
 	r.muInfo.Lock()
 	if deviceID == 0 {

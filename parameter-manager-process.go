@@ -15,12 +15,11 @@ func (m *IBeamParameterManager) processParameter(address paramDimensionAddress) 
 	m.parameterRegistry.muInfo.RLock()
 	defer m.parameterRegistry.muInfo.RUnlock()
 
-	m.parameterRegistry.muDetail.RLock()
-	defer m.parameterRegistry.muDetail.RUnlock()
-
 	m.parameterRegistry.muValue.Lock()
 	defer m.parameterRegistry.muValue.Unlock()
 
+	m.parameterRegistry.muDetail.RLock()
+	defer m.parameterRegistry.muDetail.RUnlock()
 	// Get buffer and config
 	state := m.parameterRegistry.parameterValue
 	deviceID := address.device

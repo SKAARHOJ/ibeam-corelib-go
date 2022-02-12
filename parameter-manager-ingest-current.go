@@ -29,7 +29,6 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 	}
 
 	for _, newParameterValue := range parameter.Value {
-
 		if newParameterValue == nil {
 			mlog.Warnf("Received nil value for ", m.pName(parameter.Id))
 			continue
