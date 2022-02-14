@@ -7,9 +7,13 @@ github.com/BurntSushi/toml v1.0.0/go.mod h1:CxXYINrC8qIiEnFrOxCa7Jy5BFHlXnUU2pbi
 github.com/OneOfOne/xxhash v1.2.2/go.mod h1:HSdplMjZKSmBqAxg5vPj2TmRDmfkzw+cTzAElWljhcU=
 github.com/SKAARHOJ/ibeam-lib-config v0.2.14 h1:LnNPkqJZjQ1gwEZEvaa1XWlYNGd+hIjILHnu74kkPtQ=
 github.com/SKAARHOJ/ibeam-lib-config v0.2.14/go.mod h1://AyHDDy0MwQNYqjty5tMYmWZyspeZ0xJAEnGl++MTc=
+github.com/SKAARHOJ/ibeam-lib-config v0.2.15 h1:EFcu5MrMH+F9aZSK3mPXWe28TkxWkpP1DQhZGiatLO4=
+github.com/SKAARHOJ/ibeam-lib-config v0.2.15/go.mod h1://AyHDDy0MwQNYqjty5tMYmWZyspeZ0xJAEnGl++MTc=
 github.com/SKAARHOJ/ibeam-lib-env v0.0.0-20211122172136-6d06ddff133c/go.mod h1:30J0bJ4+ezueHMyI5UlXkob5PPuNfxbLXbzle/YWONA=
 github.com/SKAARHOJ/ibeam-lib-env v0.1.0 h1:ibj9M+I41TzLzVrdnGKESmwnOqciYbYQW0CUpV4WdhE=
 github.com/SKAARHOJ/ibeam-lib-env v0.1.0/go.mod h1:30J0bJ4+ezueHMyI5UlXkob5PPuNfxbLXbzle/YWONA=
+github.com/SKAARHOJ/ibeam-lib-env v0.1.1 h1:oMuM4wmbzQK4BXvilCsj6GhtLBTnu4+OGKl+XBphIHU=
+github.com/SKAARHOJ/ibeam-lib-env v0.1.1/go.mod h1:30J0bJ4+ezueHMyI5UlXkob5PPuNfxbLXbzle/YWONA=
 github.com/antihax/optional v1.0.0/go.mod h1:uupD/76wgC+ih3iEmQUL+0Ugr19nfwCT1kdvxnR2qWY=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/cespare/xxhash v1.1.0/go.mod h1:XrSqR1VqqWfGrhpAt58auRo0WTKS1nRRg3ghfAqPWnc=
@@ -124,6 +128,8 @@ golang.org/x/sys v0.0.0-20210823070655-63515b42dcdf/go.mod h1:oPkhp1MJrh7nUepCBc
 golang.org/x/sys v0.0.0-20210927094055-39ccf1dd6fa6/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.0.0-20220114195835-da31bd327af9 h1:XfKQ4OlFl8okEOr5UvAqFRVj8pY/4yfcXrddB8qAbU0=
 golang.org/x/sys v0.0.0-20220114195835-da31bd327af9/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
+golang.org/x/sys v0.0.0-20220209214540-3681064d5158 h1:rm+CHSpPEEW2IsXUib1ThaHIjuBVZjxNgSKmBLFfD4c=
+golang.org/x/sys v0.0.0-20220209214540-3681064d5158/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
 golang.org/x/text v0.3.3/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=
