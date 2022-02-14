@@ -39,6 +39,9 @@ type IBeamParameterRegistry struct {
 	connectionExists bool
 	log              *log.Entry
 
+	// Options for individual Parameters
+	defaultValidParams []*pb.ModelParameterID
+
 	// debug info
 	parameterCount uint
 	dimensionCount uint
@@ -123,16 +126,18 @@ func (r *IBeamParameterRegistry) RegisterParameterForModels(modelIDs []uint32, d
 }
 
 // RegisterParameterForModel registers a parameter and its detail struct in the registry for a single specified model and the default model if the id does not exist there yet.
-func (r *IBeamParameterRegistry) RegisterParameterForModel(modelID uint32, detail *pb.ParameterDetail) (parameterIndex uint32) {
+func (r *IBeamParameterRegistry) RegisterParameterForModel(modelID uint32, detail *pb.ParameterDetail, registerOptions ...RegisterOption) (parameterIndex uint32) {
 	if detail.Id == nil {
 		detail.Id = new(pb.ModelParameterID)
 	}
 	detail.Id.Model = modelID
-	return r.RegisterParameter(detail)
+	return r.RegisterParameter(detail, registerOptions...)
 }
 
+type RegisterOption func(r *IBeamParameterRegistry, id *pb.ModelParameterID)
+
 // RegisterParameter registers a parameter and its detail struct in the registry.
-func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (paramID uint32) {
+func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail, registerOptions ...RegisterOption) (paramID uint32) {
 	r.modelsDone = true
 	if r.parametersDone {
 		r.log.Fatal("Can not unregister a parameter after registering the first device")
@@ -177,6 +182,9 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 		validateParameter(r.log, detail)
 
 		r.muDetail.Lock()
+		for _, o := range registerOptions {
+			o(r, detail.Id)
+		}
 		for aMid, modelconfig := range r.parameterDetail {
 			dt := proto.Clone(detail).(*pb.ParameterDetail)
 			dt.Id.Model = aMid
@@ -207,7 +215,9 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 
 		validateParameter(r.log, detail)
 		r.muDetail.Lock()
-
+		for _, o := range registerOptions {
+			o(r, detail.Id)
+		}
 		modelconfig[paramID] = detail
 
 		// if the default model does not have the param it still needs to be added there too!
@@ -216,6 +226,7 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 			dt.Id.Model = 0
 			r.parameterDetail[0][paramID] = dt
 		}
+
 		r.muDetail.Unlock()
 		if pid == 0 {
 			r.log.Debugf("ParameterDetail '%v' with ID: %v was overridden for Model %v", detail.Name, detail.Id.Parameter, detail.Id.Model)
@@ -226,8 +237,15 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail) (
 	if detail.GenericType == pb.GenericType_ConnectionState {
 		r.connectionExists = true
 	}
+
 	r.log.Debugf("ParameterDetail '%v' registered with ID: %v for Model %v", detail.Name, detail.Id.Parameter, detail.Id.Model)
 	return
+}
+
+func WithDefaultValid() func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
+	return func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
+		r.defaultValidParams = append(r.defaultValidParams, id)
+	}
 }
 
 // UnregisterParameterForModels removes a specific parameter for a list of models.
@@ -564,6 +582,13 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 			MetaValues:     map[string]*pb.ParameterMetaValue{},
 		}
 
+		for _, dvp := range r.defaultValidParams {
+			if dvp.Parameter == parameterID && (dvp.Model == 0 || dvp.Model == modelID) {
+				initialValue.Invalid = false
+				break
+			}
+		}
+
 		switch parameterDetail.ValueType {
 		case pb.ValueType_NoValue:
 			initialValue.Value = &pb.ParameterValue_Cmd{Cmd: pb.Command_Trigger}
@@ -575,6 +600,10 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 			initialValue.Value = &pb.ParameterValue_Str{Str: ""}
 		case pb.ValueType_Binary:
 			initialValue.Value = &pb.ParameterValue_Binary{Binary: false}
+		}
+
+		if parameterDetail.DefaultValue != nil {
+			initialValue.Value = parameterDetail.DefaultValue.Value
 		}
 
 		if len(parameterDetail.Dimensions) > 3 {

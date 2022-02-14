@@ -43,7 +43,6 @@ func (m *IBeamParameterManager) processParameter(address paramDimensionAddress) 
 		return
 	}
 	m.handleSingleParameterBuffer(parameterBuffer, parameterDetail, deviceID)
-
 }
 
 func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibeamParameterValueBuffer, parameterDetail *pb.ParameterDetail, deviceID uint32) {
