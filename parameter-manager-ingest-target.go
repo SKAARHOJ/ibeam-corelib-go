@@ -167,8 +167,8 @@ valueLoop:
 				}
 			}
 		case *pb.ParameterValue_IncDecSteps:
-			// inc dec currently only works with integers or no values, float is kind of missing, action lists need to be evaluated
-			if parameterConfig.ValueType != pb.ValueType_Integer && parameterConfig.ValueType != pb.ValueType_NoValue {
+			// inc dec currently only works with integers or no values, float is strange but implemented, action lists need to be evaluated
+			if parameterConfig.ValueType != pb.ValueType_Floating && parameterConfig.ValueType != pb.ValueType_Integer && parameterConfig.ValueType != pb.ValueType_NoValue {
 				mlog.Errorf("Got Value with Type %T for %s, but it needs %v", newValue, m.pName(parameter.Id), pb.ValueType_name[int32(parameterConfig.ValueType)])
 				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
 				continue
@@ -188,6 +188,21 @@ valueLoop:
 					parameterBuffer.targetValue.Invalid = false
 					if parameterConfig.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
 						parameterBuffer.currentValue.Value = &pb.ParameterValue_Integer{Integer: newIntVal}
+					}
+					// send out right away
+					m.serverClientsStream <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue())
+					continue // make sure we skip the rest of the logic :-)
+				}
+			}
+
+			if parameterConfig.ValueType == pb.ValueType_Floating {
+				newFloatVal := parameterBuffer.targetValue.GetFloating() + float64(newValue.IncDecSteps)
+				mlog.Tracef("Decrement %d by %d", parameterBuffer.targetValue.GetFloating(), newValue.IncDecSteps)
+				if newFloatVal <= maximum && newFloatVal >= minimum {
+					parameterBuffer.targetValue.Value = &pb.ParameterValue_Floating{Floating: newFloatVal}
+					parameterBuffer.targetValue.Invalid = false
+					if parameterConfig.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
+						parameterBuffer.currentValue.Value = &pb.ParameterValue_Floating{Floating: newFloatVal}
 					}
 					// send out right away
 					m.serverClientsStream <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue())
