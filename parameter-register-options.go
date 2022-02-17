@@ -15,6 +15,10 @@ func WithDefaultValid() func(r *IBeamParameterRegistry, id *pb.ModelParameterID)
 func WithIncrementPassthrough() func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
 	return func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
 
+		if r.parameterFlags == nil {
+			r.parameterFlags = make(map[uint32]map[uint32][]ParamBufferConfigFlag)
+		}
+
 		if _, exists := r.parameterFlags[id.Model]; !exists {
 			r.parameterFlags[id.Model] = make(map[uint32][]ParamBufferConfigFlag)
 		}
