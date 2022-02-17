@@ -86,7 +86,7 @@ func (pd *iBeamParameterDimension) index(index uint32) (*iBeamParameterDimension
 	return nil, fmt.Errorf("parameter dimension index out of range: wanted: %v length: %v", index, len(pd.subDimensions))
 }
 
-func generateDimensions(dimensionConfig []*pb.DimensionDetail, initialValueDimension *iBeamParameterDimension) *iBeamParameterDimension {
+func generateDimensions(dimensionConfig []*pb.DimensionDetail, initialValueDimension *iBeamParameterDimension, bufferFlags []ParamBufferConfigFlag) *iBeamParameterDimension {
 	if len(dimensionConfig) == 0 || dimensionConfig[0] == nil {
 		return initialValueDimension
 	}
@@ -108,6 +108,7 @@ func generateDimensions(dimensionConfig []*pb.DimensionDetail, initialValueDimen
 		dimValue := initialValueDimension.value
 
 		valueWithID.value = &ibeamParameterValueBuffer{
+			flags:          bufferFlags,
 			available:      dimValue.available,
 			isAssumedState: dimValue.isAssumedState,
 			currentValue:   proto.Clone(initialValueDimension.value.currentValue).(*pb.ParameterValue),
@@ -121,7 +122,7 @@ func generateDimensions(dimensionConfig []*pb.DimensionDetail, initialValueDimen
 		if len(dimensionConfig) == 1 {
 			dimensions[dimID] = &valueWithID
 		} else {
-			subDim := generateDimensions(dimensionConfig[1:], &valueWithID)
+			subDim := generateDimensions(dimensionConfig[1:], &valueWithID, bufferFlags)
 			dimensions[dimID] = subDim
 		}
 	}

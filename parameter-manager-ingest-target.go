@@ -180,6 +180,16 @@ valueLoop:
 				continue
 			}
 
+			if parameterBuffer.hasFlag(FlagIncrementalPassthrough) {
+				// basically we just send this out without caring too much...
+				m.out <- &pb.Parameter{
+					Id:    parameter.Id,
+					Error: 0,
+					Value: []*pb.ParameterValue{newParameterValue},
+				}
+				continue
+			}
+
 			if parameterConfig.ValueType == pb.ValueType_Integer {
 				newIntVal := parameterBuffer.targetValue.GetInteger() + newValue.IncDecSteps
 				mlog.Tracef("Decrement %d by %d", parameterBuffer.targetValue.GetInteger(), newValue.IncDecSteps)

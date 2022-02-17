@@ -131,7 +131,7 @@ func TestIBeamParameterDimension_MultiIndexHasValue(t *testing.T) {
 		{
 			Count: 5,
 		},
-	}, initialValueDimension)
+	}, initialValueDimension, nil)
 
 	tests := []struct {
 		name   string
@@ -205,7 +205,7 @@ func TestIBeamParameterDimension_MultiIndex(t *testing.T) {
 		{
 			Count: 5,
 		},
-	}, initialValueDimension)
+	}, initialValueDimension, nil)
 
 	tests := []struct {
 		name    string
@@ -280,7 +280,7 @@ func TestIBeamParameterDimension_index(t *testing.T) {
 		{
 			Count: 5,
 		},
-	}, initialValueDimension)
+	}, initialValueDimension, nil)
 
 	tests := []struct {
 		name    string

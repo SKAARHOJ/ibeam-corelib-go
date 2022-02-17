@@ -9,6 +9,12 @@ import (
 	"go.uber.org/atomic"
 )
 
+type ParamBufferConfigFlag int
+
+const (
+	FlagIncrementalPassthrough ParamBufferConfigFlag = 1
+)
+
 // ibeamParameterValueBuffer is used for updating a ParameterValue.
 // It holds a current and a target Value.
 type ibeamParameterValueBuffer struct {
@@ -25,10 +31,22 @@ type ibeamParameterValueBuffer struct {
 	dynamicOptions *pb.OptionList
 	dynamicMin     *float64
 	dynamicMax     *float64
+
+	// Additional flags
+	flags []ParamBufferConfigFlag
 }
 type timeTimer struct {
 	timer *time.Timer
 	end   time.Time
+}
+
+func (b *ibeamParameterValueBuffer) hasFlag(flag ParamBufferConfigFlag) bool {
+	for _, f := range b.flags {
+		if f == flag {
+			return true
+		}
+	}
+	return false
 }
 
 func (b *ibeamParameterValueBuffer) getParameterValue() *pb.ParameterValue {

@@ -41,6 +41,7 @@ type IBeamParameterRegistry struct {
 
 	// Options for individual Parameters
 	defaultValidParams []*pb.ModelParameterID
+	parameterFlags     map[uint32]map[uint32][]ParamBufferConfigFlag // Model -> Parameter
 
 	// debug info
 	parameterCount uint
@@ -133,8 +134,6 @@ func (r *IBeamParameterRegistry) RegisterParameterForModel(modelID uint32, detai
 	detail.Id.Model = modelID
 	return r.RegisterParameter(detail, registerOptions...)
 }
-
-type RegisterOption func(r *IBeamParameterRegistry, id *pb.ModelParameterID)
 
 // RegisterParameter registers a parameter and its detail struct in the registry.
 func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail, registerOptions ...RegisterOption) (paramID uint32) {
@@ -240,12 +239,6 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail, r
 
 	r.log.Debugf("ParameterDetail '%v' registered with ID: %v for Model %v", detail.Name, detail.Id.Parameter, detail.Id.Model)
 	return
-}
-
-func WithDefaultValid() func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
-	return func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
-		r.defaultValidParams = append(r.defaultValidParams, id)
-	}
 }
 
 // UnregisterParameterForModels removes a specific parameter for a list of models.
@@ -621,7 +614,17 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 		}
 		initialValueDimension.value.isAssumedState.Store(false)
 
-		parameterDimensions[parameterID] = generateDimensions(parameterDetail.Dimensions, &initialValueDimension)
+		// Retrieve Flags
+
+		var flags []ParamBufferConfigFlag
+
+		if modelFlags, exists := r.parameterFlags[modelID]; exists {
+			if modelParamFlags, exists := modelFlags[parameterID]; exists {
+				flags = modelParamFlags
+			}
+		}
+
+		parameterDimensions[parameterID] = generateDimensions(parameterDetail.Dimensions, &initialValueDimension, flags)
 	}
 	r.muDetail.RUnlock()
 
