@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/SKAARHOJ/ibeam-lib-config v0.2.15
 	github.com/SKAARHOJ/ibeam-lib-env v0.1.1
-	github.com/s00500/env_logger v0.1.22
+	github.com/s00500/env_logger v0.1.23
 	go.uber.org/atomic v1.9.0
 	google.golang.org/grpc v1.44.0
 	google.golang.org/protobuf v1.27.1

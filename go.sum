@@ -70,6 +70,8 @@ github.com/rogpeppe/fastuuid v1.2.0/go.mod h1:jVj6XXZzXRy/MSR5jhDC/2q6DgLz+nrA6L
 github.com/s00500/env_logger v0.1.19/go.mod h1:TmWxAVX9gkQawgJucvtH52FZllrVjaCpf66q9TxpCU8=
 github.com/s00500/env_logger v0.1.22 h1:IYwFsxB5FpBMZ7j+/yrZwjCKhTa1XhyApDQ6AtHs4tI=
 github.com/s00500/env_logger v0.1.22/go.mod h1:TmWxAVX9gkQawgJucvtH52FZllrVjaCpf66q9TxpCU8=
+github.com/s00500/env_logger v0.1.23 h1:milop+gWcpUvwCbjMtuEskbymT1TR7UvAo5cUE4rGIw=
+github.com/s00500/env_logger v0.1.23/go.mod h1:TmWxAVX9gkQawgJucvtH52FZllrVjaCpf66q9TxpCU8=
 github.com/sirupsen/logrus v1.8.1 h1:dJKuHgqk1NNQlqoA6BTlM1Wf9DOH3NBjQyu0h9+AZZE=
 github.com/sirupsen/logrus v1.8.1/go.mod h1:yWOB1SBYBC5VeMP7gHvWumXLIWorT60ONWic61uBYv0=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

@@ -9,11 +9,12 @@ import (
 )
 
 func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) {
-	mlog := m.log
 
 	parameterID := parameter.Id.Parameter
 	deviceID := parameter.Id.Device
 	modelID := m.parameterRegistry.getModelID(deviceID)
+
+	mlog := m.log.WithField("paramID", parameterID)
 
 	// Get State and the Configuration (Details) of the Parameter
 	m.parameterRegistry.muValue.Lock()
@@ -125,7 +126,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			}
 		case pb.ValueType_Binary:
 			if _, ok := newParameterValue.Value.(*pb.ParameterValue_Binary); !ok {
-				mlog.Errorf("Parameter with ID %v is Type Binary but got %T", parameterID, parameterConfig.ValueType)
+				mlog.Errorf("Parameter with ID %v is Type Binary but got %T", parameterID, parameterConfig.ValueType.String())
 				continue
 			}
 		case pb.ValueType_Floating:
@@ -166,7 +167,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			}
 
 			if _, ok := newParameterValue.Value.(*pb.ParameterValue_Floating); !ok {
-				mlog.Errorf("Parameter with ID %v is Type Float but got %T", parameterID, parameterConfig.ValueType)
+				mlog.Errorf("Parameter with ID %v is Type Float but got %T", parameterID, parameterConfig.ValueType.String())
 				continue
 			}
 
@@ -214,7 +215,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			}
 
 			if _, ok := newParameterValue.Value.(*pb.ParameterValue_Integer); !ok {
-				mlog.Errorf("%s is Type Integer but got %T", m.pName(parameter.Id), parameterConfig.ValueType)
+				mlog.Errorf("%s is Type Integer but got %T", m.pName(parameter.Id), parameterConfig.ValueType.String())
 				continue
 			}
 
@@ -244,11 +245,11 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 
 		case pb.ValueType_String:
 			if _, ok := newParameterValue.Value.(*pb.ParameterValue_Str); !ok {
-				mlog.Errorf("%s is Type String but got %T", m.pName(parameter.Id), parameterConfig.ValueType)
+				mlog.Errorf("%s is Type String but got %T", m.pName(parameter.Id), parameterConfig.ValueType.String())
 				continue
 			}
 		case pb.ValueType_NoValue:
-			mlog.Errorf("%s has No Value but got %T", m.pName(parameter.Id), parameterConfig.ValueType)
+			mlog.Errorf("%s has No Value but got %T", m.pName(parameter.Id), parameterConfig.ValueType.String())
 			continue
 		}
 		parameterBuffer.currentValue = proto.Clone(newParameterValue).(*pb.ParameterValue)

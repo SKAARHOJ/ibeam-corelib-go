@@ -167,13 +167,6 @@ valueLoop:
 				}
 			}
 		case *pb.ParameterValue_IncDecSteps:
-			// inc dec currently only works with integers or no values, float is strange but implemented, action lists need to be evaluated
-			if parameterConfig.ValueType != pb.ValueType_Floating && parameterConfig.ValueType != pb.ValueType_Integer && parameterConfig.ValueType != pb.ValueType_NoValue {
-				mlog.Errorf("Got Value with Type %T for %s, but it needs %v", newValue, m.pName(parameter.Id), pb.ValueType_name[int32(parameterConfig.ValueType)])
-				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
-				continue
-			}
-
 			if newValue.IncDecSteps > parameterConfig.IncDecStepsUpperLimit || newValue.IncDecSteps < parameterConfig.IncDecStepsLowerLimit {
 				mlog.Errorf("In- or Decrementation Step %v is outside of limits [%v,%v] of %s", newValue.IncDecSteps, parameterConfig.IncDecStepsLowerLimit, parameterConfig.IncDecStepsUpperLimit, m.pName(parameter.Id))
 				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_StepSizeViolation)
@@ -187,6 +180,13 @@ valueLoop:
 					Error: 0,
 					Value: []*pb.ParameterValue{newParameterValue},
 				}
+				continue
+			}
+
+			// inc dec currently only works with integers or no values, float is strange but implemented, action lists need to be evaluated
+			if parameterConfig.ValueType != pb.ValueType_Floating && parameterConfig.ValueType != pb.ValueType_Integer && parameterConfig.ValueType != pb.ValueType_NoValue {
+				mlog.Errorf("Got Value with Type %T for %s, but it needs %v", newValue, m.pName(parameter.Id), pb.ValueType_name[int32(parameterConfig.ValueType)])
+				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
 				continue
 			}
 
