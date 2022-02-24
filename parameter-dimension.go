@@ -88,6 +88,7 @@ func (pd *iBeamParameterDimension) index(index uint32) (*iBeamParameterDimension
 
 func generateDimensions(dimensionConfig []*pb.DimensionDetail, initialValueDimension *iBeamParameterDimension, bufferFlags []ParamBufferConfigFlag) *iBeamParameterDimension {
 	if len(dimensionConfig) == 0 || dimensionConfig[0] == nil {
+		initialValueDimension.value.flags = bufferFlags
 		return initialValueDimension
 	}
 

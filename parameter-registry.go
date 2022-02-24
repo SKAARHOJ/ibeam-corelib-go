@@ -624,6 +624,28 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 			}
 		}
 
+		if modelID != 0 {
+			// Append flags from generic model
+			if modelFlags, exists := r.parameterFlags[0]; exists {
+				if modelParamFlags, exists := modelFlags[parameterID]; exists {
+					if len(flags) == 0 {
+						flags = modelParamFlags
+					} else {
+						// merge
+					outerLoop:
+						for _, f := range modelParamFlags {
+							for _, existingF := range flags {
+								if f == existingF {
+									break outerLoop
+								}
+							}
+							flags = append(flags, f)
+						}
+					}
+				}
+			}
+		}
+
 		parameterDimensions[parameterID] = generateDimensions(parameterDetail.Dimensions, &initialValueDimension, flags)
 	}
 	r.muDetail.RUnlock()
