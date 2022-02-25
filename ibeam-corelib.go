@@ -556,6 +556,8 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 		}
 	}
 
+	coreInfo.DevelopmentStatus = "sandbox"
+
 	if statusOverride != "" {
 		coreInfo.DevelopmentStatus = statusOverride
 	}
