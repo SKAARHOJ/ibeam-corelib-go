@@ -55,7 +55,7 @@ func idFromName(name string) uint32 {
 }
 
 // device,parameter,instance
-func (r *IBeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID, includeDynamicConfig bool) (values []*pb.ParameterValue) {
+func (r *IBeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID, includeDynamicConfig bool, dimensionFilter ...[]uint32) (values []*pb.ParameterValue) {
 	deviceID := dpID.Device
 	parameterIndex := dpID.Parameter
 	_, dExists := r.parameterValue[deviceID]
@@ -69,10 +69,10 @@ func (r *IBeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID, i
 		return nil
 	}
 
-	return getValues(r.log, r.parameterValue[deviceID][parameterIndex], includeDynamicConfig)
+	return getValues(r.log, r.parameterValue[deviceID][parameterIndex], includeDynamicConfig, dimensionFilter...)
 }
 
-func getValues(rlog *log.Entry, dimension *iBeamParameterDimension, includeDynamicConfig bool) (values []*pb.ParameterValue) {
+func getValues(rlog *log.Entry, dimension *iBeamParameterDimension, includeDynamicConfig bool, dimensionFilter ...[]uint32) (values []*pb.ParameterValue) {
 	if dimension.isValue() {
 		value, err := dimension.getValue()
 		if err != nil {
@@ -81,7 +81,16 @@ func getValues(rlog *log.Entry, dimension *iBeamParameterDimension, includeDynam
 		}
 
 		paramValue := value.getParameterValue()
-		values = append(values, paramValue)
+
+		if dimensionFilter == nil {
+			values = append(values, paramValue)
+		}
+
+		for _, df := range dimensionFilter {
+			if dimsEqual(paramValue.DimensionID, df) {
+				values = append(values, paramValue)
+			}
+		}
 
 		if !includeDynamicConfig {
 			return values
@@ -101,7 +110,7 @@ func getValues(rlog *log.Entry, dimension *iBeamParameterDimension, includeDynam
 	}
 
 	for _, dimension := range dimension.subDimensions {
-		values = append(values, getValues(rlog, dimension, includeDynamicConfig)...)
+		values = append(values, getValues(rlog, dimension, includeDynamicConfig, dimensionFilter...)...)
 	}
 	return values
 }

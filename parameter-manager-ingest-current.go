@@ -9,7 +9,6 @@ import (
 )
 
 func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) {
-
 	parameterID := parameter.Id.Parameter
 	deviceID := parameter.Id.Device
 	modelID := m.parameterRegistry.getModelID(deviceID)
@@ -81,7 +80,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				parameterBuffer.available = newParameterValue.Available
 			}
 
-			if values := m.parameterRegistry.getInstanceValues(parameter.GetId(), false); values != nil {
+			if values := m.parameterRegistry.getInstanceValues(parameter.GetId(), false); values != nil { // FIXME: Invalid setting could have weird effects
 				m.serverClientsStream <- b.Param(parameterID, deviceID, values...)
 			}
 			continue
@@ -314,7 +313,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			parameterBuffer.tryCount = 0
 		}
 
-		if values := m.parameterRegistry.getInstanceValues(parameter.GetId(), false); values != nil {
+		if values := m.parameterRegistry.getInstanceValues(parameter.GetId(), false, parameterBuffer.dimensionID); values != nil {
 			m.serverClientsStream <- b.Param(parameterID, deviceID, values...)
 		}
 
