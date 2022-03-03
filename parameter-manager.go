@@ -135,13 +135,10 @@ func (m *IBeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb
 			Value: []*pb.ParameterValue{},
 		}
 	}
-	if parameter.Value == nil {
-		return nil
-	}
 
 	foundNonNil := false
 	for _, v := range parameter.Value {
-		if v.Value != nil {
+		if v != nil {
 			foundNonNil = true
 			break
 		}
