@@ -29,6 +29,11 @@ type IBeamParameterManager struct {
 	parameterEvent      chan paramDimensionAddress
 	server              *IBeamServer
 	log                 *log.Entry
+
+	// Debugging
+	//processCounter       atomic.Int32
+	//ingestCurrentCounter atomic.Int32
+	//ingestTargetCounter  atomic.Int32
 }
 
 // StartWithServer Starts the ibeam parameter routine and the GRPC server in one call. This is blocking and should be called at the end of main.
@@ -37,6 +42,14 @@ func (m *IBeamParameterManager) StartWithServer(address string) {
 
 	// Start parameter management routine
 	m.Start()
+	/*
+		go func() {
+			t := time.NewTicker(time.Second)
+			for range t.C {
+				m.log.Infof("ManagerStatus: Processed %d, (Target: %d Current %d)", m.processCounter.Load(), m.ingestTargetCounter.Load(), m.ingestCurrentCounter.Load())
+			}
+		}()
+	*/
 
 	addressOverride := os.Getenv("IBEAM_CORE_ADDRESS")
 	if addressOverride != "" {
@@ -122,7 +135,15 @@ func (m *IBeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb
 			Value: []*pb.ParameterValue{},
 		}
 	}
-	if len(parameter.Value) == 1 && parameter.Value[0].Value == nil {
+	foundNonNil := false
+	for _, v := range parameter.Value {
+		if v.Value != nil {
+			foundNonNil = true
+			break
+		}
+	}
+
+	if !foundNonNil {
 		// a request to set available or invalid from ingest current
 		return nil
 	}

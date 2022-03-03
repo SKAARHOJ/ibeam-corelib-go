@@ -42,6 +42,7 @@ func (m *IBeamParameterManager) processParameter(address paramDimensionAddress) 
 		mlog.Errorf("could not get parameter buffer value for dimension %v of param %v: %v", address.dimensionID, address, err)
 		return
 	}
+	//m.processCounter.Add(1)
 	m.handleSingleParameterBuffer(parameterBuffer, parameterDetail, deviceID)
 }
 

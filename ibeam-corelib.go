@@ -316,6 +316,23 @@ func (s *IBeamServer) Set(_ context.Context, ps *pb.Parameters) (*pb.Empty, erro
 // On subscribe all current values should be sent back.
 // If no IDs are given, subscribe to every Parameter.
 func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCore_SubscribeServer) error {
+	/*	var sendCounter atomic.Int32
+		var getCounter atomic.Int32
+
+		go func() {
+			t := time.NewTicker(time.Second)
+			for {
+				select {
+				case <-t.C:
+					s.log.Infof("Server: sent %d (get: %d)", sendCounter.Load(), getCounter.Load())
+				case <-stream.Context().Done():
+					return
+
+				}
+			}
+		}()
+	*/
+
 	p, _ := peer.FromContext(stream.Context())
 	clientIP := p.Addr.String()
 	subscribeId := ""
@@ -330,35 +347,37 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 			// got subscribe ID
 			s.muDistributor.RLock()
 			for dChan, distData := range s.serverClientsDistributor {
-				if subscribeId == distData.Identifier {
-					// redefine filter! but only do a get on new params!
-					s.muDistributor.RUnlock()
-
-					s.muDistributor.Lock()
-					sendParams := make([]*pb.DeviceParameterID, 0)
-					s.log.Debugf("Resubscribe %s %v", subscribeId, distData.IDs)
-					for _, id := range dpIDs.Ids {
-						if !containsDeviceParameter(id, distData.IDs) {
-							sendParams = append(sendParams, &pb.DeviceParameterID{Parameter: id.Parameter, Device: id.Device})
-						}
-					}
-					s.serverClientsDistributor[dChan] = &SubscribeData{Identifier: subscribeId, IDs: dpIDs}
-					s.muDistributor.Unlock()
-
-					//only get new dpids
-					if len(sendParams) > 0 {
-						parameters, err := s.Get(stream.Context(), &pb.DeviceParameterIDs{Ids: sendParams})
-						if err != nil {
-							return err
-						}
-
-						for _, param := range parameters.Parameters {
-							dChan <- param
-						}
-					}
-
-					return nil
+				if subscribeId != distData.Identifier {
+					continue
 				}
+
+				// redefine filter! but only do a get on new params!
+				s.muDistributor.RUnlock()
+
+				s.muDistributor.Lock()
+				sendParams := make([]*pb.DeviceParameterID, 0)
+				s.log.Debugf("Resubscribe %s %v", subscribeId, distData.IDs)
+				for _, id := range dpIDs.Ids {
+					if !containsDeviceParameter(id, distData.IDs) {
+						sendParams = append(sendParams, &pb.DeviceParameterID{Parameter: id.Parameter, Device: id.Device})
+					}
+				}
+				s.serverClientsDistributor[dChan] = &SubscribeData{Identifier: subscribeId, IDs: dpIDs}
+				s.muDistributor.Unlock()
+
+				//only get new dpids
+				if len(sendParams) > 0 {
+					parameters, err := s.Get(stream.Context(), &pb.DeviceParameterIDs{Ids: sendParams})
+					if err != nil {
+						return err
+					}
+
+					for _, param := range parameters.Parameters {
+						dChan <- param
+					}
+				}
+
+				return nil
 			}
 			s.muDistributor.RUnlock()
 		}
@@ -378,6 +397,7 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 		s.log.Debugf("Send Parameter with ID '%v' to client", parameter.Id)
 		s.log.Tracef("Param: %+v", parameter)
 		stream.Send(parameter)
+		//getCounter.Add(1)
 	}
 
 	distributor := make(chan *pb.Parameter, 100)
@@ -403,6 +423,7 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 			// Filtering already happened in the distributor
 			s.log.Debugf("Send Parameter with ID '%v' to client from ServerClientsStream", parameter.Id)
 			stream.Send(parameter)
+			//sendCounter.Add(1)
 		}
 	}
 }
@@ -592,7 +613,7 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 		in:                  settoManagerChannel,
 		clientsSetterStream: clientsSetter,
 		serverClientsStream: watcher,
-		parameterEvent:      make(chan paramDimensionAddress, 500),
+		parameterEvent:      make(chan paramDimensionAddress, 2000), // Has to be big as all the reevals travel through here
 		server:              &server,
 		log:                 elog.GetLoggerForPrefix("ib/manager"),
 	}

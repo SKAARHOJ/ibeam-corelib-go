@@ -28,6 +28,8 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 		return
 	}
 
+	//m.ingestTargetCounter.Add(1)
+
 	// Handle every Value in that was given for the Parameter
 valueLoop:
 	for _, newParameterValue := range parameter.Value {

@@ -28,9 +28,14 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 		return
 	}
 
+	// m.ingestCurrentCounter.Add(1)
+
+	reprocessBuffers := make([]*ibeamParameterValueBuffer, 0)
+	sendBuffers := make([]*ibeamParameterValueBuffer, 0)
+
 	for _, newParameterValue := range parameter.Value {
 		if newParameterValue == nil {
-			mlog.Warnf("Received nil value for ", m.pName(parameter.Id))
+			mlog.Warn("Received nil value for ", m.pName(parameter.Id))
 			continue
 		}
 		// Check if Dimension is Valid
@@ -79,10 +84,8 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				// else set available
 				parameterBuffer.available = newParameterValue.Available
 			}
+			sendBuffers = append(sendBuffers, parameterBuffer)
 
-			if values := m.parameterRegistry.getInstanceValues(parameter.GetId(), false); values != nil { // FIXME: Invalid setting could have weird effects
-				m.serverClientsStream <- b.Param(parameterID, deviceID, values...)
-			}
 			continue
 		}
 
@@ -313,25 +316,35 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			parameterBuffer.tryCount = 0
 		}
 
-		if values := m.parameterRegistry.getInstanceValues(parameter.GetId(), false, parameterBuffer.dimensionID); values != nil {
-			m.serverClientsStream <- b.Param(parameterID, deviceID, values...)
-		}
+		sendBuffers = append(sendBuffers, parameterBuffer)
 
 		if !didScheduleReEval {
-			// Trigger processing of the main evaluation
-			addr := paramDimensionAddress{
-				parameter:   parameterID,
-				device:      deviceID,
-				dimensionID: parameterBuffer.getParameterValue().DimensionID,
-			}
+			reprocessBuffers = append(reprocessBuffers, parameterBuffer)
+		}
+	}
 
-			//Trigger process main, only after control delay has passed
-			if parameterConfig.ControlDelayMs != 0 && time.Since(parameterBuffer.lastUpdate).Milliseconds() < int64(parameterConfig.ControlDelayMs) {
-				m.reevaluateIn(time.Millisecond*time.Duration(parameterConfig.ControlDelayMs)-time.Since(parameterBuffer.lastUpdate), parameterBuffer, parameterID, deviceID)
-				return
-			} else {
-				m.reEvaluate(addr)
-			}
+	if len(sendBuffers) != 0 {
+		values := make([]*pb.ParameterValue, len(sendBuffers))
+		for i, sb := range sendBuffers {
+			values[i] = sb.getParameterValue()
+		}
+		m.serverClientsStream <- b.Param(parameterID, deviceID, values...)
+	}
+
+	for _, repro := range reprocessBuffers {
+		// Trigger processing of the main evaluation
+		addr := paramDimensionAddress{
+			parameter:   parameterID,
+			device:      deviceID,
+			dimensionID: repro.getParameterValue().DimensionID,
+		}
+
+		//Trigger process main, only after control delay has passed
+		if parameterConfig.ControlDelayMs != 0 && time.Since(repro.lastUpdate).Milliseconds() < int64(parameterConfig.ControlDelayMs) {
+			m.reevaluateIn(time.Millisecond*time.Duration(parameterConfig.ControlDelayMs)-time.Since(repro.lastUpdate), repro, parameterID, deviceID)
+			return
+		} else {
+			m.reEvaluate(addr)
 		}
 	}
 }

@@ -46,3 +46,17 @@ func paramError(pid uint32, did uint32, e pb.ParameterError) *pb.Parameter {
 func HashedID(name string) uint32 {
 	return idFromName(name)
 }
+
+// Internal helpers
+
+func dimsEqual(a, b []uint32) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
+}
