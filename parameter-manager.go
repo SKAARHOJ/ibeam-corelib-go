@@ -163,19 +163,21 @@ func (m *IBeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb
 // Start the communication between client and server.
 func (m *IBeamParameterManager) Start() {
 	go func() {
-		var parameter *pb.Parameter
-		for {
-			select {
-			case parameter = <-m.clientsSetterStream:
-				//				m.log.Info("Got set from client")
-				m.ingestTargetParameter(parameter)
-			case parameter = <-m.in:
-				//				m.log.Info("Got result from device")
-				m.ingestCurrentParameter(parameter)
-			case address := <-m.parameterEvent:
-				//				m.log.Info("Gonna proccess param")
-				m.processParameter(address)
-			}
+		for parameter := range m.clientsSetterStream {
+			//				m.log.Info("Got set from client")
+			m.ingestTargetParameter(parameter)
+		}
+	}()
+	go func() {
+		for parameter := range m.in {
+			//				m.log.Info("Got result from device")
+			m.ingestCurrentParameter(parameter)
+		}
+	}()
+	go func() {
+		for address := range m.parameterEvent {
+			//				m.log.Info("Gonna proccess param")
+			m.processParameter(address)
 		}
 	}()
 }
