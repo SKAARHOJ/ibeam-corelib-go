@@ -549,6 +549,9 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 	}
 	r.parametersDone = true
 
+	r.muValue.Lock()
+	defer r.muValue.Unlock() // Locking here to ensure the rest of corelib does not send out weird incomplete info meanwhile...
+
 	r.muDetail.RLock()
 	if _, exists := r.parameterDetail[modelID]; !exists {
 		r.muDetail.RUnlock()
@@ -670,9 +673,9 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 	}
 	r.muInfo.Unlock()
 
-	r.muValue.Lock()
+	//r.muValue.Lock() // Earlier we only locked the value around here... but now we need to use this lock to make sure the manager does not send out nonsense meanwhile
 	r.parameterValue[deviceID] = parameterDimensions
-	r.muValue.Unlock()
+	//r.muValue.Unlock()
 
 	r.log.Debugf("Device '%v' registered with model: %v (%v)", deviceID, modelID, r.modelInfos[modelID].Name)
 	return deviceID, nil
