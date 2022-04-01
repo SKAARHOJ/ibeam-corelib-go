@@ -836,6 +836,10 @@ func validateParameter(rlog *log.Entry, detail *pb.ParameterDetail) {
 		rlog.Fatalf("Parameter '%v': Float Percision is only usable on floats", detail.Name)
 	}
 
+	if detail.FineSteps != 0 && detail.FineSteps < detail.AcceptanceThreshold {
+		rlog.Fatalf("Parameter '%v': Acceptance Threshold needs to be smaller than the fine steps, this will cause issues otherwise", detail.Name)
+	}
+
 	// Dimension check
 	for dId, dimensionDetail := range detail.Dimensions {
 		if dimensionDetail.Count == 0 && len(dimensionDetail.ElementLabels) == 0 {
