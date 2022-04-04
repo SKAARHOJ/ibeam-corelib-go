@@ -180,13 +180,13 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 
 			if newParameterValue.Value.(*pb.ParameterValue_Floating).Floating > maximum {
 				if !isDescreteValue(parameterConfig, newParameterValue.Value.(*pb.ParameterValue_Floating).Floating) {
-					mlog.Error("Ingest Current Loop: Max violation for ", m.pName(parameter.Id))
+					mlog.Errorln("Ingest Current Loop: Max violation for", m.pName(parameter.Id), newParameterValue.Value.(*pb.ParameterValue_Floating).Floating)
 					continue
 				}
 			}
 			if newParameterValue.Value.(*pb.ParameterValue_Floating).Floating < minimum {
 				if !isDescreteValue(parameterConfig, newParameterValue.Value.(*pb.ParameterValue_Floating).Floating) {
-					mlog.Error("Ingest Current Loop: Min violation for ", m.pName(parameter.Id))
+					mlog.Errorln("Ingest Current Loop: Min violation for", m.pName(parameter.Id), newParameterValue.Value.(*pb.ParameterValue_Floating).Floating)
 					continue
 				}
 			}
