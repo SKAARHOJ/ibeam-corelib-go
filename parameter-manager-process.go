@@ -87,7 +87,7 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 		}
 	}
 
-	if ratelimit, exists := m.parameterRegistry.modelRateLimiter[parameterDetail.Id.Model]; exists {
+	if ratelimit, exists := m.parameterRegistry.modelRateLimiter[parameterDetail.Id.Model]; exists && !parameterBuffer.hasFlag(FlagRateLimitExclude) {
 		// Is is send after Control Delay time
 		lastTime := m.parameterRegistry.getLastEvent(deviceID)
 		if time.Since(lastTime).Milliseconds() < int64(ratelimit) {
@@ -125,7 +125,9 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 
 	// Set the lastUpdate Time
 	parameterBuffer.lastUpdate = time.Now()
-	m.parameterRegistry.setLastEvent(deviceID)
+	if !parameterBuffer.hasFlag(FlagRateLimitExclude) {
+		m.parameterRegistry.setLastEvent(deviceID)
+	}
 
 	switch parameterDetail.ControlStyle {
 	case pb.ControlStyle_Normal:

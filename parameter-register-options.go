@@ -6,13 +6,24 @@ import (
 
 type RegisterOption func(r *IBeamParameterRegistry, id *pb.ModelParameterID)
 
+// WithDefaultValid registers the parameter withouth setting the invalid flag
 func WithDefaultValid() func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
 	return func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
 		r.defaultValidParams = append(r.defaultValidParams, id)
 	}
 }
 
+// WithIncrementPassthrough disables the manager for an ControlStyle_Incremental parameter
 func WithIncrementPassthrough() func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
+	return setFlag(FlagIncrementalPassthrough)
+}
+
+// WithModelRatelimitExlude makes this parameter excluded from the global per-model rate limit
+func WithModelRatelimitExlude() func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
+	return setFlag(FlagRateLimitExclude)
+}
+
+func setFlag(flag ParamBufferConfigFlag) func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
 	return func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
 
 		if r.parameterFlags == nil {
@@ -27,6 +38,6 @@ func WithIncrementPassthrough() func(r *IBeamParameterRegistry, id *pb.ModelPara
 			r.parameterFlags[id.Model][id.Parameter] = make([]ParamBufferConfigFlag, 0)
 		}
 
-		r.parameterFlags[id.Model][id.Parameter] = append(r.parameterFlags[id.Model][id.Parameter], FlagIncrementalPassthrough)
+		r.parameterFlags[id.Model][id.Parameter] = append(r.parameterFlags[id.Model][id.Parameter], flag)
 	}
 }
