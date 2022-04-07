@@ -13,12 +13,14 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
+
+	"sync"
 
 	log "github.com/s00500/env_logger"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
+	"github.com/SKAARHOJ/ibeam-corelib-go/syncmap"
 	skconfig "github.com/SKAARHOJ/ibeam-lib-config"
 	elog "github.com/s00500/env_logger"
 	"google.golang.org/grpc/metadata"
@@ -549,6 +551,7 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 	clientsSetter := make(chan *pb.Parameter, 100)
 	getfromManagerChannel := make(chan *pb.Parameter, 100)
 	settoManagerChannel := make(chan *pb.Parameter, 100)
+	outInternal := make(chan *pb.Parameter, 100)
 	getFromManager = getfromManagerChannel
 	setToManager = settoManagerChannel
 
@@ -584,12 +587,14 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 	}
 
 	registry = &IBeamParameterRegistry{
-		coreInfo:        proto.Clone(coreInfo).(*pb.CoreInfo),
-		deviceInfos:     map[uint32]*pb.DeviceInfo{},
-		modelInfos:      map[uint32]*pb.ModelInfo{},
-		parameterDetail: map[uint32]map[uint32]*pb.ParameterDetail{},
-		parameterValue:  map[uint32]map[uint32]*iBeamParameterDimension{},
-		log:             elog.GetLoggerForPrefix("ib/registry"),
+		coreInfo:         proto.Clone(coreInfo).(*pb.CoreInfo),
+		deviceInfos:      map[uint32]*pb.DeviceInfo{},
+		deviceLastEvent:  syncmap.New[uint32, time.Time](),
+		modelRateLimiter: make(map[uint32]uint),
+		modelInfos:       map[uint32]*pb.ModelInfo{},
+		parameterDetail:  map[uint32]map[uint32]*pb.ParameterDetail{},
+		parameterValue:   map[uint32]map[uint32]*iBeamParameterDimension{},
+		log:              elog.GetLoggerForPrefix("ib/registry"),
 	}
 
 	sLog := elog.GetLoggerForPrefix("ib/server")
@@ -609,7 +614,8 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 
 	manager = &IBeamParameterManager{
 		parameterRegistry:   registry,
-		out:                 getfromManagerChannel,
+		out:                 outInternal,
+		outActual:           getfromManagerChannel,
 		in:                  settoManagerChannel,
 		clientsSetterStream: clientsSetter,
 		serverClientsStream: watcher,

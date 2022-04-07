@@ -12,11 +12,11 @@ import (
 func (m *IBeamParameterManager) processParameter(address paramDimensionAddress) {
 	mlog := m.log
 
-	m.parameterRegistry.muInfo.RLock()
-	defer m.parameterRegistry.muInfo.RUnlock()
-
 	m.parameterRegistry.muValue.Lock()
 	defer m.parameterRegistry.muValue.Unlock()
+
+	m.parameterRegistry.muInfo.RLock()
+	defer m.parameterRegistry.muInfo.RUnlock()
 
 	m.parameterRegistry.muDetail.RLock()
 	defer m.parameterRegistry.muDetail.RUnlock()
@@ -87,6 +87,15 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 		}
 	}
 
+	if ratelimit, exists := m.parameterRegistry.modelRateLimiter[parameterDetail.Id.Model]; exists {
+		// Is is send after Control Delay time
+		lastTime := m.parameterRegistry.getLastEvent(deviceID)
+		if time.Since(lastTime).Milliseconds() < int64(ratelimit) {
+			m.reevaluateIn(time.Millisecond*time.Duration(ratelimit)-time.Since(lastTime), parameterBuffer, parameterID, deviceID)
+			return
+		}
+	}
+
 	// Is is send after Control Delay time
 	if parameterDetail.ControlDelayMs != 0 && time.Since(parameterBuffer.lastUpdate).Milliseconds() < int64(parameterDetail.ControlDelayMs) {
 		m.reevaluateIn(time.Millisecond*time.Duration(parameterDetail.ControlDelayMs)-time.Since(parameterBuffer.lastUpdate), parameterBuffer, parameterID, deviceID)
@@ -116,6 +125,7 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 
 	// Set the lastUpdate Time
 	parameterBuffer.lastUpdate = time.Now()
+	m.parameterRegistry.setLastEvent(deviceID)
 
 	switch parameterDetail.ControlStyle {
 	case pb.ControlStyle_Normal:

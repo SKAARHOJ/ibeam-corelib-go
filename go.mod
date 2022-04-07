@@ -1,6 +1,6 @@
 module github.com/SKAARHOJ/ibeam-corelib-go
 
-go 1.17
+go 1.18
 
 require (
 	github.com/SKAARHOJ/ibeam-lib-config v0.2.15

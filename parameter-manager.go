@@ -4,6 +4,8 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
+
 	"sync"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
@@ -22,7 +24,8 @@ type paramDimensionAddress struct {
 // IBeamParameterManager manages parameter changes.
 type IBeamParameterManager struct {
 	parameterRegistry   *IBeamParameterRegistry
-	out                 chan<- *pb.Parameter
+	out                 chan *pb.Parameter
+	outActual           chan<- *pb.Parameter
 	in                  <-chan *pb.Parameter
 	clientsSetterStream chan *pb.Parameter
 	serverClientsStream chan *pb.Parameter
@@ -187,6 +190,18 @@ func (m *IBeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb
 
 // Start the communication between client and server.
 func (m *IBeamParameterManager) Start() {
+	// Helper Routine to ensure we do not block the manager on core blocking and can output proper errors
+	go func() {
+		for p := range m.out {
+			select {
+			case m.outActual <- p:
+			case <-time.After(1 * time.Second):
+				m.log.Error("Core implementation was not able to handle additional messages from parameter manager")
+			}
+		}
+	}()
+
+	// Main Manager Routines
 	go func() {
 		for parameter := range m.clientsSetterStream {
 			//				m.log.Info("Got set from client")
