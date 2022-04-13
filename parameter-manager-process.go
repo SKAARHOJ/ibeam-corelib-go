@@ -12,11 +12,11 @@ import (
 func (m *IBeamParameterManager) processParameter(address paramDimensionAddress) {
 	mlog := m.log
 
-	m.parameterRegistry.muInfo.RLock()
-	defer m.parameterRegistry.muInfo.RUnlock()
-
 	m.parameterRegistry.muValue.Lock()
 	defer m.parameterRegistry.muValue.Unlock()
+
+	m.parameterRegistry.muInfo.RLock()
+	defer m.parameterRegistry.muInfo.RUnlock()
 
 	m.parameterRegistry.muDetail.RLock()
 	defer m.parameterRegistry.muDetail.RUnlock()
