@@ -13,6 +13,7 @@ type ParamBufferConfigFlag int
 
 const (
 	FlagIncrementalPassthrough ParamBufferConfigFlag = 1
+	FlagRateLimitExclude       ParamBufferConfigFlag = 2
 )
 
 // ibeamParameterValueBuffer is used for updating a ParameterValue.
