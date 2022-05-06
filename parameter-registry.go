@@ -794,8 +794,8 @@ func (r *IBeamParameterRegistry) GetNameMap() map[uint32]string {
 // parameterIDByName get a parameterID by name, returns 0 if not found, not allowed to be public because it needs the mutexlock
 func (r *IBeamParameterRegistry) parameterIDByName(parameterName string, modelID uint32) uint32 {
 	// Function requires mutex to be fully locked before invocation
-	if uint32(len(r.parameterDetail)) <= (modelID) {
-		r.log.Fatalln("Could not register parameter for nonexistent model", modelID)
+	if _, ok := r.modelInfos[modelID]; !ok {
+		r.log.Fatalln("Model", modelID, "doesn't exist")
 	}
 
 	for id, param := range r.parameterDetail[modelID] {
