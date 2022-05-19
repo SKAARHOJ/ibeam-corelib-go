@@ -290,13 +290,7 @@ func (r *IBeamParameterRegistry) RegisterModel(model *pb.ModelInfo, registerOpti
 		r.log.Fatal("Can not register a new model after registering parameters")
 	}
 
-	if model.Name == "" {
-		r.log.Fatal("please specify a name for all models")
-	}
-
-	if model.Description == "" {
-		r.log.Fatal("please specify a description for all models")
-	}
+	validateModel(r.log, model)
 
 	r.muInfo.Lock()
 	if _, exists := r.modelInfos[model.Id]; exists {

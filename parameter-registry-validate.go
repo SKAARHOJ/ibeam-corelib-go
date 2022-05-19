@@ -99,3 +99,24 @@ func validateParameter(rlog *log.Entry, detail *pb.ParameterDetail) {
 		rlog.Warnf("Parameter '%v': No description set", detail.Name)
 	}
 }
+
+func validateModel(rlog *log.Entry, model *pb.ModelInfo) {
+	if model.Name == "" {
+		rlog.Fatal("please specify a name for all models")
+	}
+
+	if model.Description == "" {
+		rlog.Fatal("please specify a description for all models")
+	}
+
+	switch model.DevelopmentStatus {
+	case "":
+		model.DevelopmentStatus = "sandbox"
+	case "sandbox":
+	case "alpha":
+	case "beta":
+	case "mature":
+	default:
+		rlog.Fatal("Model %v: Invalid developmentstatus, valid options are sandbox,alpha,beta,mature")
+	}
+}
