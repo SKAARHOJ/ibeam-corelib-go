@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/SKAARHOJ/ibeam-lib-config v0.2.15
 	github.com/SKAARHOJ/ibeam-lib-env v0.1.1
+	github.com/pjnr1/go-aspell-check v0.0.2
 	github.com/s00500/env_logger v0.1.23
 	go.uber.org/atomic v1.9.0
 	google.golang.org/grpc v1.44.0
@@ -18,6 +19,7 @@ require (
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/oxequa/grace v0.0.0-20180330101621-d1b62e904ab2 // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
+	github.com/trustmaster/go-aspell v0.0.0-20200701131845-c2b1f55bec8f // indirect
 	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
 	golang.org/x/sys v0.0.0-20220209214540-3681064d5158 // indirect
 	golang.org/x/text v0.3.7 // indirect

@@ -2,6 +2,7 @@ package ibeamcorelib
 
 import (
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
+	spellcheck "github.com/pjnr1/go-aspell-check"
 	log "github.com/s00500/env_logger"
 )
 
@@ -22,6 +23,19 @@ func validateParameter(rlog *log.Entry, detail *pb.ParameterDetail) {
 	}
 	if detail.Label == "" {
 		rlog.Fatalf("Parameter: '%v': No label set", detail.Name)
+	}
+	if detail.ShortLabel != "" && len(detail.ShortLabel) > 11 {
+		rlog.Fatalf("Parameter: '%v': ShortLabel is too long: Must not be longer than 11 characters", detail.Name, detail.ShortLabel)
+	}
+	if detail.Description != "" {
+		s, _ := spellcheck.NewSpeller(map[string]string{"lang": "en_US"})
+		check := s.CheckWithFeedback(detail.Description)
+		if check != "" {
+			rlog.Warnln(detail.Description)
+			rlog.Warnln(check)
+			rlog.Fatalf("Parameter: '%v': Description has misspellings (see above warnings)", detail.Name)
+		}
+		s.S.Delete() // Take down the aspell-speller
 	}
 	if detail.ControlStyle != pb.ControlStyle_NoControl && detail.FeedbackStyle != pb.FeedbackStyle_NoFeedback && detail.RetryCount == 0 {
 		rlog.Fatalf("Parameter '%v': Any non assumed value (FeedbackStyle_NoFeedback) needs to have RetryCount set", detail.Name)

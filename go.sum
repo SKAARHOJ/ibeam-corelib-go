@@ -63,6 +63,8 @@ github.com/mattn/go-isatty v0.0.14 h1:yVuAays6BHfxijgZPzw+3Zlu5yQgKGP2/hcQbHb7S9
 github.com/mattn/go-isatty v0.0.14/go.mod h1:7GGIvUiUoEMVVmxf/4nioHXj79iQHKdU27kJ6hsGG94=
 github.com/oxequa/grace v0.0.0-20180330101621-d1b62e904ab2 h1:dzVjSCzXR7REzqxyB5OPgcXu3AR99isM/LdKsSL4WoM=
 github.com/oxequa/grace v0.0.0-20180330101621-d1b62e904ab2/go.mod h1:CWQBeDssj8lgsWGnWhGZUq3DAVD5GsTlvuHIxWhzthE=
+github.com/pjnr1/go-aspell-check v0.0.2 h1:rC/cMS0sOpwGqIKMQSGUvwsIy+/P3cOuDKNbLMiUczw=
+github.com/pjnr1/go-aspell-check v0.0.2/go.mod h1:avSa3w9ZS6pu9Bw40w8LCPKJ2mSGCX4xXzDbue+W6E8=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=
@@ -78,6 +80,8 @@ github.com/stretchr/testify v1.3.0/go.mod h1:M5WIy9Dh21IEIfnGCwXGc5bZfKNJtfHm1UV
 github.com/stretchr/testify v1.5.1/go.mod h1:5W2xD1RspED5o8YsWQXVCued0rvSQ+mT+I5cxcmMvtA=
 github.com/stretchr/testify v1.7.0 h1:nwc3DEeHmmLAfoZucVR881uASk0Mfjw8xYJ99tb5CcY=
 github.com/stretchr/testify v1.7.0/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/h/Wwjteg=
+github.com/trustmaster/go-aspell v0.0.0-20200701131845-c2b1f55bec8f h1:92ZQJRegaqnKjz9HY9an696Sw5EmAqRv0eie/U2IE6k=
+github.com/trustmaster/go-aspell v0.0.0-20200701131845-c2b1f55bec8f/go.mod h1:wxUiQ1klFJmwnM41kQI7IT2g8jjOKbtuL54LdjkxAI0=
 go.opentelemetry.io/proto/otlp v0.7.0/go.mod h1:PqfVotwruBrMGOCsRd/89rSnXhoiJIqeYNgFYFoEGnI=
 go.uber.org/atomic v1.9.0 h1:ECmE8Bn/WFTYwEW/bpKD3M8VtR/zQVbavAoalC1PYyE=
 go.uber.org/atomic v1.9.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=
