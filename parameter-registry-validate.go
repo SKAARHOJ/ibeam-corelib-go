@@ -23,7 +23,7 @@ func validateParameter(rlog *log.Entry, detail *pb.ParameterDetail) {
 	if detail.Label == "" {
 		rlog.Fatalf("Parameter: '%v': No label set", detail.Name)
 	}
-	if detail.ControlStyle != pb.ControlStyle_NoControl && detail.FeedbackStyle != pb.FeedbackStyle_NoFeedback && detail.RetryCount == 0 {
+	if detail.ControlStyle != pb.ControlStyle_NoControl && detail.ControlStyle != pb.ControlStyle_Oneshot && detail.FeedbackStyle != pb.FeedbackStyle_NoFeedback && detail.RetryCount == 0 {
 		rlog.Fatalf("Parameter '%v': Any non assumed value (FeedbackStyle_NoFeedback) needs to have RetryCount set", detail.Name)
 	}
 
