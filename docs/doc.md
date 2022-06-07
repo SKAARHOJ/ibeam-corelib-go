@@ -40,6 +40,7 @@ import "github.com/SKAARHOJ/ibeam-corelib-go"
 - [func md5sum(data []byte) (string, error)](<#func-md5sum>)
 - [func paramError(pid uint32, did uint32, e pb.ParameterError) *pb.Parameter](<#func-paramerror>)
 - [func setFlag(flag ParamBufferConfigFlag) func(r *IBeamParameterRegistry, id *pb.ModelParameterID)](<#func-setflag>)
+- [func validateModel(rlog *log.Entry, model *pb.ModelInfo)](<#func-validatemodel>)
 - [func validateParameter(rlog *log.Entry, detail *pb.ParameterDetail)](<#func-validateparameter>)
 - [func wait() (syscall.Signal, error)](<#func-wait>)
 - [type DescreteValueDetails](<#type-descretevaluedetails>)
@@ -364,6 +365,12 @@ func paramError(pid uint32, did uint32, e pb.ParameterError) *pb.Parameter
 func setFlag(flag ParamBufferConfigFlag) func(r *IBeamParameterRegistry, id *pb.ModelParameterID)
 ```
 
+## func [validateModel](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry-validate.go#L103>)
+
+```go
+func validateModel(rlog *log.Entry, model *pb.ModelInfo)
+```
+
 ## func [validateParameter](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry-validate.go#L8>)
 
 ```go
@@ -509,7 +516,7 @@ type IBeamParameterRegistry struct {
 }
 ```
 
-### func \(\*IBeamParameterRegistry\) [GetModelIDByDeviceID](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L475>)
+### func \(\*IBeamParameterRegistry\) [GetModelIDByDeviceID](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L469>)
 
 ```go
 func (r *IBeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32
@@ -517,7 +524,7 @@ func (r *IBeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32
 
 GetModelIDByDeviceID is a helper to get the modelid for a specific device
 
-### func \(\*IBeamParameterRegistry\) [GetNameMap](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L773>)
+### func \(\*IBeamParameterRegistry\) [GetNameMap](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L767>)
 
 ```go
 func (r *IBeamParameterRegistry) GetNameMap() map[uint32]string
@@ -525,7 +532,7 @@ func (r *IBeamParameterRegistry) GetNameMap() map[uint32]string
 
 GetNameMap returns a map of all parameter names\, usefull for initial state requests
 
-### func \(\*IBeamParameterRegistry\) [GetParameterCurrentValue](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L394>)
+### func \(\*IBeamParameterRegistry\) [GetParameterCurrentValue](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L388>)
 
 ```go
 func (r *IBeamParameterRegistry) GetParameterCurrentValue(parameterID, deviceID uint32, dimensionID ...uint32) (*pb.ParameterValue, error)
@@ -533,7 +540,7 @@ func (r *IBeamParameterRegistry) GetParameterCurrentValue(parameterID, deviceID 
 
 GetParameterCurrentValue gets a copy of the current parameter value from the state by pid\, did and dimensionIDs
 
-### func \(\*IBeamParameterRegistry\) [GetParameterDetail](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L346>)
+### func \(\*IBeamParameterRegistry\) [GetParameterDetail](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L340>)
 
 ```go
 func (r *IBeamParameterRegistry) GetParameterDetail(parameterID, modelID uint32) (*pb.ParameterDetail, error)
@@ -541,7 +548,7 @@ func (r *IBeamParameterRegistry) GetParameterDetail(parameterID, modelID uint32)
 
 GetParameterDetail gets the details of a parameter by id and model id
 
-### func \(\*IBeamParameterRegistry\) [GetParameterNameOfModel](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L328>)
+### func \(\*IBeamParameterRegistry\) [GetParameterNameOfModel](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L322>)
 
 ```go
 func (r *IBeamParameterRegistry) GetParameterNameOfModel(parameterID, modelID uint32) (string, error)
@@ -549,7 +556,7 @@ func (r *IBeamParameterRegistry) GetParameterNameOfModel(parameterID, modelID ui
 
 GetParameterNameOfModel gets the name of a parameter by id and model id
 
-### func \(\*IBeamParameterRegistry\) [GetParameterOptions](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L424>)
+### func \(\*IBeamParameterRegistry\) [GetParameterOptions](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L418>)
 
 ```go
 func (r *IBeamParameterRegistry) GetParameterOptions(parameterID, deviceID uint32, dimensionID ...uint32) (*pb.OptionList, error)
@@ -557,7 +564,7 @@ func (r *IBeamParameterRegistry) GetParameterOptions(parameterID, deviceID uint3
 
 GetParameterCurrentValue gets a copy of the current parameter value from the state by pid\, did and dimensionIDs
 
-### func \(\*IBeamParameterRegistry\) [GetParameterValue](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L364>)
+### func \(\*IBeamParameterRegistry\) [GetParameterValue](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L358>)
 
 ```go
 func (r *IBeamParameterRegistry) GetParameterValue(parameterID, deviceID uint32, dimensionID ...uint32) (*pb.ParameterValue, error)
@@ -565,7 +572,7 @@ func (r *IBeamParameterRegistry) GetParameterValue(parameterID, deviceID uint32,
 
 GetParameterValue gets a copy of the new parameter value from the state by pid\, did and dimensionIDs
 
-### func \(\*IBeamParameterRegistry\) [PID](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L750>)
+### func \(\*IBeamParameterRegistry\) [PID](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L744>)
 
 ```go
 func (r *IBeamParameterRegistry) PID(parameterName string) uint32
@@ -573,7 +580,7 @@ func (r *IBeamParameterRegistry) PID(parameterName string) uint32
 
 PID Get a parameterID by name\, returns 0 if not found\, always uses model 0
 
-### func \(\*IBeamParameterRegistry\) [PName](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L727>)
+### func \(\*IBeamParameterRegistry\) [PName](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L721>)
 
 ```go
 func (r *IBeamParameterRegistry) PName(parameterID uint32) string
@@ -581,7 +588,7 @@ func (r *IBeamParameterRegistry) PName(parameterID uint32) string
 
 PName Get a parameter Name by ID\, returns "" if not found\, always uses model 0
 
-### func \(\*IBeamParameterRegistry\) [ParameterNameByID](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L722>)
+### func \(\*IBeamParameterRegistry\) [ParameterNameByID](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L716>)
 
 ```go
 func (r *IBeamParameterRegistry) ParameterNameByID(parameterID uint32) string
@@ -589,7 +596,7 @@ func (r *IBeamParameterRegistry) ParameterNameByID(parameterID uint32) string
 
 ParameterNameByID Get a parameter Name by ID\, returns "" if not found\, always uses model 0 DEPRECATED: Use PName instead
 
-### func \(\*IBeamParameterRegistry\) [ReRegisterDevice](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L504>)
+### func \(\*IBeamParameterRegistry\) [ReRegisterDevice](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L498>)
 
 ```go
 func (r *IBeamParameterRegistry) ReRegisterDevice(deviceID, modelID uint32) error
@@ -597,7 +604,7 @@ func (r *IBeamParameterRegistry) ReRegisterDevice(deviceID, modelID uint32) erro
 
 ReRegisterDevice registers an existing device again\. This allows to reset it's state and change the type of model if necessary Make sure to handle the error properly
 
-### func \(\*IBeamParameterRegistry\) [RegisterDevice](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L536>)
+### func \(\*IBeamParameterRegistry\) [RegisterDevice](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L530>)
 
 ```go
 func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint32, error)
@@ -605,7 +612,7 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 
 RegisterDevice registers a new Device in the Registry with given DeviceID and ModelID\. If the DeviceID is 0 it will be picked automatically Make sure to handle the error properly
 
-### func \(\*IBeamParameterRegistry\) [RegisterDeviceWithModelName](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L488>)
+### func \(\*IBeamParameterRegistry\) [RegisterDeviceWithModelName](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L482>)
 
 ```go
 func (r *IBeamParameterRegistry) RegisterDeviceWithModelName(deviceID uint32, modelName string) (deviceIndex uint32, err error)
@@ -661,7 +668,7 @@ func (r *IBeamParameterRegistry) UnregisterParameterForModels(modelIDs []uint32,
 
 UnregisterParameterForModels removes a specific parameter for a list of models\.
 
-### func \(\*IBeamParameterRegistry\) [cacheIDMaps](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L691>)
+### func \(\*IBeamParameterRegistry\) [cacheIDMaps](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L685>)
 
 ```go
 func (r *IBeamParameterRegistry) cacheIDMaps()
@@ -675,7 +682,7 @@ func (r *IBeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID, i
 
 device\,parameter\,instance
 
-### func \(\*IBeamParameterRegistry\) [getLastEvent](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L811>)
+### func \(\*IBeamParameterRegistry\) [getLastEvent](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L805>)
 
 ```go
 func (r *IBeamParameterRegistry) getLastEvent(deviceID uint32) time.Time
@@ -687,7 +694,7 @@ func (r *IBeamParameterRegistry) getLastEvent(deviceID uint32) time.Time
 func (r *IBeamParameterRegistry) getModelID(deviceID uint32) uint32
 ```
 
-### func \(\*IBeamParameterRegistry\) [parameterIDByName](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L795>)
+### func \(\*IBeamParameterRegistry\) [parameterIDByName](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L789>)
 
 ```go
 func (r *IBeamParameterRegistry) parameterIDByName(parameterName string, modelID uint32) uint32
@@ -695,7 +702,7 @@ func (r *IBeamParameterRegistry) parameterIDByName(parameterName string, modelID
 
 parameterIDByName get a parameterID by name\, returns 0 if not found\, not allowed to be public because it needs the mutexlock
 
-### func \(\*IBeamParameterRegistry\) [setLastEvent](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L818>)
+### func \(\*IBeamParameterRegistry\) [setLastEvent](<https://github.com/SKAARHOJ/ibeam-corelib-go/blob/master/parameter-registry.go#L812>)
 
 ```go
 func (r *IBeamParameterRegistry) setLastEvent(deviceID uint32)
