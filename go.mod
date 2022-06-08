@@ -7,6 +7,7 @@ require (
 	github.com/SKAARHOJ/ibeam-lib-env v0.1.1
 	github.com/s00500/env_logger v0.1.23
 	go.uber.org/atomic v1.9.0
+	golang.org/x/exp v0.0.0-20220608143224-64259d1afd70
 	google.golang.org/grpc v1.46.2
 	google.golang.org/protobuf v1.28.0
 )

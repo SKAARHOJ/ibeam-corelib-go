@@ -1,9 +1,11 @@
 package valuehelpers
 
+import "golang.org/x/exp/constraints"
+
 /*
 Normalise a value from one range (minVal:maxVal) to fit within a new range (newMin:newMax)
 */
-func Normalise[T ~int | ~float32 | ~float64](val, minVal, maxVal, newMin, newMax T) T {
+func Normalise[T constraints.Integer | constraints.Float](val, minVal, maxVal, newMin, newMax T) T {
 	x := val - minVal
 	newRange := newMax - newMin
 	oldRange := maxVal - minVal
@@ -19,7 +21,7 @@ func Normalise[T ~int | ~float32 | ~float64](val, minVal, maxVal, newMin, newMax
 /*
 Constrain a value between a lower (min) and upper (max) limit
 */
-func Constrain[T ~int | ~float32 | ~float64](val, min, max T) T {
+func Constrain[T constraints.Integer | constraints.Float](val, min, max T) T {
 	if val < min {
 		return min
 	}
