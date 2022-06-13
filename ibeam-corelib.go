@@ -292,18 +292,7 @@ func (s *IBeamServer) GetParameterDetails(c context.Context, mpIDs *pb.ModelPara
 }
 
 func (s *IBeamServer) getParameterDetail(mpID *pb.ModelParameterID) (*pb.ParameterDetail, error) {
-	if mpID.Parameter == 0 {
-		return nil, errors.New("Failed to get instance values " + mpID.String())
-	}
-	if len(s.parameterRegistry.parameterDetail) < int(mpID.Model) {
-		return nil, fmt.Errorf("ParamerDetail does not have Model with id %v", mpID.Model)
-	}
-	for _, parameterDetail := range s.parameterRegistry.parameterDetail[mpID.Model] {
-		if parameterDetail.Id.Model == mpID.Model && parameterDetail.Id.Parameter == mpID.Parameter {
-			return parameterDetail, nil
-		}
-	}
-	return nil, errors.New("cannot find ParameterDetail with given ModelParameterID")
+	return s.parameterRegistry.getParameterDetail(mpID.Parameter, mpID.Model)
 }
 
 // Set will change the Value for the given Parameter.

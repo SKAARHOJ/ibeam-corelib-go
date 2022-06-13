@@ -168,7 +168,7 @@ func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail, r
 	//if detail.ValueType != pb.ValueType_NoValue {
 	paramDims := 1
 	for _, dim := range detail.Dimensions {
-		paramDims *= (int(dim.Count) + len(dim.ElementLabels))
+		paramDims *= int(dim.Count) + len(dim.ElementLabels)
 	}
 	r.dimensionCount += uint(paramDims)
 	//}
@@ -341,6 +341,11 @@ func (r *IBeamParameterRegistry) GetParameterDetail(parameterID, modelID uint32)
 	r.muDetail.RLock()
 	defer r.muDetail.RUnlock()
 
+	return r.getParameterDetail(parameterID, modelID)
+}
+
+// getParameterDetail gets the details of a parameter by id and model id
+func (r *IBeamParameterRegistry) getParameterDetail(parameterID, modelID uint32) (*pb.ParameterDetail, error) {
 	modelInfo, exists := r.parameterDetail[modelID]
 	if !exists {
 		return nil, fmt.Errorf("could not find Parameter for Model with id %d", modelID)
