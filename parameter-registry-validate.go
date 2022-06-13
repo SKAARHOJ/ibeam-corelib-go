@@ -10,6 +10,15 @@ func validateParameter(rlog *log.Entry, detail *pb.ParameterDetail) {
 	if detail.Name == "" {
 		rlog.Fatalf("Parameter: ID %v: No name set", detail.Id)
 	}
+
+	if len(detail.ShortLabel) > 11 {
+		rlog.Fatalf("Parameter: ID %v: Shortlabel is too long, must be 11 or lower chars", detail.Id)
+	}
+
+	if len(detail.ShortLabel) == 0 && len(detail.Label) > 11 {
+		rlog.Fatalf("Parameter: ID %v: No shortlabel, but normal label is too long, must be 11 or lower chars or shortlabel provided", detail.Id)
+	}
+
 	if detail.ControlStyle == pb.ControlStyle_NoControl && detail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
 		rlog.Fatalf("Parameter: '%v': Can not have no control and no feedback", detail.Name)
 	}
