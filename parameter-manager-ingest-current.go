@@ -15,6 +15,18 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 
 	mlog := m.log.WithField("paramID", parameterID)
 
+	// Direct Passthrough for custom errors
+	if parameter.Error == pb.ParameterError_Custom {
+		for _, val := range parameter.GetValue() {
+			if val.GetError() == nil || val.GetError().GetMessage() == "" {
+				mlog.Error("Parameter Error without message received, not forwarding to clients")
+				return
+			}
+		}
+		m.serverClientsStream <- parameter
+		return
+	}
+
 	// Get State and the Configuration (Details) of the Parameter
 	m.parameterRegistry.muValue.Lock()
 	defer m.parameterRegistry.muValue.Unlock()

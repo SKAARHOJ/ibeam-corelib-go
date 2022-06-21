@@ -620,8 +620,15 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 			for channel, subscribeData := range server.serverClientsDistributor {
 				if subscribeData != nil && subscribeData.IDs != nil {
 					paramfilter := subscribeData.IDs
+
+					// Global error
+					if parameter.Error == pb.ParameterError_Custom && parameter.Id != nil && parameter.Id.Device == 0 && parameter.Id.Parameter == 0 {
+						channel <- parameter
+						return
+					}
+
 					// Filtering as specified by the original request
-					if parameter.Id == nil || parameter.Id.Device == 0 || parameter.Id.Parameter == 0 {
+					if parameter.Error != pb.ParameterError_Custom && (parameter.Id == nil || parameter.Id.Device == 0 || parameter.Id.Parameter == 0) {
 						continue
 					}
 					// Check if Device is Subscribed
