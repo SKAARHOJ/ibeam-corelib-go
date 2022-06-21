@@ -11,17 +11,20 @@ func validateParameter(rlog *log.Entry, detail *pb.ParameterDetail) {
 		rlog.Fatalf("Parameter: ID %v: No name set", detail.Id)
 	}
 
-	if len(detail.ShortLabel) > 11 {
-		rlog.Fatalf("Parameter: ID %v: Shortlabel is too long, must be 11 or lower chars", detail.Id)
-	}
+	/*
+		if len(detail.ShortLabel) > 11 {
+			rlog.Fatalf("Parameter: ID %v: Shortlabel is too long, must be 11 or lower chars", detail.Id)
+		}
 
-	if len(detail.ShortLabel) == 0 && len(detail.Label) > 11 {
-		rlog.Fatalf("Parameter: ID %v: No shortlabel, but normal label is too long, must be 11 or lower chars or shortlabel provided", detail.Id)
-	}
+		if len(detail.ShortLabel) == 0 && len(detail.Label) > 11 {
+			rlog.Fatalf("Parameter: ID %v: No shortlabel, but normal label is too long, must be 11 or lower chars or shortlabel provided", detail.Id)
+		}
+	*/
 
 	if detail.ControlStyle == pb.ControlStyle_NoControl && detail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
 		rlog.Fatalf("Parameter: '%v': Can not have no control and no feedback", detail.Name)
 	}
+
 	if detail.ControlStyle == pb.ControlStyle_Incremental && detail.IncDecStepsLowerLimit == 0 && detail.IncDecStepsUpperLimit == 0 {
 		rlog.Fatalf("Parameter: '%v': Incremental: please provide lower and upper range for incDecSteps", detail.Name)
 	}
@@ -120,12 +123,12 @@ func validateModel(rlog *log.Entry, model *pb.ModelInfo) {
 
 	switch model.DevelopmentStatus {
 	case "":
-		model.DevelopmentStatus = "sandbox"
-	case "sandbox":
-	case "alpha":
+		model.DevelopmentStatus = "concept"
+	case "concept":
 	case "beta":
+	case "released":
 	case "mature":
 	default:
-		rlog.Fatal("Model %v: Invalid developmentstatus, valid options are sandbox,alpha,beta,mature")
+		rlog.Fatal("Model %v: Invalid developmentstatus, valid options are concept,beta,released,mature")
 	}
 }
