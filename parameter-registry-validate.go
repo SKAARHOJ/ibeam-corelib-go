@@ -106,6 +106,52 @@ func validateParameter(rlog *log.Entry, detail *pb.ParameterDetail) {
 		}
 	}
 
+	if detail.DefaultValue != nil {
+		// Default Value Checks
+		switch detail.DefaultValue.Value.(type) {
+		case *pb.ParameterValue_Integer:
+			if detail.ValueType != pb.ValueType_Integer {
+				rlog.Fatalf("Parameter: '%v': Invalid default value for integer")
+			}
+		case *pb.ParameterValue_IncDecSteps:
+			rlog.Fatalf("Parameter: '%v': DefaultValue cant be IncDecSteps")
+		case *pb.ParameterValue_Floating:
+			if detail.ValueType != pb.ValueType_Floating {
+				rlog.Fatalf("Parameter: '%v': Invalid default value for float")
+			}
+		case *pb.ParameterValue_Str:
+			if detail.ValueType != pb.ValueType_String && detail.ValueType != pb.ValueType_Opt {
+				rlog.Fatalf("Parameter: '%v': Invalid default value for string or optionlist")
+			}
+		case *pb.ParameterValue_CurrentOption:
+			if detail.ValueType != pb.ValueType_Opt {
+				rlog.Fatalf("Parameter: '%v': Invalid default value for OptionList")
+			}
+		case *pb.ParameterValue_Cmd:
+			rlog.Fatalf("Parameter: '%v': DefaultValue cant be Cmd")
+		case *pb.ParameterValue_Binary:
+			if detail.ValueType != pb.ValueType_Binary {
+				rlog.Fatalf("Parameter: '%v': Invalid default value for binary (bool)")
+			}
+		case *pb.ParameterValue_OptionListUpdate:
+			rlog.Fatalf("Parameter: '%v': DefaultValue cant be OptionListUpdate")
+		case *pb.ParameterValue_MinimumUpdate:
+			rlog.Fatalf("Parameter: '%v': DefaultValue cant be MinUpdate")
+		case *pb.ParameterValue_MaximumUpdate:
+			rlog.Fatalf("Parameter: '%v': DefaultValue cant be MaxUpdate")
+		case *pb.ParameterValue_Png:
+			if detail.ValueType != pb.ValueType_PNG {
+				rlog.Fatalf("Parameter: '%v': Invalid default value for png")
+			}
+		case *pb.ParameterValue_Jpeg:
+			if detail.ValueType != pb.ValueType_JPEG {
+				rlog.Fatalf("Parameter: '%v': Invalid default value for jpeg")
+			}
+		case *pb.ParameterValue_Error:
+			rlog.Fatalf("Parameter: '%v': DefaultValue cant be CustomError")
+		}
+	}
+
 	// Warnings
 	if detail.Description == "" {
 		rlog.Warnf("Parameter '%v': No description set", detail.Name)
