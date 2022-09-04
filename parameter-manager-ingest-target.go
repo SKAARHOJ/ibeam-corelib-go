@@ -169,10 +169,12 @@ valueLoop:
 				}
 			}
 		case *pb.ParameterValue_IncDecSteps:
-			if newValue.IncDecSteps > parameterConfig.IncDecStepsUpperLimit || newValue.IncDecSteps < parameterConfig.IncDecStepsLowerLimit {
-				mlog.Errorf("In- or Decrementation Step %v is outside of limits [%v,%v] of %s", newValue.IncDecSteps, parameterConfig.IncDecStepsLowerLimit, parameterConfig.IncDecStepsUpperLimit, m.pName(parameter.Id))
-				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_StepSizeViolation)
-				continue
+			if parameterConfig.ValueType != pb.ValueType_Opt {
+				if newValue.IncDecSteps > parameterConfig.IncDecStepsUpperLimit || newValue.IncDecSteps < parameterConfig.IncDecStepsLowerLimit {
+					mlog.Errorf("In- or Decrementation Step %v is outside of limits [%v,%v] of %s", newValue.IncDecSteps, parameterConfig.IncDecStepsLowerLimit, parameterConfig.IncDecStepsUpperLimit, m.pName(parameter.Id))
+					m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_StepSizeViolation)
+					continue
+				}
 			}
 
 			if parameterBuffer.hasFlag(FlagIncrementalPassthrough) {
