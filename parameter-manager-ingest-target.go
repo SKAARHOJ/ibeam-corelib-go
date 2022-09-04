@@ -240,17 +240,17 @@ valueLoop:
 						newOptIdx = numberOfOptions + newOptIdx
 					}
 
-					mlog.Infof("In- or Decrement optIdx %d (%d) to %d", currentOptIdx, parameterBuffer.targetValue.GetCurrentOption(), newOptIdx, parameterConfig.OptionList.GetOptions()[newOptIdx])
-					if true {
-						parameterBuffer.targetValue.Value = &pb.ParameterValue_CurrentOption{CurrentOption: parameterConfig.OptionList.GetOptions()[newOptIdx].Id}
-						parameterBuffer.targetValue.Invalid = false
-						if parameterConfig.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
-							parameterBuffer.currentValue.Value = parameterBuffer.targetValue.Value
-						}
-						// send out right away
-						m.serverClientsStream <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue())
-						continue // make sure we skip the rest of the logic :-)
+					mlog.Infof("In- or Decrement optIdx %d (%d) to %d (%d)", currentOptIdx, parameterBuffer.targetValue.GetCurrentOption(), newOptIdx, parameterConfig.OptionList.GetOptions()[newOptIdx].Id)
+
+					parameterBuffer.targetValue.Value = &pb.ParameterValue_CurrentOption{CurrentOption: parameterConfig.OptionList.GetOptions()[newOptIdx].Id}
+					parameterBuffer.targetValue.Invalid = false
+					if parameterConfig.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
+						parameterBuffer.currentValue.Value = parameterBuffer.targetValue.Value
 					}
+					// send out right away
+					// m.serverClientsStream <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue())
+					// continue // make sure we skip the rest of the logic :-)
+
 				}
 			}
 
