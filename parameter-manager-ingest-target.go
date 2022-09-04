@@ -240,7 +240,7 @@ valueLoop:
 						newOptIdx = numberOfOptions + newOptIdx
 					}
 
-					mlog.Tracef("In- or Decrement optIdx %d (%d) to %d", currentOptIdx, parameterBuffer.targetValue.GetCurrentOption(), newOptIdx, parameterConfig.OptionList.GetOptions()[newOptIdx])
+					mlog.Infof("In- or Decrement optIdx %d (%d) to %d", currentOptIdx, parameterBuffer.targetValue.GetCurrentOption(), newOptIdx, parameterConfig.OptionList.GetOptions()[newOptIdx])
 					if true {
 						parameterBuffer.targetValue.Value = &pb.ParameterValue_CurrentOption{CurrentOption: parameterConfig.OptionList.GetOptions()[newOptIdx].Id}
 						parameterBuffer.targetValue.Invalid = false
