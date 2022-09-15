@@ -235,7 +235,6 @@ valueLoop:
 					}
 					numberOfOptions := int32(len(parameterConfig.OptionList.GetOptions()))
 					newOptIdx := int32(currentOptIdx) + newValue.IncDecSteps
-					// newOptIdx %= numberOfOptions // For use with rotating
 					if newOptIdx >= 0 && newOptIdx < numberOfOptions {
 						mlog.Infof("In- or Decrement optIdx %d (%d) to %d (%d)", currentOptIdx, parameterBuffer.targetValue.GetCurrentOption(), newOptIdx, parameterConfig.OptionList.GetOptions()[newOptIdx].Id)
 
@@ -244,9 +243,6 @@ valueLoop:
 						if parameterConfig.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
 							parameterBuffer.currentValue.Value = parameterBuffer.targetValue.Value
 						}
-						// send out right away
-						// m.serverClientsStream <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue())
-						// continue // make sure we skip the rest of the logic :-)
 					} else {
 						// Don't send
 						continue
