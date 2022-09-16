@@ -169,10 +169,12 @@ valueLoop:
 				}
 			}
 		case *pb.ParameterValue_IncDecSteps:
-			if newValue.IncDecSteps > parameterConfig.IncDecStepsUpperLimit || newValue.IncDecSteps < parameterConfig.IncDecStepsLowerLimit {
-				mlog.Errorf("In- or Decrementation Step %v is outside of limits [%v,%v] of %s", newValue.IncDecSteps, parameterConfig.IncDecStepsLowerLimit, parameterConfig.IncDecStepsUpperLimit, m.pName(parameter.Id))
-				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_StepSizeViolation)
-				continue
+			if parameterConfig.ValueType != pb.ValueType_Opt {
+				if newValue.IncDecSteps > parameterConfig.IncDecStepsUpperLimit || newValue.IncDecSteps < parameterConfig.IncDecStepsLowerLimit {
+					mlog.Errorf("In- or Decrementation Step %v is outside of limits [%v,%v] of %s", newValue.IncDecSteps, parameterConfig.IncDecStepsLowerLimit, parameterConfig.IncDecStepsUpperLimit, m.pName(parameter.Id))
+					m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_StepSizeViolation)
+					continue
+				}
 			}
 
 			if parameterBuffer.hasFlag(FlagIncrementalPassthrough) {
@@ -186,7 +188,7 @@ valueLoop:
 			}
 
 			// inc dec currently only works with integers or no values, float is strange but implemented, action lists need to be evaluated
-			if parameterConfig.ValueType != pb.ValueType_Floating && parameterConfig.ValueType != pb.ValueType_Integer && parameterConfig.ValueType != pb.ValueType_NoValue {
+			if parameterConfig.ValueType != pb.ValueType_Opt && parameterConfig.ValueType != pb.ValueType_Floating && parameterConfig.ValueType != pb.ValueType_Integer && parameterConfig.ValueType != pb.ValueType_NoValue {
 				mlog.Errorf("Got Value with Type %T for %s, but it needs %v", newValue, m.pName(parameter.Id), pb.ValueType_name[int32(parameterConfig.ValueType)])
 				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
 				continue
@@ -194,7 +196,7 @@ valueLoop:
 
 			if parameterConfig.ValueType == pb.ValueType_Integer {
 				newIntVal := parameterBuffer.targetValue.GetInteger() + newValue.IncDecSteps
-				mlog.Tracef("Decrement %d by %d", parameterBuffer.targetValue.GetInteger(), newValue.IncDecSteps)
+				mlog.Tracef("In- or Decrement %d by %d", parameterBuffer.targetValue.GetInteger(), newValue.IncDecSteps)
 				if newIntVal <= int32(maximum) && newIntVal >= int32(minimum) {
 					parameterBuffer.targetValue.Value = &pb.ParameterValue_Integer{Integer: newIntVal}
 					parameterBuffer.targetValue.Invalid = false
@@ -209,7 +211,7 @@ valueLoop:
 
 			if parameterConfig.ValueType == pb.ValueType_Floating {
 				newFloatVal := parameterBuffer.targetValue.GetFloating() + float64(newValue.IncDecSteps)
-				mlog.Tracef("Decrement %d by %d", parameterBuffer.targetValue.GetFloating(), newValue.IncDecSteps)
+				mlog.Tracef("In- or Decrement %d by %d", parameterBuffer.targetValue.GetFloating(), newValue.IncDecSteps)
 				if newFloatVal <= maximum && newFloatVal >= minimum {
 					parameterBuffer.targetValue.Value = &pb.ParameterValue_Floating{Floating: newFloatVal}
 					parameterBuffer.targetValue.Invalid = false
@@ -219,6 +221,32 @@ valueLoop:
 					// send out right away
 					m.serverClientsStream <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue())
 					continue // make sure we skip the rest of the logic :-)
+				}
+			}
+
+			if parameterConfig.ValueType == pb.ValueType_Opt {
+				if parameterConfig.OptionList != nil {
+					currentOptIdx := 0
+					for idx, opt := range parameterConfig.OptionList.GetOptions() {
+						if opt.Id == parameterBuffer.targetValue.GetCurrentOption() {
+							currentOptIdx = idx
+							break
+						}
+					}
+					numberOfOptions := int32(len(parameterConfig.OptionList.GetOptions()))
+					newOptIdx := int32(currentOptIdx) + newValue.IncDecSteps
+					if newOptIdx >= 0 && newOptIdx < numberOfOptions {
+						mlog.Infof("In- or Decrement optIdx %d (%d) to %d (%d)", currentOptIdx, parameterBuffer.targetValue.GetCurrentOption(), newOptIdx, parameterConfig.OptionList.GetOptions()[newOptIdx].Id)
+
+						parameterBuffer.targetValue.Value = &pb.ParameterValue_CurrentOption{CurrentOption: parameterConfig.OptionList.GetOptions()[newOptIdx].Id}
+						parameterBuffer.targetValue.Invalid = false
+						if parameterConfig.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
+							parameterBuffer.currentValue.Value = parameterBuffer.targetValue.Value
+						}
+					} else {
+						// Don't send
+						continue
+					}
 				}
 			}
 
