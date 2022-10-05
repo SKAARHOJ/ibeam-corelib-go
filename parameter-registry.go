@@ -129,14 +129,16 @@ func (r *IBeamParameterRegistry) getModelID(deviceID uint32) uint32 {
 }
 
 // RegisterParameterForModels registers a parameter and its detail struct in the registry for multiple models.
-func (r *IBeamParameterRegistry) RegisterParameterForModels(modelIDs []uint32, detail *pb.ParameterDetail) {
+func (r *IBeamParameterRegistry) RegisterParameterForModels(modelIDs []uint32, detail *pb.ParameterDetail) uint32 {
+	var returnID uint32
 	for _, id := range modelIDs {
 		if id == 0 {
 			r.log.Fatal("RegisterParameterForModels: do not use this function with the generic model")
 		}
 		dt := proto.Clone(detail).(*pb.ParameterDetail)
-		r.RegisterParameterForModel(id, dt)
+		returnID = r.RegisterParameterForModel(id, dt)
 	}
+	return returnID
 }
 
 // RegisterParameterForModel registers a parameter and its detail struct in the registry for a single specified model and the default model if the id does not exist there yet.
