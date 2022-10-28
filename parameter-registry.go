@@ -543,6 +543,7 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 				Path:          "config",
 				Name:          "connection",
 				Label:         "Connected",
+				ShortLabel:    "Connected",
 				Description:   "Connection status of device",
 				GenericType:   pb.GenericType_ConnectionState,
 				ControlStyle:  pb.ControlStyle_NoControl,
