@@ -549,7 +549,8 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 				ControlStyle:  pb.ControlStyle_NoControl,
 				FeedbackStyle: pb.FeedbackStyle_NormalFeedback,
 				ValueType:     pb.ValueType_Binary,
-			})
+				DefaultValue:  b.Bool(false),
+			}, WithDefaultValid())
 		}
 		if cachedIDMap == nil {
 			r.cacheIDMaps() // make sure cachedIDMap is initialized for all further usage
