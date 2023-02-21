@@ -377,6 +377,7 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 	// Get the current subscription ID, check if it has been used before, if so just perform a get on the new parameters and update the filtering
 
 	s.log.Debug("New Client subscribed from ", clientIP)
+	//s.log.Timer("subtimer")
 
 	// Fist send all parameters
 	parameters, err := s.Get(stream.Context(), dpIDs)
@@ -384,19 +385,22 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 		return err
 	}
 
-	for _, parameter := range parameters.Parameters {
-		s.log.Debugf("Send Parameter with ID '%v' to client", parameter.Id)
-		s.log.Tracef("Param: %+v", parameter)
-		stream.Send(parameter)
-		//getCounter.Add(1)
-	}
-
-	distributor := make(chan *pb.Parameter, 100)
+	// Create dist first to catch incoming params
+	distributor := make(chan *pb.Parameter, 200)
 	s.muDistributor.Lock()
 	s.serverClientsDistributor[distributor] = &SubscribeData{Identifier: subscribeId, IDs: dpIDs}
 
 	s.log.Debugf("Added distributor number %v", len(s.serverClientsDistributor))
 	s.muDistributor.Unlock()
+
+	for _, parameter := range parameters.Parameters {
+		s.log.Debugf("Send Parameter with ID '%v' to client", parameter.Id)
+		s.log.Tracef("Param: %+v", parameter)
+		err := stream.Send(parameter)
+		log.ShouldWrap(err, "on sending initial param")
+		//getCounter.Add(1)
+	}
+	//log.Info("Send of existing took ", s.log.TimerEnd("subtimer")) // On kairos this took 1.3 seconds... keep that in mind
 
 	ping := time.NewTicker(time.Second / 2)
 	for {
@@ -413,7 +417,8 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 		case parameter := <-distributor:
 			// Filtering already happened in the distributor
 			s.log.Debugf("Send Parameter with ID '%v' to client from ServerClientsStream", parameter.Id)
-			stream.Send(parameter)
+			err := stream.Send(parameter)
+			log.ShouldWrap(err, "on sending param")
 			//sendCounter.Add(1)
 		}
 	}
