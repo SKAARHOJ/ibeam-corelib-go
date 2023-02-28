@@ -56,6 +56,24 @@ func ParamWarn(pid uint32, did uint32, id, message string, dimensionID ...uint32
 	}
 }
 
+// ResolveParamMessage resolves a error OR warning by ID
+func ResolveParamMessage(pid uint32, did uint32, id string, dimensionID ...uint32) *pb.Parameter {
+	return &pb.Parameter{
+		Id:    &pb.DeviceParameterID{Device: did, Parameter: pid},
+		Error: pb.ParameterError_Custom,
+		Value: []*pb.ParameterValue{
+			&pb.ParameterValue{
+				Value: &pb.ParameterValue_Error{
+					Error: &pb.CustomError{
+						Errortype: pb.CustomErrorType_Resolve,
+						ID:        id,
+					},
+				},
+			},
+		},
+	}
+}
+
 func DeviceError(did uint32, id, message string, args ...interface{}) *pb.Parameter {
 	return &pb.Parameter{
 		Id:    &pb.DeviceParameterID{Device: did, Parameter: 0},
@@ -84,6 +102,24 @@ func DeviceWarn(did uint32, id, message string, args ...interface{}) *pb.Paramet
 					Error: &pb.CustomError{
 						Message:   fmt.Sprintf(message, args...),
 						Errortype: pb.CustomErrorType_Warning,
+						ID:        id,
+					},
+				},
+			},
+		},
+	}
+}
+
+// ResolveDeviceMessage resolves an error OR warning by ID
+func ResolveDeviceMessage(did uint32, id string) *pb.Parameter {
+	return &pb.Parameter{
+		Id:    &pb.DeviceParameterID{Device: did, Parameter: 0},
+		Error: pb.ParameterError_Custom,
+		Value: []*pb.ParameterValue{
+			&pb.ParameterValue{
+				Value: &pb.ParameterValue_Error{
+					Error: &pb.CustomError{
+						Errortype: pb.CustomErrorType_Resolve,
 						ID:        id,
 					},
 				},
