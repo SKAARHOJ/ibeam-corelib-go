@@ -11,14 +11,12 @@ import (
 func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) {
 	parameterID := parameter.Id.Parameter
 	deviceID := parameter.Id.Device
-	modelID := m.parameterRegistry.getModelID(deviceID)
-
 	mlog := m.log.WithField("paramID", parameterID)
 
 	// Direct Passthrough for custom errors
 	if parameter.Error == pb.ParameterError_Custom {
 		for _, val := range parameter.GetValue() {
-			if val.GetError() == nil || val.GetError().GetMessage() == "" {
+			if val.GetError() == nil || (val.GetError().GetErrortype() != pb.CustomErrorType_Resolve && val.GetError().GetMessage() == "") {
 				mlog.Error("Parameter Error without message received, not forwarding to clients")
 				return
 			}
@@ -26,6 +24,8 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 		m.serverClientsStream <- parameter
 		return
 	}
+
+	modelID := m.parameterRegistry.getModelID(deviceID)
 
 	// Get State and the Configuration (Details) of the Parameter
 	m.parameterRegistry.muValue.Lock()
