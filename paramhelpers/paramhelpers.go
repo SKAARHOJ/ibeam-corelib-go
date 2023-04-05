@@ -167,7 +167,7 @@ func Warn(id, message string, args ...interface{}) *pb.Parameter {
 }
 
 // Return a global error message
-func ResolveError(id string) *pb.Parameter {
+func ResolveMessage(id string) *pb.Parameter {
 	return &pb.Parameter{
 		Error: pb.ParameterError_Custom,
 		Id:    &pb.DeviceParameterID{Device: 0, Parameter: 0},
