@@ -21,7 +21,7 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 				return
 			}
 		}
-		m.serverClientsStream <- parameter
+		handleStatusParam(parameter, m.serverClientsStream)
 		return
 	}
 

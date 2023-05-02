@@ -177,6 +177,7 @@ func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 	s.parameterRegistry.muValue.RLock()
 	defer s.parameterRegistry.muValue.RUnlock()
 
+	// Unfiltered response
 	if len(dpIDs.Ids) == 0 {
 		for did, dState := range s.parameterRegistry.parameterValue {
 			for pid := range dState {
@@ -199,6 +200,7 @@ func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 		return rParameters, err
 	}
 
+	// All Parameters for filtered device
 	if len(dpIDs.Ids) == 1 && dpIDs.Ids[0].Parameter == 0 && dpIDs.Ids[0].Device != 0 {
 		did := dpIDs.Ids[0].Device
 		if _, exists := s.parameterRegistry.parameterValue[did]; !exists {
@@ -227,6 +229,7 @@ func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 		return rParameters, err
 	}
 
+	// Filter specific parameters
 	for _, dpID := range dpIDs.Ids {
 		if dpID.Device == 0 || dpID.Parameter == 0 {
 			err = errors.New("Failed to get instance values " + dpID.String())
@@ -401,6 +404,13 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 		//getCounter.Add(1)
 	}
 	//log.Info("Send of existing took ", s.log.TimerEnd("subtimer")) // On kairos this took 1.3 seconds... keep that in mind
+
+	// Send out all errors
+	errorParams := getActiveStatuses()
+	for _, param := range errorParams {
+		err := stream.Send(param)
+		log.ShouldWrap(err, "on sending initial error parameters")
+	}
 
 	ping := time.NewTicker(time.Second / 2)
 	for {
