@@ -24,7 +24,7 @@ func ParamError(pid uint32, did uint32, id, message string, dimensionID ...uint3
 		Id:    &pb.DeviceParameterID{Device: did, Parameter: pid},
 		Error: pb.ParameterError_Custom,
 		Value: []*pb.ParameterValue{
-			&pb.ParameterValue{
+			{
 				Value: &pb.ParameterValue_Error{
 					Error: &pb.CustomError{
 						Message:   message,
@@ -43,7 +43,7 @@ func ParamWarn(pid uint32, did uint32, id, message string, dimensionID ...uint32
 		Id:    &pb.DeviceParameterID{Device: did, Parameter: pid},
 		Error: pb.ParameterError_Custom,
 		Value: []*pb.ParameterValue{
-			&pb.ParameterValue{
+			{
 				Value: &pb.ParameterValue_Error{
 					Error: &pb.CustomError{
 						Message:   message,
@@ -62,7 +62,7 @@ func ResolveParamMessage(pid uint32, did uint32, id string, dimensionID ...uint3
 		Id:    &pb.DeviceParameterID{Device: did, Parameter: pid},
 		Error: pb.ParameterError_Custom,
 		Value: []*pb.ParameterValue{
-			&pb.ParameterValue{
+			{
 				Value: &pb.ParameterValue_Error{
 					Error: &pb.CustomError{
 						Errortype: pb.CustomErrorType_Resolve,
@@ -79,7 +79,7 @@ func DeviceError(did uint32, id, message string, args ...interface{}) *pb.Parame
 		Id:    &pb.DeviceParameterID{Device: did, Parameter: 0},
 		Error: pb.ParameterError_Custom,
 		Value: []*pb.ParameterValue{
-			&pb.ParameterValue{
+			{
 				Value: &pb.ParameterValue_Error{
 					Error: &pb.CustomError{
 						Message:   fmt.Sprintf(message, args...),
@@ -97,7 +97,7 @@ func DeviceWarn(did uint32, id, message string, args ...interface{}) *pb.Paramet
 		Id:    &pb.DeviceParameterID{Device: did, Parameter: 0},
 		Error: pb.ParameterError_Custom,
 		Value: []*pb.ParameterValue{
-			&pb.ParameterValue{
+			{
 				Value: &pb.ParameterValue_Error{
 					Error: &pb.CustomError{
 						Message:   fmt.Sprintf(message, args...),
@@ -116,7 +116,7 @@ func ResolveDeviceMessage(did uint32, id string) *pb.Parameter {
 		Id:    &pb.DeviceParameterID{Device: did, Parameter: 0},
 		Error: pb.ParameterError_Custom,
 		Value: []*pb.ParameterValue{
-			&pb.ParameterValue{
+			{
 				Value: &pb.ParameterValue_Error{
 					Error: &pb.CustomError{
 						Errortype: pb.CustomErrorType_Resolve,
@@ -134,7 +134,7 @@ func Error(id, message string, args ...interface{}) *pb.Parameter {
 		Error: pb.ParameterError_Custom,
 		Id:    &pb.DeviceParameterID{Device: 0, Parameter: 0},
 		Value: []*pb.ParameterValue{
-			&pb.ParameterValue{
+			{
 				Value: &pb.ParameterValue_Error{
 					Error: &pb.CustomError{
 						Message:   fmt.Sprintf(message, args...),
@@ -153,7 +153,7 @@ func Warn(id, message string, args ...interface{}) *pb.Parameter {
 		Error: pb.ParameterError_Custom,
 		Id:    &pb.DeviceParameterID{Device: 0, Parameter: 0},
 		Value: []*pb.ParameterValue{
-			&pb.ParameterValue{
+			{
 				Value: &pb.ParameterValue_Error{
 					Error: &pb.CustomError{
 						Message:   fmt.Sprintf(message, args...),
@@ -172,7 +172,7 @@ func ResolveMessage(id string) *pb.Parameter {
 		Error: pb.ParameterError_Custom,
 		Id:    &pb.DeviceParameterID{Device: 0, Parameter: 0},
 		Value: []*pb.ParameterValue{
-			&pb.ParameterValue{
+			{
 				Value: &pb.ParameterValue_Error{
 					Error: &pb.CustomError{
 						Errortype: pb.CustomErrorType_Resolve,
