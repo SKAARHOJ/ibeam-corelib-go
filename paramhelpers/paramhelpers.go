@@ -11,7 +11,7 @@ import (
 // After that you can add as many parameter values as needed for the specific parameter (usually onbly one, more for parameters with dimensions that you want to update at the same time)
 func Param(pid uint32, did uint32, vals ...*pb.ParameterValue) *pb.Parameter {
 	return &pb.Parameter{
-		Id:    &pb.DeviceParameterID{Device: did, Parameter: pid},
+		Id:    &pb.DeviceParameterID{Device: uint32(did), Parameter: pid},
 		Value: vals,
 	}
 }
