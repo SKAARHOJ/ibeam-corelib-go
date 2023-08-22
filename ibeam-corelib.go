@@ -428,8 +428,13 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 			// Filtering already happened in the distributor
 			s.log.Debugf("Send Parameter with ID '%v' to client from ServerClientsStream", parameter.Id)
 			err := stream.Send(parameter)
-			log.ShouldWrap(err, "on sending param")
-			//sendCounter.Add(1)
+			if err != nil {
+				if strings.Contains(err.Error(), "Canceled desc = context canceled") {
+					log.ShouldWrap(err, "on sending param")
+				}
+			} else {
+				//sendCounter.Add(1)
+			}
 		}
 	}
 }
