@@ -400,7 +400,11 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 		s.log.Debugf("Send Parameter with ID '%v' to client", parameter.Id)
 		s.log.Tracef("Param: %+v", parameter)
 		err := stream.Send(parameter)
-		log.ShouldWrap(err, "on sending initial param")
+		if err != nil {
+			if !strings.Contains(err.Error(), "Canceled desc = context canceled") {
+				log.ShouldWrap(err, "on sending param")
+			}
+		}
 		//getCounter.Add(1)
 	}
 	//log.Info("Send of existing took ", s.log.TimerEnd("subtimer")) // On kairos this took 1.3 seconds... keep that in mind
@@ -429,7 +433,7 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 			s.log.Debugf("Send Parameter with ID '%v' to client from ServerClientsStream", parameter.Id)
 			err := stream.Send(parameter)
 			if err != nil {
-				if strings.Contains(err.Error(), "Canceled desc = context canceled") {
+				if !strings.Contains(err.Error(), "Canceled desc = context canceled") {
 					log.ShouldWrap(err, "on sending param")
 				}
 			} else {
