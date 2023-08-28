@@ -11,7 +11,7 @@ import (
 // After that you can add as many parameter values as needed for the specific parameter (usually onbly one, more for parameters with dimensions that you want to update at the same time)
 func Param(pid uint32, did uint32, vals ...*pb.ParameterValue) *pb.Parameter {
 	return &pb.Parameter{
-		Id:    &pb.DeviceParameterID{Device: uint32(did), Parameter: pid},
+		Id:    &pb.DeviceParameterID{Device: did, Parameter: pid},
 		Value: vals,
 	}
 }
@@ -24,7 +24,7 @@ func ParamError(pid uint32, did uint32, id, message string, dimensionID ...uint3
 		Id:    &pb.DeviceParameterID{Device: did, Parameter: pid},
 		Error: pb.ParameterError_Custom,
 		Value: []*pb.ParameterValue{
-			&pb.ParameterValue{
+			{
 				Value: &pb.ParameterValue_Error{
 					Error: &pb.CustomError{
 						Message:   message,
@@ -43,7 +43,7 @@ func ParamWarn(pid uint32, did uint32, id, message string, dimensionID ...uint32
 		Id:    &pb.DeviceParameterID{Device: did, Parameter: pid},
 		Error: pb.ParameterError_Custom,
 		Value: []*pb.ParameterValue{
-			&pb.ParameterValue{
+			{
 				Value: &pb.ParameterValue_Error{
 					Error: &pb.CustomError{
 						Message:   message,
@@ -62,7 +62,7 @@ func ResolveParamMessage(pid uint32, did uint32, id string, dimensionID ...uint3
 		Id:    &pb.DeviceParameterID{Device: did, Parameter: pid},
 		Error: pb.ParameterError_Custom,
 		Value: []*pb.ParameterValue{
-			&pb.ParameterValue{
+			{
 				Value: &pb.ParameterValue_Error{
 					Error: &pb.CustomError{
 						Errortype: pb.CustomErrorType_Resolve,
@@ -79,7 +79,7 @@ func DeviceError(did uint32, id, message string, args ...interface{}) *pb.Parame
 		Id:    &pb.DeviceParameterID{Device: did, Parameter: 0},
 		Error: pb.ParameterError_Custom,
 		Value: []*pb.ParameterValue{
-			&pb.ParameterValue{
+			{
 				Value: &pb.ParameterValue_Error{
 					Error: &pb.CustomError{
 						Message:   fmt.Sprintf(message, args...),
@@ -97,7 +97,7 @@ func DeviceWarn(did uint32, id, message string, args ...interface{}) *pb.Paramet
 		Id:    &pb.DeviceParameterID{Device: did, Parameter: 0},
 		Error: pb.ParameterError_Custom,
 		Value: []*pb.ParameterValue{
-			&pb.ParameterValue{
+			{
 				Value: &pb.ParameterValue_Error{
 					Error: &pb.CustomError{
 						Message:   fmt.Sprintf(message, args...),
@@ -116,7 +116,7 @@ func ResolveDeviceMessage(did uint32, id string) *pb.Parameter {
 		Id:    &pb.DeviceParameterID{Device: did, Parameter: 0},
 		Error: pb.ParameterError_Custom,
 		Value: []*pb.ParameterValue{
-			&pb.ParameterValue{
+			{
 				Value: &pb.ParameterValue_Error{
 					Error: &pb.CustomError{
 						Errortype: pb.CustomErrorType_Resolve,
@@ -134,7 +134,7 @@ func Error(id, message string, args ...interface{}) *pb.Parameter {
 		Error: pb.ParameterError_Custom,
 		Id:    &pb.DeviceParameterID{Device: 0, Parameter: 0},
 		Value: []*pb.ParameterValue{
-			&pb.ParameterValue{
+			{
 				Value: &pb.ParameterValue_Error{
 					Error: &pb.CustomError{
 						Message:   fmt.Sprintf(message, args...),
@@ -153,7 +153,7 @@ func Warn(id, message string, args ...interface{}) *pb.Parameter {
 		Error: pb.ParameterError_Custom,
 		Id:    &pb.DeviceParameterID{Device: 0, Parameter: 0},
 		Value: []*pb.ParameterValue{
-			&pb.ParameterValue{
+			{
 				Value: &pb.ParameterValue_Error{
 					Error: &pb.CustomError{
 						Message:   fmt.Sprintf(message, args...),
@@ -172,7 +172,7 @@ func ResolveMessage(id string) *pb.Parameter {
 		Error: pb.ParameterError_Custom,
 		Id:    &pb.DeviceParameterID{Device: 0, Parameter: 0},
 		Value: []*pb.ParameterValue{
-			&pb.ParameterValue{
+			{
 				Value: &pb.ParameterValue_Error{
 					Error: &pb.CustomError{
 						Errortype: pb.CustomErrorType_Resolve,
@@ -189,6 +189,11 @@ func ResolveMessage(id string) *pb.Parameter {
 // Int just returns a parameter value of type ParameterValue_Integer
 func Int(val int, dimensionID ...uint32) *pb.ParameterValue {
 	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_Integer{Integer: int32(val)}}
+}
+
+// Int32 just returns a parameter value of type ParameterValue_Integer
+func Int32(val int32, dimensionID ...uint32) *pb.ParameterValue {
+	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_Integer{Integer: val}}
 }
 
 // Float just returns a parameter value of type ParameterValue_Floating
