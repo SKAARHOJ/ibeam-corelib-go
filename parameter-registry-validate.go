@@ -1,6 +1,8 @@
 package ibeamcorelib
 
 import (
+	"strings"
+
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
 	log "github.com/s00500/env_logger"
 )
@@ -9,6 +11,10 @@ func validateParameter(rlog *log.Entry, detail *pb.ParameterDetail) {
 	// Fatals
 	if detail.Name == "" {
 		rlog.Fatalf("Parameter: ID %v: No name set", detail.Id)
+	}
+
+	if strings.Contains(detail.Name, "") {
+		rlog.Fatalf("Parameter: ID %v: Name %q contains space", detail.Id, detail.Name)
 	}
 
 	/*
