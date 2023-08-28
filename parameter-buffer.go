@@ -105,9 +105,10 @@ func (b *ibeamParameterValueBuffer) currentEquals(new *pb.ParameterValue) bool {
 		return false
 	}
 
-	if b.currentValue.Available != new.Available {
-		return false
-	}
+	// This check is not really needed here, we check it everywhere else manually... it only created the issue on the very first ingest when the param was sent back straight
+	// if b.currentValue.Available != new.Available {
+	// 	 return false
+	// }
 
 	if reflect.TypeOf(b.currentValue.Value) != reflect.TypeOf(new.Value) {
 		return false

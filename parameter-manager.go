@@ -204,19 +204,19 @@ func (m *IBeamParameterManager) Start() {
 	// Main Manager Routines
 	go func() {
 		for parameter := range m.clientsSetterStream {
-			//				m.log.Info("Got set from client")
+			// 				m.log.Infof("Got set from client %v", parameter)
 			m.ingestTargetParameter(parameter)
 		}
 	}()
 	go func() {
 		for parameter := range m.in {
-			//				m.log.Info("Got result from device")
+			//				m.log.Infof("Got result from device %v", parameter)
 			m.ingestCurrentParameter(parameter)
 		}
 	}()
 	go func() {
 		for address := range m.parameterEvent {
-			//				m.log.Info("Gonna proccess param")
+			//				m.log.Infof("Gonna proccess param %v", parameter)
 			m.processParameter(address)
 		}
 	}()
