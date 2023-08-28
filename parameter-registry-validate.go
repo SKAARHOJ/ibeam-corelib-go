@@ -13,7 +13,7 @@ func validateParameter(rlog *log.Entry, detail *pb.ParameterDetail) {
 		rlog.Fatalf("Parameter: ID %v: No name set", detail.Id)
 	}
 
-	if strings.Contains(detail.Name, "") {
+	if strings.Contains(detail.Name, " ") {
 		rlog.Fatalf("Parameter: ID %v: Name %q contains space", detail.Id, detail.Name)
 	}
 
