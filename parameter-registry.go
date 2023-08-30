@@ -429,7 +429,7 @@ func (r *IBeamParameterRegistry) GetParameterOptions(parameterID, deviceID uint3
 	// first check param and model
 	if _, exists := r.parameterDetail[model][parameterID]; !exists {
 		r.muDetail.RUnlock()
-		return nil, fmt.Errorf("getcurrentparametervalue: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
+		return nil, fmt.Errorf("getoptions: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
 	}
 
 	options := proto.Clone(r.parameterDetail[model][parameterID].OptionList).(*pb.OptionList)
@@ -446,12 +446,12 @@ func (r *IBeamParameterRegistry) GetParameterOptions(parameterID, deviceID uint3
 
 	// first check param and deviceID
 	if _, exists := state[deviceID][parameterID]; !exists {
-		return nil, fmt.Errorf("getcurrentparametervalue: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
+		return nil, fmt.Errorf("getoptions: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
 	}
 
 	// Check if Dimension is Valid
 	if !state[deviceID][parameterID].multiIndexHasValue(dimensionID) {
-		return nil, fmt.Errorf("getcurrentparametervalue: invalid dimension id  %v for parameter %d and device %d", dimensionID, parameterID, deviceID)
+		return nil, fmt.Errorf("getoptions: invalid dimension id  %v for parameter %d and device %d", dimensionID, parameterID, deviceID)
 	}
 
 	parameterDimension, err := state[deviceID][parameterID].multiIndex(dimensionID)
@@ -470,6 +470,60 @@ func (r *IBeamParameterRegistry) GetParameterOptions(parameterID, deviceID uint3
 	}
 
 	return options, nil
+}
+
+// GetParameterCurrentValue gets a copy of the current parameter value from the state by pid, did and dimensionIDs
+func (r *IBeamParameterRegistry) GetParameterMinMax(parameterID, deviceID uint32, dimensionID ...uint32) (minimum float64, maximum float64, err error) {
+	model := r.GetModelIDByDeviceID(deviceID)
+
+	r.muDetail.RLock()
+	// first check param and model
+	if _, exists := r.parameterDetail[model][parameterID]; !exists {
+		r.muDetail.RUnlock()
+		return 0, 0, fmt.Errorf("getminmax: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
+	}
+
+	if !r.parameterDetail[model][parameterID].MinMaxIsDynamic {
+		r.muDetail.RUnlock()
+		return r.parameterDetail[model][parameterID].Minimum, r.parameterDetail[model][parameterID].Maximum, nil
+	}
+	r.muDetail.RUnlock()
+
+	r.muValue.RLock()
+	defer r.muValue.RUnlock()
+	state := r.parameterValue
+
+	// first check param and deviceID
+	if _, exists := state[deviceID][parameterID]; !exists {
+		return 0, 0, fmt.Errorf("getminmax: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
+	}
+
+	// Check if Dimension is Valid
+	if !state[deviceID][parameterID].multiIndexHasValue(dimensionID) {
+		return 0, 0, fmt.Errorf("getminmax: invalid dimension id  %v for parameter %d and device %d", dimensionID, parameterID, deviceID)
+	}
+
+	parameterDimension, err := state[deviceID][parameterID].multiIndex(dimensionID)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	parameterBuffer, err := parameterDimension.getValue()
+	if err != nil {
+		return 0, 0, err
+	}
+	min := r.parameterDetail[model][parameterID].Minimum
+	max := r.parameterDetail[model][parameterID].Maximum
+
+	if parameterBuffer.dynamicMin != nil {
+		min = *parameterBuffer.dynamicMin
+	}
+
+	if parameterBuffer.dynamicMax != nil {
+		max = *parameterBuffer.dynamicMax
+	}
+
+	return min, max, nil
 }
 
 // GetModelIDByDeviceID is a helper to get the modelid for a specific device
