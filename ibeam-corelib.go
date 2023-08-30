@@ -401,7 +401,7 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 		s.log.Tracef("Param: %+v", parameter)
 		err := stream.Send(parameter)
 		if err != nil {
-			if !strings.Contains(err.Error(), "Canceled desc = context canceled") {
+			if !strings.Contains(err.Error(), "Canceled desc = context canceled") && !strings.Contains(err.Error(), "Unavailable desc = transport is closing") {
 				log.ShouldWrap(err, "on sending param")
 			}
 		}
@@ -433,7 +433,7 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 			s.log.Debugf("Send Parameter with ID '%v' to client from ServerClientsStream", parameter.Id)
 			err := stream.Send(parameter)
 			if err != nil {
-				if !strings.Contains(err.Error(), "Canceled desc = context canceled") {
+				if !strings.Contains(err.Error(), "Canceled desc = context canceled") && !strings.Contains(err.Error(), "Unavailable desc = transport is closing") {
 					log.ShouldWrap(err, "on sending param")
 				}
 			} else {
