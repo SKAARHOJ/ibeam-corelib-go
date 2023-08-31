@@ -211,7 +211,7 @@ valueLoop:
 
 			if parameterConfig.ValueType == pb.ValueType_Floating {
 				newFloatVal := parameterBuffer.targetValue.GetFloating() + float64(newValue.IncDecSteps)
-				mlog.Tracef("In- or Decrement %d by %d", parameterBuffer.targetValue.GetFloating(), newValue.IncDecSteps)
+				mlog.Tracef("In- or Decrement %f by %d", parameterBuffer.targetValue.GetFloating(), newValue.IncDecSteps)
 				if newFloatVal <= maximum && newFloatVal >= minimum {
 					parameterBuffer.targetValue.Value = &pb.ParameterValue_Floating{Floating: newFloatVal}
 					parameterBuffer.targetValue.Invalid = false
@@ -259,7 +259,7 @@ valueLoop:
 
 		case *pb.ParameterValue_Floating:
 			if parameterConfig.ValueType != pb.ValueType_Floating {
-				mlog.Errorf("Got Value with Type %T for %s, but it needs %v", newValue, m.pName(parameter.Id), parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
+				mlog.Errorf("Got Value with Type %T for %s, but it needs %v", newValue, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
 				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
 				continue
 			}
@@ -280,7 +280,7 @@ valueLoop:
 			}
 		case *pb.ParameterValue_Str:
 			if parameterConfig.ValueType != pb.ValueType_String {
-				mlog.Errorf("Got Value with Type %T for %s, but it needs %v", newValue, m.pName(parameter.Id), pb.ValueType_name[int32(parameterConfig.ValueType)])
+				mlog.Errorf("Got Value with Type %T for %s, but it needs %v", newValue, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
 				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
 				continue
 			}

@@ -181,6 +181,22 @@ func validateModel(rlog *log.Entry, model *pb.ModelInfo) {
 	case "released":
 	case "mature":
 	default:
-		rlog.Fatal("Model %v: Invalid developmentstatus, valid options are concept,beta,released,mature")
+		rlog.Fatalf("Model %s: Invalid developmentstatus, valid options are concept,beta,released,mature", model.Name)
 	}
+}
+
+func (r *IBeamParameterRegistry) validateAllParams() {
+	r.muDetail.RLock()
+
+	for mIndex, model := range r.modelInfos {
+		// For every model validate
+		for _, parameter := range r.parameterDetail[mIndex] {
+			if parameter.RecommendedParamForTextDisplay != "" {
+				if r.PID(parameter.RecommendedParamForTextDisplay) == 0 {
+					r.log.Fatalf("Parameter: '%v': RecommendedParamForTextDisplay %q does not exist on model %q", parameter.Name, parameter.RecommendedParamForTextDisplay, model.Name)
+				}
+			}
+		}
+	}
+	r.muDetail.RUnlock()
 }

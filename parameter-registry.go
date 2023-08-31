@@ -612,6 +612,7 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 		r.log.Debugf("Registered %d Parameters with %d Dimensional Values", r.parameterCount, r.dimensionCount)
 	}
 	r.parametersDone = true
+	r.validateAllParams()
 
 	r.muValue.Lock()
 	defer r.muValue.Unlock() // Locking here to ensure the rest of corelib does not send out weird incomplete info meanwhile...
