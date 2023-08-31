@@ -17,6 +17,10 @@ func validateParameter(rlog *log.Entry, detail *pb.ParameterDetail) {
 		rlog.Fatalf("Parameter: ID %v: Name %q contains space", detail.Id, detail.Name)
 	}
 
+	if strings.Contains(detail.Name, "/") {
+		rlog.Fatalf("Parameter: ID %v: Name %q contains /", detail.Id, detail.Name)
+	}
+
 	/*
 		if len(detail.ShortLabel) > 11 {
 			rlog.Fatalf("Parameter: ID %v: Shortlabel is too long, must be 11 or lower chars", detail.Id)
