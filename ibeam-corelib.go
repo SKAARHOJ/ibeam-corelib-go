@@ -537,7 +537,7 @@ func SetDevStatusOverride(status string) {
 // CreateServer sets up the ibeam server, parameter manager and parameter registry
 func CreateServer(coreInfo *pb.CoreInfo) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan<- *pb.Parameter, getfromManager <-chan *pb.Parameter) {
 	defaultModelInfo := &pb.ModelInfo{
-		Name:        "Generic Model",
+		Name:        coreInfo.Label + "  Generic Model",
 		Description: "Default model of the core, inherits all possible parameters from other models",
 	}
 	return CreateServerWithDefaultModelAndConfig(coreInfo, defaultModelInfo, nil)
@@ -546,7 +546,7 @@ func CreateServer(coreInfo *pb.CoreInfo) (manager *IBeamParameterManager, regist
 // CreateServer sets up the ibeam server, parameter manager and parameter registry
 func CreateServerWithConfig(coreInfo *pb.CoreInfo, config interface{}) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan<- *pb.Parameter, getfromManager <-chan *pb.Parameter) {
 	defaultModelInfo := &pb.ModelInfo{
-		Name:        "Generic Model",
+		Name:        coreInfo.Label + "  Generic Model",
 		Description: "Default model of the core, inherits all possible parameters from other models",
 	}
 	return CreateServerWithDefaultModelAndConfig(coreInfo, defaultModelInfo, config)
