@@ -180,6 +180,7 @@ func validateModel(rlog *log.Entry, model *pb.ModelInfo) {
 	switch model.DevelopmentStatus {
 	case "":
 		model.DevelopmentStatus = "concept"
+	case "hidden":
 	case "concept":
 	case "beta":
 	case "released":
