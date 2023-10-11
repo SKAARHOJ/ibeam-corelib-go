@@ -830,6 +830,10 @@ func (r *IBeamParameterRegistry) PIDByModel(parameterName string, modelID uint32
 
 // GetNameMap returns a map of all parameter names, usefull for initial state requests
 func (r *IBeamParameterRegistry) GetNameMap() map[uint32]string {
+	return r.GetNameMapByModel(0)
+}
+
+func (r *IBeamParameterRegistry) GetNameMapByModel(modelID uint32) map[uint32]string {
 	// check for device registered
 	if !r.parametersDone {
 		r.log.Error("GetNameMap: only call after registering the first device")
@@ -842,9 +846,14 @@ func (r *IBeamParameterRegistry) GetNameMap() map[uint32]string {
 	cachedIDMapMu.RLock()
 	defer cachedIDMapMu.RUnlock()
 
-	// use cached map of model 0
+	model, exists := cachedIDMap[modelID]
+	if !exists {
+		r.log.Error("GetNameMap: model not found")
+		return nil
+	}
+
 	nameMap := make(map[uint32]string)
-	for key, value := range cachedIDMap[0] {
+	for key, value := range model {
 		nameMap[key] = value
 	}
 	return nameMap
