@@ -798,9 +798,13 @@ func (r *IBeamParameterRegistry) PNameByModel(parameterID, modelID uint32) strin
 
 // PID Get a parameterID by name, returns 0 if not found, always uses model 0
 func (r *IBeamParameterRegistry) PID(parameterName string) uint32 {
+	return r.PIDByModel(parameterName, 0)
+}
+
+func (r *IBeamParameterRegistry) PIDByModel(parameterName string, modelID uint32) uint32 {
 	// check for device registered
 	if !r.parametersDone {
-		r.log.Error("ParameterNameByID: only call after registering the first device")
+		r.log.Error("PIDByModel: only call after registering the first device")
 		return 0
 	}
 
@@ -810,8 +814,13 @@ func (r *IBeamParameterRegistry) PID(parameterName string) uint32 {
 	cachedNameMapMu.RLock()
 	defer cachedNameMapMu.RUnlock()
 
-	// use cached id map of model 0
-	id, exists := cachedNameMap[0][parameterName]
+	model, exists := cachedNameMap[modelID]
+	if !exists {
+		r.log.Error("PIDByModel: model not found")
+		return 0
+	}
+
+	id, exists := model[parameterName]
 	if exists {
 		return id
 	}
