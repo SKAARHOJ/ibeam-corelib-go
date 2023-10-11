@@ -320,24 +320,6 @@ func (r *IBeamParameterRegistry) RegisterModel(model *pb.ModelInfo, registerOpti
 	return model.Id
 }
 
-// GetParameterNameOfModel gets the name of a parameter by id and model id
-func (r *IBeamParameterRegistry) GetParameterNameOfModel(parameterID, modelID uint32) (string, error) {
-	r.muDetail.RLock()
-	defer r.muDetail.RUnlock()
-
-	modelInfo, exists := r.parameterDetail[modelID]
-	if !exists {
-		return "", fmt.Errorf("could not find Parameter for Model with id %d", modelID)
-	}
-
-	for _, pd := range modelInfo {
-		if pd.Id.Parameter == parameterID {
-			return pd.Name, nil
-		}
-	}
-	return "", fmt.Errorf("could not find Parameter with id %v", parameterID)
-}
-
 // GetParameterDetail gets the details of a parameter by id and model id
 func (r *IBeamParameterRegistry) GetParameterDetail(parameterID, modelID uint32) (*pb.ParameterDetail, error) {
 	r.muDetail.RLock()
@@ -783,9 +765,14 @@ func (r *IBeamParameterRegistry) ParameterNameByID(parameterID uint32) string {
 
 // PName Get a parameter Name by ID, returns "" if not found, always uses model 0
 func (r *IBeamParameterRegistry) PName(parameterID uint32) string {
+	return r.PNameByModel(parameterID, 0)
+}
+
+// PName Get a parameter Name by ID, returns "" if not found, always uses model 0
+func (r *IBeamParameterRegistry) PNameByModel(parameterID, modelID uint32) string {
 	// check for device registered
 	if !r.parametersDone {
-		r.log.Error("ParameterNameByID: only call after registering the first device")
+		r.log.Error("PNameByModel: only call after registering the first device")
 		return ""
 	}
 	if cachedIDMap == nil {
@@ -794,13 +781,18 @@ func (r *IBeamParameterRegistry) PName(parameterID uint32) string {
 	cachedIDMapMu.RLock()
 	defer cachedIDMapMu.RUnlock()
 
-	// use cached id map of model 0
-	name, exists := cachedIDMap[0][parameterID]
+	model, exists := cachedIDMap[modelID]
+	if !exists {
+		r.log.Error("PNameByModel: model not found")
+		return ""
+	}
+
+	name, exists := model[parameterID]
 	if exists {
 		return name
 	}
 
-	r.log.Debug("PName: could not find ", parameterID)
+	r.log.Debug("PNameByModel: could not find ", parameterID)
 	return ""
 }
 
