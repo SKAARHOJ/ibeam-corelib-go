@@ -35,6 +35,8 @@ type ibeamParameterValueBuffer struct {
 
 	// Additional flags
 	flags []ParamBufferConfigFlag
+
+	unconfirmed bool // flag to ensure the final eval has been run
 }
 type timeTimer struct {
 	timer *time.Timer
@@ -98,10 +100,22 @@ func (b *ibeamParameterValueBuffer) decrementParameterValue() *pb.ParameterValue
 	}
 }
 
+func (b *ibeamParameterValueBuffer) setTarget() {
+	b.unconfirmed = true
+}
+
+func (b *ibeamParameterValueBuffer) Confirm() {
+	b.unconfirmed = false
+}
+
 // This function provides an optimized way of checking against current value without proto.Equals (which is an expensive function)
 func (b *ibeamParameterValueBuffer) currentEquals(new *pb.ParameterValue) bool {
 
 	if b.currentValue.Invalid != new.Invalid {
+		return false
+	}
+
+	if b.unconfirmed {
 		return false
 	}
 

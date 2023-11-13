@@ -52,6 +52,11 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 	mlog = mlog.WithField("pid", parameterDetail.Id.Parameter)
 	mlog = mlog.WithField("did", deviceID)
 
+	// we can now say that this function has been run at least once since we have ingested target. for no feedback params that will ALWAYS mean the current value can be compared now
+	defer func() {
+		parameterBuffer.unconfirmed = false
+	}()
+
 	// Function assumes mutexes are already locked
 
 	parameterID := parameterDetail.Id.Parameter

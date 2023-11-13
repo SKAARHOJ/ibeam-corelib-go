@@ -340,6 +340,7 @@ valueLoop:
 				mlog.Debugf("Set new TargetValue '%v', for %s, Device: %v", newParameterValue.Value, m.pName(parameter.Id), deviceID)
 			}
 			parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
+			parameterBuffer.unconfirmed = true // make sure we have final handler eval before we skip on the currentEquals check next time
 			parameterBuffer.isAssumedState.Store(true)
 			parameterBuffer.tryCount = 0
 		} else {
