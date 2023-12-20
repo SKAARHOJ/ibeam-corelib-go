@@ -11,7 +11,7 @@ import (
 func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) {
 	parameterID := parameter.Id.Parameter
 	deviceID := parameter.Id.Device
-	mlog := m.log.WithField("paramID", parameterID)
+	mlog := m.log.WithField("paramID", parameterID).WithField("deviceID", deviceID)
 
 	// Direct Passthrough for custom errors
 	if parameter.Error == pb.ParameterError_Custom {
