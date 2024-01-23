@@ -94,7 +94,7 @@ func (s *IBeamServer) SetCoreConfig(_ context.Context, input *pb.ByteData) (*pb.
 		return nil, fmt.Errorf("could not parse config: %w", err)
 	}
 
-	cleaned, err := skconfig.ValidateConfig(skconfig.GetSchema(s.configPtr), configMap, false)
+	cleaned, err := skconfig.ValidateConfig(skconfig.GetSchema(s.configPtr), configMap, false, "devicecore")
 	if err != nil {
 		return nil, fmt.Errorf("could not validate config: %w", err)
 	}
