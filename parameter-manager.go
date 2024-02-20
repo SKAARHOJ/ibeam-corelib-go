@@ -57,9 +57,7 @@ func (m *IBeamParameterManager) StartWithServer(address string) {
 	addressOverride := os.Getenv("IBEAM_CORE_ADDRESS")
 	if addressOverride != "" {
 		address = addressOverride
-	}
-
-	if env.IsSkaarOSProd() {
+	} else if env.IsSkaarOSProd() {
 		m.server.log.Trace("overriding listeningport with socket")
 		address = "/var/ibeam/sockets/" + m.server.parameterRegistry.coreInfo.Name + ".socket"
 	}
