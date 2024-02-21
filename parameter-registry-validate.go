@@ -121,27 +121,27 @@ func validateParameter(rlog *log.Entry, detail *pb.ParameterDetail) {
 		switch detail.DefaultValue.Value.(type) {
 		case *pb.ParameterValue_Integer:
 			if detail.ValueType != pb.ValueType_Integer {
-				rlog.Fatalf("Parameter: '%v': Invalid default value for integer", detail.Name)
+				rlog.Fatalf("Parameter: '%v': Invalid default value for %s", detail.Name, detail.ValueType)
 			}
 		case *pb.ParameterValue_IncDecSteps:
 			rlog.Fatalf("Parameter: '%v': DefaultValue cant be IncDecSteps", detail.Name)
 		case *pb.ParameterValue_Floating:
 			if detail.ValueType != pb.ValueType_Floating {
-				rlog.Fatalf("Parameter: '%v': Invalid default value for float", detail.Name)
+				rlog.Fatalf("Parameter: '%v': Invalid default value for %s", detail.Name, detail.ValueType)
 			}
 		case *pb.ParameterValue_Str:
 			if detail.ValueType != pb.ValueType_String && detail.ValueType != pb.ValueType_Opt {
-				rlog.Fatalf("Parameter: '%v': Invalid default value for string or optionlist", detail.Name)
+				rlog.Fatalf("Parameter: '%v': Invalid default value for %s", detail.Name, detail.ValueType)
 			}
 		case *pb.ParameterValue_CurrentOption:
 			if detail.ValueType != pb.ValueType_Opt {
-				rlog.Fatalf("Parameter: '%v': Invalid default value for OptionList", detail.Name)
+				rlog.Fatalf("Parameter: '%v': Invalid default value for %s", detail.Name, detail.ValueType)
 			}
 		case *pb.ParameterValue_Cmd:
 			rlog.Fatalf("Parameter: '%v': DefaultValue cant be Cmd", detail.Name)
 		case *pb.ParameterValue_Binary:
 			if detail.ValueType != pb.ValueType_Binary {
-				rlog.Fatalf("Parameter: '%v': Invalid default value for binary (bool)", detail.Name)
+				rlog.Fatalf("Parameter: '%v': Invalid default value for %s", detail.Name, detail.ValueType)
 			}
 		case *pb.ParameterValue_OptionListUpdate:
 			rlog.Fatalf("Parameter: '%v': DefaultValue cant be OptionListUpdate", detail.Name)
@@ -151,11 +151,11 @@ func validateParameter(rlog *log.Entry, detail *pb.ParameterDetail) {
 			rlog.Fatalf("Parameter: '%v': DefaultValue cant be MaxUpdate", detail.Name)
 		case *pb.ParameterValue_Png:
 			if detail.ValueType != pb.ValueType_PNG {
-				rlog.Fatalf("Parameter: '%v': Invalid default value for png", detail.Name)
+				rlog.Fatalf("Parameter: '%v': Invalid default value for %s", detail.Name, detail.ValueType)
 			}
 		case *pb.ParameterValue_Jpeg:
 			if detail.ValueType != pb.ValueType_JPEG {
-				rlog.Fatalf("Parameter: '%v': Invalid default value for jpeg", detail.Name)
+				rlog.Fatalf("Parameter: '%v': Invalid default value for %s", detail.Name, detail.ValueType)
 			}
 		case *pb.ParameterValue_Error:
 			rlog.Fatalf("Parameter: '%v': DefaultValue cant be CustomError", detail.Name)
