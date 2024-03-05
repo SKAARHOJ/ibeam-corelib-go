@@ -25,14 +25,14 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 		return
 	}
 
-	modelID := m.parameterRegistry.getModelID(deviceID)
-
 	// Get State and the Configuration (Details) of the Parameter
 	m.parameterRegistry.muValue.Lock()
 	defer m.parameterRegistry.muValue.Unlock()
 	state := m.parameterRegistry.parameterValue
 	m.parameterRegistry.muDetail.RLock()
 	defer m.parameterRegistry.muDetail.RUnlock()
+
+	modelID := m.parameterRegistry.getModelID(deviceID)
 	parameterConfig := m.parameterRegistry.parameterDetail[modelID][parameterID]
 
 	if err := m.checkValidParameter(parameter); err != nil {

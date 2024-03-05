@@ -11,6 +11,7 @@ import (
 	b "github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers"
 	"github.com/SKAARHOJ/ibeam-corelib-go/syncmap"
 	log "github.com/s00500/env_logger"
+	"go.uber.org/atomic"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -36,7 +37,7 @@ type IBeamParameterRegistry struct {
 	parameterValue   parameterStates  //Parameter States: device,parameter,dimension
 	ModelAutoIDs     bool             // This is not recommended to use, please do use the proper IDs for models
 	modelsDone       bool             // Sanity flag set on first call to add parameters to ensure order
-	parametersDone   bool             // Sanity flag set on first call to add devices to ensure order
+	parametersDone   atomic.Bool      // Sanity flag set on first call to add devices to ensure order
 	connectionExists bool
 	log              *log.Entry
 
@@ -153,7 +154,7 @@ func (r *IBeamParameterRegistry) RegisterParameterForModel(modelID uint32, detai
 // RegisterParameter registers a parameter and its detail struct in the registry.
 func (r *IBeamParameterRegistry) RegisterParameter(detail *pb.ParameterDetail, registerOptions ...RegisterOption) (paramID uint32) {
 	r.modelsDone = true
-	if r.parametersDone {
+	if r.parametersDone.Load() {
 		r.log.Fatal("Can not unregister a parameter after registering the first device")
 	}
 
@@ -265,7 +266,7 @@ func (r *IBeamParameterRegistry) UnregisterParameterForModels(modelIDs []uint32,
 
 // UnregisterParameterForModel removes a specific parameter for a specific model.
 func (r *IBeamParameterRegistry) UnregisterParameterForModel(modelID uint32, parameterName string) {
-	if r.parametersDone {
+	if r.parametersDone.Load() {
 		r.log.Fatal("Can not unregister a parameter after registering the first device")
 	}
 
@@ -571,7 +572,7 @@ func (r *IBeamParameterRegistry) ReRegisterDevice(deviceID, modelID uint32) erro
 // RegisterDevice registers a new Device in the Registry with given DeviceID and ModelID. If the DeviceID is 0 it will be picked automatically
 // Make sure to handle the error properly
 func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint32, error) {
-	if !r.parametersDone {
+	if !r.parametersDone.Load() {
 		if !r.connectionExists {
 			// Autoregister connection parameter
 			r.RegisterParameter(&pb.ParameterDetail{
@@ -593,7 +594,7 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 		}
 		r.log.Debugf("Registered %d Parameters with %d Dimensional Values", r.parameterCount, r.dimensionCount)
 	}
-	r.parametersDone = true
+	r.parametersDone.Store(true)
 	r.validateAllParams()
 
 	r.muValue.Lock()
@@ -771,7 +772,7 @@ func (r *IBeamParameterRegistry) PName(parameterID uint32) string {
 // PName Get a parameter Name by ID, returns "" if not found, always uses model 0
 func (r *IBeamParameterRegistry) PNameByModel(parameterID, modelID uint32) string {
 	// check for device registered
-	if !r.parametersDone {
+	if !r.parametersDone.Load() {
 		r.log.Error("PNameByModel: only call after registering the first device")
 		return ""
 	}
@@ -803,7 +804,7 @@ func (r *IBeamParameterRegistry) PID(parameterName string) uint32 {
 
 func (r *IBeamParameterRegistry) PIDByModel(parameterName string, modelID uint32) uint32 {
 	// check for device registered
-	if !r.parametersDone {
+	if !r.parametersDone.Load() {
 		r.log.Error("PIDByModel: only call after registering the first device")
 		return 0
 	}
@@ -835,7 +836,7 @@ func (r *IBeamParameterRegistry) GetNameMap() map[uint32]string {
 
 func (r *IBeamParameterRegistry) GetNameMapByModel(modelID uint32) map[uint32]string {
 	// check for device registered
-	if !r.parametersDone {
+	if !r.parametersDone.Load() {
 		r.log.Error("GetNameMap: only call after registering the first device")
 		return nil
 	}
