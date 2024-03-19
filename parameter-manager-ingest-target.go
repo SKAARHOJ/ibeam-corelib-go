@@ -138,11 +138,14 @@ valueLoop:
 			}
 		}
 
-		// Check if th evalue is already set!
+		// Check if the value is already set!
 		newParameterValue.Available = parameterBuffer.currentValue.Available // on an incoming request we can savely ignore the available, it will likely be false anyways
-		if parameterBuffer.currentEquals(newParameterValue) {
-			// if values are equal no need to do anything
-			continue
+
+		if !parameterBuffer.hasFlag(FlagValuePassthrough) {
+			if parameterBuffer.currentEquals(newParameterValue) {
+				// if values are equal no need to do anything
+				continue
+			}
 		}
 
 		// Check if Value is valid and has the right Type
@@ -167,6 +170,16 @@ valueLoop:
 					m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_MinViolation)
 					continue
 				}
+			}
+
+			if parameterBuffer.hasFlag(FlagValuePassthrough) {
+				// basically we just send this out without caring too much...
+				m.out <- &pb.Parameter{
+					Id:    parameter.Id,
+					Error: 0,
+					Value: []*pb.ParameterValue{newParameterValue},
+				}
+				continue
 			}
 		case *pb.ParameterValue_IncDecSteps:
 			if parameterConfig.ValueType != pb.ValueType_Opt {
@@ -284,9 +297,7 @@ valueLoop:
 				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
 				continue
 			}
-
 			// String does not need extra check
-
 		case *pb.ParameterValue_CurrentOption:
 
 			if optionlist == nil {
@@ -326,8 +337,18 @@ valueLoop:
 				m.serverClientsStream <- paramError(parameterID, deviceID, pb.ParameterError_InvalidType)
 				continue
 			}
-
 			mlog.Debugf("Got Set Binary: %v", newValue)
+
+			if parameterBuffer.hasFlag(FlagValuePassthrough) {
+				// basically we just send this out without caring too much...
+				m.out <- &pb.Parameter{
+					Id:    parameter.Id,
+					Error: 0,
+					Value: []*pb.ParameterValue{newParameterValue},
+				}
+				continue
+			}
+
 		case *pb.ParameterValue_OptionListUpdate:
 			mlog.Debugf("Got Set Option List: %v", newValue)
 

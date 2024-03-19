@@ -18,6 +18,11 @@ func WithIncrementPassthrough() func(r *IBeamParameterRegistry, id *pb.ModelPara
 	return setFlag(FlagIncrementalPassthrough)
 }
 
+// WithValuePassthrough disables the manager for Normal Int and Binary Parameters
+func WithValuePassthrough() func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
+	return setFlag(FlagValuePassthrough)
+}
+
 // WithModelRatelimitExlude makes this parameter excluded from the global per-model rate limit
 func WithModelRatelimitExlude() func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
 	return setFlag(FlagRateLimitExclude)
