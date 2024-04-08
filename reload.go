@@ -1,3 +1,4 @@
+//go:build !windows
 // +build !windows
 
 package ibeamcorelib
@@ -36,7 +37,7 @@ func execReload() error {
 		return err
 	}
 
-	if err := os.Setenv("CORERELOAD_SIGNAL", fmt.Sprintf("%d", syscall.SIGQUIT)); nil != err {
+	if err := os.Setenv("CORERELOAD_SIGNAL", fmt.Sprintf("%d", syscall.SIGTERM)); nil != err {
 		return err
 	}
 
@@ -114,9 +115,9 @@ func kill() error {
 		return err
 	}
 	if _, err := fmt.Sscan(os.Getenv("CORERELOAD_SIGNAL"), &sig); nil != err {
-		sig = syscall.SIGQUIT
+		sig = syscall.SIGTERM
 	}
-	if syscall.SIGQUIT == sig {
+	if syscall.SIGTERM == sig {
 		go syscall.Wait4(pid, nil, 0, nil)
 	}
 	log.Traceln("sending signal", sig, "to process", pid)
@@ -145,7 +146,7 @@ func wait() (syscall.Signal, error) {
 		ch,
 		syscall.SIGHUP,
 		syscall.SIGINT,
-		syscall.SIGQUIT,
+		//syscall.SIGQUIT,
 		syscall.SIGTERM,
 		syscall.SIGUSR1,
 		syscall.SIGUSR2,
