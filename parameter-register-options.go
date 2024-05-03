@@ -13,6 +13,13 @@ func WithDefaultValid() func(r *IBeamParameterRegistry, id *pb.ModelParameterID)
 	}
 }
 
+// WithDefaultUnavailable registers the parameter as unavailable at startup
+func WithDefaultUnavailable() func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
+	return func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
+		r.defaultUnavailableParams = append(r.defaultUnavailableParams, id)
+	}
+}
+
 // WithIncrementPassthrough disables the manager for an ControlStyle_Incremental parameter
 func WithIncrementPassthrough() func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
 	return setFlag(FlagIncrementalPassthrough)

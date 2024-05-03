@@ -44,9 +44,10 @@ type IBeamParameterRegistry struct {
 	deviceLastEvent *syncmap.Map[uint32, time.Time] //Needs to be used via getter/setter functions on registry internally
 
 	// Options for individual Parameters or models
-	modelRateLimiter   map[uint32]uint // minimum milliseconds between commands sent
-	defaultValidParams []*pb.ModelParameterID
-	parameterFlags     map[uint32]map[uint32][]ParamBufferConfigFlag // Model -> Parameter
+	modelRateLimiter         map[uint32]uint // minimum milliseconds between commands sent
+	defaultValidParams       []*pb.ModelParameterID
+	defaultUnavailableParams []*pb.ModelParameterID
+	parameterFlags           map[uint32]map[uint32][]ParamBufferConfigFlag // Model -> Parameter
 
 	// debug info
 	parameterCount uint
@@ -642,6 +643,13 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 			}
 		}
 
+		for _, dup := range r.defaultUnavailableParams {
+			if dup.Parameter == parameterID && (dup.Model == 0 || dup.Model == modelID) {
+				initialValue.Available = false
+				break
+			}
+		}
+
 		switch parameterDetail.ValueType {
 		case pb.ValueType_NoValue:
 			initialValue.Value = &pb.ParameterValue_Cmd{Cmd: pb.Command_Trigger}
@@ -666,7 +674,7 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 		initialValueDimension := iBeamParameterDimension{
 			value: &ibeamParameterValueBuffer{
 				dimensionID:  make([]uint32, 0),
-				available:    true,
+				available:    initialValue.Available,
 				lastUpdate:   time.Now().Add(-time.Hour), // This is to ensure all delays do nothing weird on init
 				currentValue: proto.Clone(initialValue).(*pb.ParameterValue),
 				targetValue:  proto.Clone(initialValue).(*pb.ParameterValue),
