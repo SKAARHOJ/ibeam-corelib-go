@@ -71,6 +71,16 @@ func (s *IBeamServer) RestartCore(_ context.Context, _ *pb.RestartInfo) (*pb.Emp
 	return &pb.Empty{}, nil
 }
 
+// RestartCore via core implementation... only works on linux and macOS
+func RestartCore() {
+	go func() {
+		log.Warn("Restart requested, executing...")
+		time.Sleep(time.Millisecond * 300)
+		err := execReload()
+		log.Should(err)
+	}()
+}
+
 // GetCoreInfo returns the configuration schema of the core
 func (s *IBeamServer) GetCoreConfigSchema(_ context.Context, _ *pb.Empty) (*pb.ByteData, error) {
 	return &pb.ByteData{Data: s.schemaBytes}, nil
