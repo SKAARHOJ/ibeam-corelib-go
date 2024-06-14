@@ -197,7 +197,7 @@ func (r *IBeamParameterRegistry) validateAllParams() {
 		// For every model validate
 		for _, parameter := range r.parameterDetail[mIndex] {
 			if parameter.RecommendedParamForTextDisplay != "" {
-				if strings.Contains(parameter.RecommendedParamForTextDisplay, "{") {
+				if strings.ContainsAny(parameter.RecommendedParamForTextDisplay, "{}#") {
 					validNesting, parts := SplitByBrackets(parameter.RecommendedParamForTextDisplay)
 					if !validNesting {
 						r.log.Fatalf("Parameter: '%v': RecommendedParamForTextDisplay %q has invalid nesting", parameter.Name, parameter.RecommendedParamForTextDisplay)
@@ -208,12 +208,12 @@ func (r *IBeamParameterRegistry) validateAllParams() {
 						}
 					}
 				} else if r.PID(parameter.RecommendedParamForTextDisplay) == 0 {
-					r.log.Fatalf("Parameter: '%v': RecommendedParamForTextDisplay %q does not exist on model %q", parameter.Name, parameter.RecommendedParamForTextDisplay, model.Name)
+					r.log.Fatalf("Parameter: '%v': RecommendedParamForTextDisplay %q does not Xexist on model %q", parameter.Name, parameter.RecommendedParamForTextDisplay, model.Name)
 				}
 			}
 
 			if parameter.RecommendedParamForTitleDisplay != "" {
-				if strings.Contains(parameter.RecommendedParamForTitleDisplay, "{") {
+				if strings.ContainsAny(parameter.RecommendedParamForTitleDisplay, "{}#") {
 					validNesting, parts := SplitByBrackets(parameter.RecommendedParamForTitleDisplay)
 					if !validNesting {
 						r.log.Fatalf("Parameter: '%v': RecommendedParamForTitleDisplay %q has invalid nesting", parameter.Name, parameter.RecommendedParamForTitleDisplay)
