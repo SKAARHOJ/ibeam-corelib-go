@@ -129,6 +129,14 @@ func (r *IBeamParameterRegistry) getModelID(deviceID uint32) uint32 {
 	}
 	return r.deviceInfos[deviceID].ModelID
 }
+func (r *IBeamParameterRegistry) getModelIDErr(deviceID uint32) (uint32, error) {
+	// This function assumes that mutexes are already locked
+	_, dExists := r.deviceInfos[deviceID]
+	if !dExists || deviceID == 0 {
+		return 0, fmt.Errorf("Could not get model for device with id %v.", deviceID)
+	}
+	return r.deviceInfos[deviceID].ModelID, nil
+}
 
 // RegisterParameterForModels registers a parameter and its detail struct in the registry for multiple models.
 func (r *IBeamParameterRegistry) RegisterParameterForModels(modelIDs []uint32, detail *pb.ParameterDetail, registerOptions ...RegisterOption) uint32 {

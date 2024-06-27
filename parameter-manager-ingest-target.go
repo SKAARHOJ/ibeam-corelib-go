@@ -12,7 +12,11 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 	// Get Index and ID for Device and Parameter and the actual state of all parameters
 	parameterID := parameter.Id.Parameter
 	deviceID := parameter.Id.Device
-	modelIndex := m.parameterRegistry.getModelID(deviceID)
+	modelIndex, err := m.parameterRegistry.getModelIDErr(deviceID)
+	if err != nil {
+		mlog.Error(err)
+		return
+	}
 
 	// Get State and the Configuration (Details) of the Parameter
 	m.parameterRegistry.muValue.Lock()
