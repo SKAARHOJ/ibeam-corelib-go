@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	sync "github.com/sasha-s/go-deadlock"
+	"sync"
 
 	log "github.com/s00500/env_logger"
 

@@ -5,7 +5,7 @@ import (
 	"hash/fnv"
 	"time"
 
-	sync "github.com/sasha-s/go-deadlock"
+	"sync"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
 	b "github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers"
