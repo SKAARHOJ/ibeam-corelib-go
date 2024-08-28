@@ -400,6 +400,7 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 
 	// Create dist first to catch incoming params
 	distributor := make(chan *pb.Parameter, 200)
+	defer close(distributor)
 	s.muDistributor.Lock()
 	s.serverClientsDistributor[distributor] = &SubscribeData{Identifier: subscribeId, IDs: dpIDs}
 
