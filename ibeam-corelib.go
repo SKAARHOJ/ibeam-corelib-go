@@ -427,7 +427,7 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 		log.ShouldWrap(err, "on sending initial error parameters")
 	}
 
-	ping := time.NewTicker(time.Second / 2)
+	ping := time.NewTicker(time.Millisecond * 200)
 	for {
 		select {
 		case <-ping.C:
@@ -447,8 +447,7 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 				if !strings.Contains(err.Error(), "Canceled desc = context canceled") && !strings.Contains(err.Error(), "Unavailable desc = transport is closing") {
 					log.ShouldWrap(err, "on sending param")
 				}
-			} else {
-				//sendCounter.Add(1)
+				return nil // get out of here...
 			}
 		}
 	}
@@ -662,7 +661,7 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 					if parameter.Error == pb.ParameterError_Custom && parameter.Id != nil && parameter.Id.Device == 0 && parameter.Id.Parameter == 0 {
 						select {
 						case channel <- parameter:
-						case <-time.After(2 * time.Second):
+						case <-time.After(1 * time.Second):
 							sLog.Errorln("corelib distributor timed out (global error case) Nr: ", id)
 						}
 						continue
@@ -686,7 +685,7 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 
 					select {
 					case channel <- parameter:
-					case <-time.After(2 * time.Second):
+					case <-time.After(1 * time.Second):
 						sLog.Errorln("corelib distributor timed out Nr: ", id)
 
 						sLog.Infof("Distributor Error: Deleted Channel %v", channel)
