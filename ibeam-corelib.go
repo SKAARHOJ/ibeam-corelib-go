@@ -436,7 +436,7 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 				s.muDistributor.Lock()
 				delete(s.serverClientsDistributor, distributor)
 				s.muDistributor.Unlock()
-				s.log.Infoln("Connection to client for subscription lost")
+				s.log.Debug("Connection to client for subscription lost")
 				return nil
 			}
 		case parameter := <-distributor:
@@ -444,9 +444,10 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 			s.log.Debugf("Send Parameter with ID '%v' to client from ServerClientsStream", parameter.Id)
 			err := stream.Send(parameter)
 			if err != nil {
-				if !strings.Contains(err.Error(), "Canceled desc = context canceled") && !strings.Contains(err.Error(), "Unavailable desc = transport is closing") {
-					log.ShouldWrap(err, "on sending param")
-				}
+				// TODO: temporary fixed error log on client disconnects
+				//if !strings.Contains(err.Error(), "Canceled desc = context canceled") && !strings.Contains(err.Error(), "Unavailable desc = transport is closing") {
+				log.ShouldWrap(err, "on sending param")
+				//}
 				return nil // get out of here...
 			}
 		}
@@ -685,27 +686,23 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 
 					select {
 					case channel <- parameter:
-					case <-time.After(1 * time.Second):
+					case <-time.After(200 * time.Millisecond):
 						sLog.Errorln("corelib distributor timed out Nr: ", id)
 
-						sLog.Infof("Distributor Error: Deleted Channel %v", channel)
 						server.muDistributor.RUnlock()
 						server.muDistributor.Lock()
 						delete(server.serverClientsDistributor, channel)
 						server.muDistributor.Unlock()
 						server.muDistributor.RLock()
-						sLog.Infof("Distributor: Done deleting Channel %v", channel)
 					}
 					continue
 				}
 
-				sLog.Infof("Distributor: Deleted Channel %v", channel)
 				server.muDistributor.RUnlock()
 				server.muDistributor.Lock()
 				delete(server.serverClientsDistributor, channel)
 				server.muDistributor.Unlock()
 				server.muDistributor.RLock()
-				sLog.Infof("Distributor: Done deleting Channel %v", channel)
 			}
 			server.muDistributor.RUnlock()
 		}
