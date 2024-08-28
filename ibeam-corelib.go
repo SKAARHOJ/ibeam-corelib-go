@@ -436,7 +436,7 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 				s.muDistributor.Lock()
 				delete(s.serverClientsDistributor, distributor)
 				s.muDistributor.Unlock()
-				s.log.Debug("Connection to client for subscription lost")
+				s.log.Infoln("Connection to client for subscription lost")
 				return nil
 			}
 		case parameter := <-distributor:
@@ -652,7 +652,9 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 		for {
 			parameter := <-watcher
 			server.muDistributor.RLock()
+			id := 0
 			for channel, subscribeData := range server.serverClientsDistributor {
+				id++
 				if subscribeData != nil && subscribeData.IDs != nil {
 					paramfilter := subscribeData.IDs
 
@@ -661,7 +663,7 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 						select {
 						case channel <- parameter:
 						case <-time.After(2 * time.Second):
-							sLog.Errorln("corelib distributor timed out")
+							sLog.Errorln("corelib distributor timed out (global error case) Nr: ", id)
 						}
 						continue
 					}
@@ -685,7 +687,15 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 					select {
 					case channel <- parameter:
 					case <-time.After(2 * time.Second):
-						sLog.Errorln("corelib distributor timed out")
+						sLog.Errorln("corelib distributor timed out Nr: ", id)
+
+						sLog.Infof("Distributor Error: Deleted Channel %v", channel)
+						server.muDistributor.RUnlock()
+						server.muDistributor.Lock()
+						delete(server.serverClientsDistributor, channel)
+						server.muDistributor.Unlock()
+						server.muDistributor.RLock()
+						sLog.Infof("Distributor: Done deleting Channel %v", channel)
 					}
 					continue
 				}
