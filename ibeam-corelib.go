@@ -658,7 +658,11 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 
 					// Global error
 					if parameter.Error == pb.ParameterError_Custom && parameter.Id != nil && parameter.Id.Device == 0 && parameter.Id.Parameter == 0 {
-						channel <- parameter
+						select {
+						case channel <- parameter:
+						case <-time.After(2 * time.Second):
+							sLog.Errorln("corelib distributor timed out")
+						}
 						continue
 					}
 
@@ -678,16 +682,21 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 						continue
 					}
 
-					channel <- parameter
+					select {
+					case channel <- parameter:
+					case <-time.After(2 * time.Second):
+						sLog.Errorln("corelib distributor timed out")
+					}
 					continue
 				}
 
-				sLog.Debugf("Deleted Channel %v", channel)
+				sLog.Infof("Distributor: Deleted Channel %v", channel)
 				server.muDistributor.RUnlock()
 				server.muDistributor.Lock()
 				delete(server.serverClientsDistributor, channel)
 				server.muDistributor.Unlock()
 				server.muDistributor.RLock()
+				sLog.Infof("Distributor: Done deleting Channel %v", channel)
 			}
 			server.muDistributor.RUnlock()
 		}
