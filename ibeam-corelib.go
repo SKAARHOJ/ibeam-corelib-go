@@ -686,7 +686,7 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 
 					select {
 					case channel <- parameter:
-					case <-time.After(200 * time.Millisecond):
+					case <-time.After(1 * time.Second):
 						sLog.Errorln("corelib distributor timed out Nr: ", id)
 
 						server.muDistributor.RUnlock()
