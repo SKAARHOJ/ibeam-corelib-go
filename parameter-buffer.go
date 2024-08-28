@@ -2,7 +2,7 @@ package ibeamcorelib
 
 import (
 	"reflect"
-	"sync"
+	sync "github.com/sasha-s/go-deadlock"
 	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"

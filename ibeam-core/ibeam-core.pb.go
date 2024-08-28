@@ -14,7 +14,7 @@ import (
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	descriptorpb "google.golang.org/protobuf/types/descriptorpb"
 	reflect "reflect"
-	sync "sync"
+	sync "github.com/sasha-s/go-deadlock"
 )
 
 const (

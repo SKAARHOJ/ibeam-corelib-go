@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"sync"
+	sync "github.com/sasha-s/go-deadlock"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
 	env "github.com/SKAARHOJ/ibeam-lib-env"

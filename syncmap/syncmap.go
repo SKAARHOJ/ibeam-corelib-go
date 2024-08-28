@@ -1,7 +1,7 @@
 package syncmap
 
 import (
-	"sync"
+	sync "github.com/sasha-s/go-deadlock"
 )
 
 // Could ensure that the value element fullfills the Get Set interface.... but can I have generic interfaces ?

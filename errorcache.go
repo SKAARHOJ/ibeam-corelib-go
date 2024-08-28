@@ -3,7 +3,7 @@ package ibeamcorelib
 import (
 	"fmt"
 	"strings"
-	"sync"
+	sync "github.com/sasha-s/go-deadlock"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
 	log "github.com/s00500/env_logger"

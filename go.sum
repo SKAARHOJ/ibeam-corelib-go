@@ -28,6 +28,8 @@ github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWE
 github.com/mattn/go-isatty v0.0.20/go.mod h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=
 github.com/oxequa/grace v0.0.0-20180330101621-d1b62e904ab2 h1:dzVjSCzXR7REzqxyB5OPgcXu3AR99isM/LdKsSL4WoM=
 github.com/oxequa/grace v0.0.0-20180330101621-d1b62e904ab2/go.mod h1:CWQBeDssj8lgsWGnWhGZUq3DAVD5GsTlvuHIxWhzthE=
+github.com/petermattis/goid v0.0.0-20240813172612-4fcff4a6cae7 h1:Dx7Ovyv/SFnMFw3fD4oEoeorXc6saIiQ23LrGLth0Gw=
+github.com/petermattis/goid v0.0.0-20240813172612-4fcff4a6cae7/go.mod h1:pxMtw7cyUw6B2bRH0ZBANSPg+AoSud1I1iyJHI69jH4=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/s00500/env_logger v0.1.19/go.mod h1:TmWxAVX9gkQawgJucvtH52FZllrVjaCpf66q9TxpCU8=
@@ -36,6 +38,8 @@ github.com/s00500/env_logger v0.1.26/go.mod h1:VxVaMox2++0sEAG+OqECytHJTmwBW08Ve
 github.com/s00500/env_logger v0.1.28/go.mod h1:9Mvb7iehwGCunWHqLY9XC836MLoWTLLNBjONGQ5BQCQ=
 github.com/s00500/env_logger v0.1.29 h1:bttiF14EDZq1rGT+6JgImSCIYYkIlJpTw3HlACoyVo0=
 github.com/s00500/env_logger v0.1.29/go.mod h1:9Mvb7iehwGCunWHqLY9XC836MLoWTLLNBjONGQ5BQCQ=
+github.com/sasha-s/go-deadlock v0.3.5 h1:tNCOEEDG6tBqrNDOX35j/7hL5FcFViG6awUGROb2NsU=
+github.com/sasha-s/go-deadlock v0.3.5/go.mod h1:bugP6EGbdGYObIlx7pUZtWqlvo8k9H6vCBBsiChJQ5U=
 github.com/sirupsen/logrus v1.8.1/go.mod h1:yWOB1SBYBC5VeMP7gHvWumXLIWorT60ONWic61uBYv0=
 github.com/sirupsen/logrus v1.9.0/go.mod h1:naHLuLoDiP4jHNo9R0sCBMtWGeIprob74mVsIT4qYEQ=
 github.com/sirupsen/logrus v1.9.3 h1:dueUQJ1C2q9oE3F7wvmSGAaVtTmUizReu6fjN8uqzbQ=
