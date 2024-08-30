@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -90,6 +91,21 @@ func (s *IBeamServer) GetCoreConfigSchema(_ context.Context, _ *pb.Empty) (*pb.B
 func (s *IBeamServer) GetCoreConfig(_ context.Context, _ *pb.Empty) (*pb.ByteData, error) {
 	jsonBytes, err := json.Marshal(s.configPtr)
 	s.log.Should(err)
+
+	// Special construction to allow multicore runner to be used
+	var didfilter []int
+	if os.Getenv("DID") != "" {
+		didfilter = make([]int, 0)
+		stringValues := strings.Split(os.Getenv("DID"), ",")
+		for _, sV := range stringValues {
+			v, err := strconv.Atoi(sV)
+			if log.ShouldWrap(err, "on parsing didfilter: ") {
+				continue
+			}
+			didfilter = append(didfilter, v)
+		}
+	}
+
 	return &pb.ByteData{Data: jsonBytes}, nil
 }
 
@@ -562,13 +578,18 @@ func CreateServerWithConfig(coreInfo *pb.CoreInfo, config interface{}) (manager 
 	return CreateServerWithDefaultModelAndConfig(coreInfo, defaultModelInfo, config)
 }
 
+var PreLoadedConfig interface{}
+
 // CreateServerWithDefaultModel sets up the ibeam server, parameter manager and parameter registry and allows to specify a default model
 func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *pb.ModelInfo, config interface{}) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, setToManager chan<- *pb.Parameter, getFromManager <-chan *pb.Parameter) {
 	// Load configuration
-	if config != nil {
+	if config != nil && PreLoadedConfig == nil {
 		skconfig.SetCoreName(coreInfo.Name)
 		err := skconfig.Load(config)
 		elog.MustFatal(err)
+	} else if PreLoadedConfig != nil {
+		skconfig.SetCoreName(coreInfo.Name)
+		config = PreLoadedConfig
 	}
 
 	clientsSetter := make(chan *pb.Parameter, 100)
