@@ -14,9 +14,9 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
-
 	"sync"
+	"sync/atomic"
+	"time"
 
 	log "github.com/s00500/env_logger"
 
@@ -48,8 +48,9 @@ type IBeamServer struct {
 }
 
 type SubscribeData struct {
-	IDs        *pb.DeviceParameterIDs
-	Identifier string
+	ChannelClosed atomic.Bool
+	IDs           *pb.DeviceParameterIDs
+	Identifier    string
 }
 
 // GetCoreInfo returns the CoreInfo of the IBeamCore
@@ -370,6 +371,9 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 				if subscribeId != distData.Identifier {
 					continue
 				}
+				if distData.ChannelClosed.Load() {
+					continue
+				}
 
 				// redefine filter! but only do a get on new params!
 				s.muDistributor.RUnlock()
@@ -416,12 +420,17 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 
 	// Create dist first to catch incoming params
 	distributor := make(chan *pb.Parameter, 200)
-	defer close(distributor)
 	s.muDistributor.Lock()
-	s.serverClientsDistributor[distributor] = &SubscribeData{Identifier: subscribeId, IDs: dpIDs}
+	subData := SubscribeData{Identifier: subscribeId, IDs: dpIDs}
+	s.serverClientsDistributor[distributor] = &subData
 
 	s.log.Debugf("Added distributor number %v", len(s.serverClientsDistributor))
 	s.muDistributor.Unlock()
+
+	defer func() {
+		subData.ChannelClosed.Store(true)
+		close(distributor)
+	}()
 
 	for _, parameter := range parameters.Parameters {
 		s.log.Debugf("Send Parameter with ID '%v' to client", parameter.Id)
@@ -671,10 +680,20 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 	go func() {
 		for {
 			parameter := <-watcher
+			//log.Timer("muLock")
 			server.muDistributor.RLock()
+			//dur, _ := log.TimerEndValue("muLock")
+			//if dur > time.Millisecond*50 {
+			//	log.Error("RLocking took more than 50")
+			//}
+
 			id := 0
 			for channel, subscribeData := range server.serverClientsDistributor {
 				id++
+
+				if subscribeData.ChannelClosed.Load() {
+					continue
+				}
 				if subscribeData != nil && subscribeData.IDs != nil {
 					paramfilter := subscribeData.IDs
 
@@ -704,17 +723,28 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 						continue
 					}
 
+					if subscribeData.ChannelClosed.Load() {
+						continue
+					}
+					//log.Timer("secondLock")
 					select {
 					case channel <- parameter:
-					case <-time.After(1 * time.Second):
-						sLog.Errorln("corelib distributor timed out Nr: ", id)
+					default:
+						//case <-time.After(1 * time.Second):
+						sLog.Debugln("corelib distributor timed out Nr: ", id)
+						subscribeData.ChannelClosed.Store(true) // signal back to recon
 
 						server.muDistributor.RUnlock()
 						server.muDistributor.Lock()
 						delete(server.serverClientsDistributor, channel)
 						server.muDistributor.Unlock()
 						server.muDistributor.RLock()
+
 					}
+					//dur, _ := log.TimerEndValue("secondLock")
+					//if dur > time.Millisecond*50 {
+					//	log.Errorf("Sending took more than 50 %s", dur)
+					//}
 					continue
 				}
 
