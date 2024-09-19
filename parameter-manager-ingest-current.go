@@ -140,7 +140,11 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			}
 		case pb.ValueType_Binary:
 			if _, ok := newParameterValue.Value.(*pb.ParameterValue_Binary); !ok {
-				mlog.Errorf("Parameter with ID %v is Type Binary but got %s %T", parameterID, parameterConfig.ValueType.String(), newParameterValue.Value)
+				if _, ok := newParameterValue.Value.(*pb.ParameterValue_Cmd); ok && parameterConfig.ControlStyle == pb.ControlStyle_Oneshot {
+					continue // Silent
+				}
+
+				mlog.Errorf("Parameter with ID %v is Type Binary but got %T %#v %v", parameterID, newParameterValue.Value, newParameterValue.Value, newParameterValue.Value)
 				continue
 			}
 		case pb.ValueType_Floating:
