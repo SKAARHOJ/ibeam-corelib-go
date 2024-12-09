@@ -25,3 +25,14 @@ func NewTestRegistry(ids map[uint32]string, models ...uint32) *IBeamParameterReg
 	registry.parametersDone.Store(true)
 	return &registry
 }
+
+//this function creates a test registry with automatic ids based on the hash of the names. Only use with Pid and PName. See the warning for NewTestRegistry.
+func NewSimpleTestRegistry(parameterNames []string) *IBeamParameterRegistry {
+	ids := map[uint32]string{}
+
+	for _, v := range parameterNames {
+		ids[idFromName(v)] = v
+	}
+
+	return NewTestRegistry(ids)
+}
