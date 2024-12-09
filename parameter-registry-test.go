@@ -1,8 +1,10 @@
 package ibeamcorelib
 
+import elog "github.com/s00500/env_logger"
+
 //the test registry is used for simple tests where only pid and pname is used. Will crash if other registry options are used. If models are added, it will add the same map for each modelid specified
 func NewTestRegistry(ids map[uint32]string, models ...uint32) *IBeamParameterRegistry {
-	registry := IBeamParameterRegistry{}
+	registry := IBeamParameterRegistry{log: elog.GetLoggerForPrefix("ib/registry")}
 
 	reverse := map[string]uint32{}
 	for k, v := range ids {
