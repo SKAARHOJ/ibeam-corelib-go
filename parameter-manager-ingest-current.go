@@ -35,6 +35,18 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 	modelID := m.parameterRegistry.getModelID(deviceID)
 	parameterConfig := m.parameterRegistry.parameterDetail[modelID][parameterID]
 
+	// direct passthrough for system messages
+	if parameterID == 0 {
+		for _, val := range parameter.GetValue() {
+			if val.GetSystem() == nil {
+				mlog.Error("Parameter with ID 0 recieved, not forwarding to clients")
+				return
+			}
+		}
+		m.serverClientsStream <- parameter
+		return
+	}
+
 	if err := m.checkValidParameter(parameter); err != nil {
 		mlog.Error(err)
 		return

@@ -709,7 +709,10 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 
 					// Filtering as specified by the original request
 					if parameter.Error != pb.ParameterError_Custom && (parameter.Id == nil || parameter.Id.Device == 0 || parameter.Id.Parameter == 0) {
-						continue
+						// Could still be a system message
+						if len(parameter.Value) == 0 || parameter.Value[0].GetSystem() == nil {
+							continue
+						}
 					}
 					// Check if Device is Subscribed
 					if len(paramfilter.Ids) == 1 && paramfilter.Ids[0].Parameter == 0 && paramfilter.Ids[0].Device != parameter.Id.Device {

@@ -186,8 +186,7 @@ func ResolveMessage(id string) *pb.Parameter {
 
 func SaveConfigForDevice(did uint32) *pb.Parameter {
 	return &pb.Parameter{
-		Id:    &pb.DeviceParameterID{Device: did, Parameter: 0},
-		Error: pb.ParameterError_Custom,
+		Id: &pb.DeviceParameterID{Device: did, Parameter: 0},
 		Value: []*pb.ParameterValue{
 			{
 				Value: &pb.ParameterValue_System{
