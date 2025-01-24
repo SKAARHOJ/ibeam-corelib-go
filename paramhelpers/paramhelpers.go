@@ -184,6 +184,22 @@ func ResolveMessage(id string) *pb.Parameter {
 	}
 }
 
+func SaveConfigForDevice(did uint32) *pb.Parameter {
+	return &pb.Parameter{
+		Id:    &pb.DeviceParameterID{Device: did, Parameter: 0},
+		Error: pb.ParameterError_Custom,
+		Value: []*pb.ParameterValue{
+			{
+				Value: &pb.ParameterValue_System{
+					System: &pb.SystemMessage{
+						Messagetype: pb.SystemMessageType_SaveDeviceConfiguration,
+					},
+				},
+			},
+		},
+	}
+}
+
 // ################### Values ###################
 
 // Int just returns a parameter value of type ParameterValue_Integer
