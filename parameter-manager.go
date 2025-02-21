@@ -39,6 +39,10 @@ type IBeamParameterManager struct {
 	//ingestTargetCounter  atomic.Int32
 }
 
+func (m *IBeamParameterManager) SetServerConfigPtr(configptr interface{}) {
+	m.server.configPtr = configptr
+}
+
 // StartWithServer Starts the ibeam parameter routine and the GRPC server in one call. This is blocking and should be called at the end of main.
 func (m *IBeamParameterManager) StartWithServer(address string) {
 	ReloadHook() // just to be sure, this can later be called in the top of the main function to avoid duplicate logs
