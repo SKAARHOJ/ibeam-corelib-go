@@ -82,7 +82,11 @@ func (m *IBeamParameterManager) StartWithServer(address string) {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	grpcServer := grpc.NewServer()
+	size := 1024 * 1024 * 20
+	grpcServer := grpc.NewServer(
+		grpc.MaxSendMsgSize(size),
+		grpc.MaxRecvMsgSize(size),
+	)
 	pb.RegisterIbeamCoreServer(grpcServer, m.server)
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
