@@ -48,10 +48,13 @@ func handleStatusParam(msg *pb.Parameter, toClients chan *pb.Parameter) {
 		}
 	} else {
 		activeStatusMessagesMu.Lock()
-		_, exists := activeStatusMessages[statusID]
-		if exists { // only get new IDs in, no need to be spaming here
-			activeStatusMessagesMu.Unlock()
-			return
+		// do resend status if it is a parameter error
+		if msg.Id.Parameter == 0 {
+			_, exists := activeStatusMessages[statusID]
+			if exists { // only get new IDs in, no need to be spaming here
+				activeStatusMessagesMu.Unlock()
+				return
+			}
 		}
 		activeStatusMessages[statusID] = msg
 		activeStatusMessagesMu.Unlock()
