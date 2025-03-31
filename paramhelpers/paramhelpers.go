@@ -32,6 +32,7 @@ func ParamError(pid uint32, did uint32, id, message string, dimensionID ...uint3
 						Errortype: pb.CustomErrorType_Error,
 					},
 				},
+				DimensionID: dimensionID,
 			},
 		},
 	}
@@ -51,6 +52,7 @@ func ParamWarn(pid uint32, did uint32, id, message string, dimensionID ...uint32
 						ID:        id,
 					},
 				},
+				DimensionID: dimensionID,
 			},
 		},
 	}
@@ -69,6 +71,7 @@ func ResolveParamMessage(pid uint32, did uint32, id string, dimensionID ...uint3
 						ID:        id,
 					},
 				},
+				DimensionID: dimensionID,
 			},
 		},
 	}
