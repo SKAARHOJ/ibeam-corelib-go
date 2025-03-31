@@ -111,7 +111,6 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 				return
 			}
 
-			mlog.Info(parameterBuffer.getCurrentParameterValue())
 			mlog.Errorf("Failed to set parameter %v '%v' in %v tries on device %v", parameterID, parameterDetail.Name, parameterDetail.RetryCount, deviceID)
 			parameterBuffer.targetValue = proto.Clone(parameterBuffer.currentValue).(*pb.ParameterValue)
 
