@@ -423,17 +423,19 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 	s.muDistributor.Lock()
 	subData := SubscribeData{Identifier: subscribeId, IDs: dpIDs}
 	s.serverClientsDistributor[distributor] = &subData
-
-	s.log.Debugf("Added distributor number %v", len(s.serverClientsDistributor))
+	num := len(s.serverClientsDistributor)
+	s.log.Debugf("Added distributor number %v", num)
 	s.muDistributor.Unlock()
 
 	defer func() {
-		subData.ChannelClosed.Store(true)
-		close(distributor)
+		if !subData.ChannelClosed.Load() {
+			close(distributor)
+			subData.ChannelClosed.Store(true)
+		}
 	}()
 
 	for _, parameter := range parameters.Parameters {
-		s.log.Debugf("Send Parameter with ID '%v' to client", parameter.Id)
+		s.log.Debugf("Send Parameter with ID '%v' to client", num)
 		s.log.Tracef("Param: %+v", parameter)
 		err := stream.Send(parameter)
 		if err != nil {
@@ -461,10 +463,14 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 				s.muDistributor.Lock()
 				delete(s.serverClientsDistributor, distributor)
 				s.muDistributor.Unlock()
-				s.log.Debug("Connection to client for subscription lost")
+				s.log.Debug("Connection to client for subscription lost ", num)
 				return nil
 			}
-		case parameter := <-distributor:
+		case parameter, notClosed := <-distributor:
+			if !notClosed {
+				return nil //Chanel has been closed, likely by a timeout, in such a case we also need to kill client connection!
+			}
+
 			// Filtering already happened in the distributor
 			s.log.Debugf("Send Parameter with ID '%v' to client from ServerClientsStream", parameter.Id)
 			err := stream.Send(parameter)
@@ -734,8 +740,11 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 					case channel <- parameter:
 					default:
 						//case <-time.After(1 * time.Second):
-						sLog.Debugln("corelib distributor timed out Nr: ", id)
-						subscribeData.ChannelClosed.Store(true) // signal back to recon
+						sLog.Debugln("ERROR: corelib distributor timed out Nr: ", id)
+						if !subscribeData.ChannelClosed.Load() {
+							close(channel)                          // Ensure we cancel this connection!
+							subscribeData.ChannelClosed.Store(true) // signal back to recon
+						}
 
 						server.muDistributor.RUnlock()
 						server.muDistributor.Lock()
