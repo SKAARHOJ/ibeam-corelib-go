@@ -256,6 +256,11 @@ func Jpeg(val []byte, dimensionID ...uint32) *pb.ParameterValue {
 	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_Jpeg{Jpeg: val}}
 }
 
+// Trigger returns a parameter value of type ParameterValue_Cmd. Used for triggering oneshot commands
+func Trigger(dimensionID ...uint32) *pb.ParameterValue {
+	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_Cmd{Cmd: pb.Command_Trigger}}
+}
+
 // Detail Updates
 
 // OptList just returns a parameter value of type ParameterValue_OptionList, used to update a dynamic option list
