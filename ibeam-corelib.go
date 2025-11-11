@@ -33,6 +33,8 @@ import (
 var imageFS *embed.FS
 var statusOverride string
 
+var DefaultDistributorChannelSize = 200 // Allows adjusting the default channel size of the distributors, needed for cores with large amounts of parameters
+
 // IBeamServer implements the IbeamCoreServer interface of the generated protofile library.
 type IBeamServer struct {
 	*pb.UnimplementedIbeamCoreServer
@@ -63,7 +65,25 @@ func (s *IBeamServer) GetCoreInfo(_ context.Context, _ *pb.Empty) (*pb.CoreInfo,
 }
 
 // GetCoreInfo returns the CoreInfo of the IBeamCore
-func (s *IBeamServer) RestartCore(_ context.Context, _ *pb.RestartInfo) (*pb.Empty, error) {
+func (s *IBeamServer) RestartCore(_ context.Context, ri *pb.RestartInfo) (*pb.Empty, error) {
+	// if ri.ReloadOnly {
+	// 	s.log.Warn("Reload requested via core protocol...")
+
+	// 	s.clientsSetterStream <- &pb.Parameter{
+	// 		Id: &pb.DeviceParameterID{
+	// 			Parameter: 0, // Usually I'd use parameter ID to decide here
+	// 			Device:    0,
+	// 		},
+	// 		Error: pb.ParameterError_Custom, // We need some trickery here obviously...
+
+	// 		Value: []*pb.ParameterValue{
+	// 			&pb.ParameterValue{Value: &pb.ParameterValue_Cmd{
+	// 				Cmd: pb.Command_Trigger,
+	// 			}},
+	// 		},
+	// 	}
+	// 	return &pb.Empty{}, nil
+	// }
 	go func() {
 		s.log.Warn("Restart requested via core protocol, executing...")
 		time.Sleep(time.Millisecond * 300)
@@ -419,7 +439,7 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 	}
 
 	// Create dist first to catch incoming params
-	distributor := make(chan *pb.Parameter, 200)
+	distributor := make(chan *pb.Parameter, DefaultDistributorChannelSize)
 	s.muDistributor.Lock()
 	subData := SubscribeData{Identifier: subscribeId, IDs: dpIDs}
 	s.serverClientsDistributor[distributor] = &subData
