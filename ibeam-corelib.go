@@ -791,7 +791,7 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 					case channel <- parameter:
 					case <-time.After(time.Second * time.Duration(DistributorTimeoutSeconds)):
 						// Channel full - client too slow, mark for cleanup
-						sLog.Errorln("ERROR: corelib distributor timed out Nr: ", id)
+						sLog.Debugln("ERROR: corelib distributor timed out Nr: ", id)
 						channelsToCleanup = append(channelsToCleanup, channel)
 						subsToCleanup = append(subsToCleanup, subscribeData)
 					}
