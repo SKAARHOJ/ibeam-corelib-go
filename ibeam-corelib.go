@@ -34,6 +34,7 @@ var imageFS *embed.FS
 var statusOverride string
 
 var DefaultDistributorChannelSize = 200 // Allows adjusting the default channel size of the distributors, needed for cores with large amounts of parameters
+var DistributorTimeoutSeconds int = 1   // Allows adjusting the default timeout for distributor... depends on how fast the core sends messages to reactor
 
 // IBeamServer implements the IbeamCoreServer interface of the generated protofile library.
 type IBeamServer struct {
@@ -51,8 +52,18 @@ type IBeamServer struct {
 
 type SubscribeData struct {
 	ChannelClosed atomic.Bool
+	closeOnce     sync.Once
 	IDs           *pb.DeviceParameterIDs
 	Identifier    string
+}
+
+// safeCloseChannel safely closes a distributor channel exactly once using sync.Once
+func (s *IBeamServer) safeCloseChannel(channel chan *pb.Parameter, subData *SubscribeData, reason string) {
+	subData.closeOnce.Do(func() {
+		s.log.Debugf("Closing subscriber channel: %s (ID: %s)", reason, subData.Identifier)
+		close(channel)
+		subData.ChannelClosed.Store(true)
+	})
 }
 
 // GetCoreInfo returns the CoreInfo of the IBeamCore
@@ -385,31 +396,44 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 			}
 
 			subscribeId = val[0]
-			// got subscribe ID
-			s.muDistributor.RLock()
+			// got subscribe ID - check for resubscribe scenario
+			// Use write lock from the start to avoid race conditions
+			s.muDistributor.Lock()
+			var foundChan chan *pb.Parameter
+			var foundData *SubscribeData
+
+			// First pass: find matching subscription and clean up stale entries
 			for dChan, distData := range s.serverClientsDistributor {
 				if subscribeId != distData.Identifier {
 					continue
 				}
+				// Found matching subscription
 				if distData.ChannelClosed.Load() {
+					// Clean up stale closed channel
+					s.log.Debugf("Cleaning up stale closed subscription: %s", subscribeId)
+					delete(s.serverClientsDistributor, dChan)
 					continue
 				}
+				// Found active subscription to reuse
+				foundChan = dChan
+				foundData = distData
+				break
+			}
 
-				// redefine filter! but only do a get on new params!
-				s.muDistributor.RUnlock()
-
-				s.muDistributor.Lock()
+			if foundChan != nil {
+				// Resubscribe: update existing subscription
 				sendParams := make([]*pb.DeviceParameterID, 0)
-				s.log.Debugf("Resubscribe %s %v", subscribeId, distData.IDs)
+				s.log.Debugf("Resubscribe %s (old: %v, new: %v)", subscribeId, foundData.IDs, dpIDs)
 				for _, id := range dpIDs.Ids {
-					if !containsDeviceParameter(id, distData.IDs) {
+					if !containsDeviceParameter(id, foundData.IDs) {
 						sendParams = append(sendParams, &pb.DeviceParameterID{Parameter: id.Parameter, Device: id.Device})
 					}
 				}
-				s.serverClientsDistributor[dChan] = &SubscribeData{Identifier: subscribeId, IDs: dpIDs}
+				// Update the existing SubscribeData instead of replacing pointer
+				foundData.IDs = dpIDs
 				s.muDistributor.Unlock()
 
-				//only get new dpids
+				// Send only new parameters
 				if len(sendParams) > 0 {
 					parameters, err := s.Get(stream.Context(), &pb.DeviceParameterIDs{Ids: sendParams})
 					if err != nil {
@@ -417,13 +441,13 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 					}
 
 					for _, param := range parameters.Parameters {
-						dChan <- param
+						foundChan <- param
 					}
 				}
 
 				return nil
 			}
-			s.muDistributor.RUnlock()
+			s.muDistributor.Unlock()
 		}
 	}
 
@@ -446,12 +470,11 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 	num := len(s.serverClientsDistributor)
 	s.log.Debugf("Added distributor number %v", num)
 	s.muDistributor.Unlock()
-
 	defer func() {
-		if !subData.ChannelClosed.Load() {
-			close(distributor)
-			subData.ChannelClosed.Store(true)
-		}
+		s.muDistributor.Lock()
+		delete(s.serverClientsDistributor, distributor)
+		s.muDistributor.Unlock()
+		s.safeCloseChannel(distributor, &subData, "client disconnected")
 	}()
 
 	for _, parameter := range parameters.Parameters {
@@ -704,14 +727,20 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 	}
 
 	go func() {
+		// Add panic recovery to prevent crashes
+		defer func() {
+			if r := recover(); r != nil {
+				sLog.Errorf("Distributor goroutine panic recovered: %v", r)
+			}
+		}()
+
 		for {
 			parameter := <-watcher
-			//log.Timer("muLock")
 			server.muDistributor.RLock()
-			//dur, _ := log.TimerEndValue("muLock")
-			//if dur > time.Millisecond*50 {
-			//	log.Error("RLocking took more than 50")
-			//}
+
+			// Collect channels to cleanup (avoid lock upgrade during iteration)
+			var channelsToCleanup []chan *pb.Parameter
+			var subsToCleanup []*SubscribeData
 
 			id := 0
 			for channel, subscribeData := range server.serverClientsDistributor {
@@ -725,10 +754,12 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 
 					// Global error
 					if parameter.Error == pb.ParameterError_Custom && parameter.Id != nil && parameter.Id.Device == 0 && parameter.Id.Parameter == 0 {
-						select {
-						case channel <- parameter:
-						case <-time.After(1 * time.Second):
-							sLog.Errorln("corelib distributor timed out (global error case) Nr: ", id)
+						if !subscribeData.ChannelClosed.Load() {
+							select {
+							case channel <- parameter:
+							case <-time.After(1 * time.Second):
+								sLog.Errorln("corelib distributor timed out (global error case) Nr: ", id)
+							}
 						}
 						continue
 					}
@@ -755,38 +786,35 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 					if subscribeData.ChannelClosed.Load() {
 						continue
 					}
-					//log.Timer("secondLock")
+
 					select {
 					case channel <- parameter:
-					default:
-						//case <-time.After(1 * time.Second):
-						sLog.Debugln("ERROR: corelib distributor timed out Nr: ", id)
-						if !subscribeData.ChannelClosed.Load() {
-							close(channel)                          // Ensure we cancel this connection!
-							subscribeData.ChannelClosed.Store(true) // signal back to recon
-						}
-
-						server.muDistributor.RUnlock()
-						server.muDistributor.Lock()
-						delete(server.serverClientsDistributor, channel)
-						server.muDistributor.Unlock()
-						server.muDistributor.RLock()
-
+					case <-time.After(time.Second * time.Duration(DistributorTimeoutSeconds)):
+						// Channel full - client too slow, mark for cleanup
+						sLog.Errorln("ERROR: corelib distributor timed out Nr: ", id)
+						channelsToCleanup = append(channelsToCleanup, channel)
+						subsToCleanup = append(subsToCleanup, subscribeData)
 					}
-					//dur, _ := log.TimerEndValue("secondLock")
-					//if dur > time.Millisecond*50 {
-					//	log.Errorf("Sending took more than 50 %s", dur)
-					//}
 					continue
 				}
 
-				server.muDistributor.RUnlock()
-				server.muDistributor.Lock()
-				delete(server.serverClientsDistributor, channel)
-				server.muDistributor.Unlock()
-				server.muDistributor.RLock()
+				// Invalid subscription data - mark for cleanup
+				channelsToCleanup = append(channelsToCleanup, channel)
 			}
 			server.muDistributor.RUnlock()
+
+			// Cleanup timed out channels (if any) - use write lock once
+			if len(channelsToCleanup) > 0 {
+				server.muDistributor.Lock()
+				for i, channel := range channelsToCleanup {
+					delete(server.serverClientsDistributor, channel)
+					if i < len(subsToCleanup) {
+						// Close channel safely using sync.Once
+						server.safeCloseChannel(channel, subsToCleanup[i], "timeout")
+					}
+				}
+				server.muDistributor.Unlock()
+			}
 		}
 	}()
 	registry.RegisterModel(defaultModel)
