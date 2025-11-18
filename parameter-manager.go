@@ -82,7 +82,7 @@ func (m *IBeamParameterManager) StartWithServer(address string) {
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-	size := 1024 * 1024 * 20
+	size := 1024 * 1024 * 100
 	grpcServer := grpc.NewServer(
 		grpc.MaxSendMsgSize(size),
 		grpc.MaxRecvMsgSize(size),
