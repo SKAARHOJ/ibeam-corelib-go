@@ -657,7 +657,7 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 	getFromManager = getfromManagerChannel
 	setToManager = settoManagerChannel
 
-	watcher := make(chan *pb.Parameter)
+	watcher := make(chan *pb.Parameter, 2000)
 
 	coreInfo.IbeamVersion = GetProtocolVersion()
 
