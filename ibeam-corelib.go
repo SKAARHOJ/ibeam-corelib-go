@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
@@ -35,6 +36,7 @@ var statusOverride string
 
 var DefaultDistributorChannelSize = 200 // Allows adjusting the default channel size of the distributors, needed for cores with large amounts of parameters
 var DistributorTimeoutSeconds int = 1   // Allows adjusting the default timeout for distributor... depends on how fast the core sends messages to reactor
+var forceConfig bool                    // Set to true if a .forceconfig file was found at startup, signals clients to save config
 
 // IBeamServer implements the IbeamCoreServer interface of the generated protofile library.
 type IBeamServer struct {
@@ -162,6 +164,12 @@ func (s *IBeamServer) SetCoreConfig(_ context.Context, input *pb.ByteData) (*pb.
 	if s.log.Should(err) {
 		return nil, fmt.Errorf("could not save config")
 	}
+
+	// Write .forceconfig file with current unix timestamp to signal config change
+	forceConfigPath := filepath.Join(skconfig.GetConfigPath(), ".forceconfig")
+	err = os.WriteFile(forceConfigPath, []byte(fmt.Sprintf("%d", time.Now().Unix())), 0644)
+	s.log.Should(err)
+
 	return &pb.Empty{}, nil
 }
 
@@ -497,6 +505,23 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 		log.ShouldWrap(err, "on sending initial error parameters")
 	}
 
+	// If forceConfig flag is set, notify new client to save config
+	if forceConfig {
+		err = stream.Send(&pb.Parameter{
+			Id: &pb.DeviceParameterID{Device: 1, Parameter: 0},
+			Value: []*pb.ParameterValue{
+				{
+					Value: &pb.ParameterValue_System{
+						System: &pb.SystemMessage{
+							Messagetype: pb.SystemMessageType_SaveDeviceConfiguration,
+						},
+					},
+				},
+			},
+		})
+		log.ShouldWrap(err, "on sending forceconfig save message")
+	}
+
 	ping := time.NewTicker(time.Millisecond * 200)
 	for {
 		select {
@@ -645,9 +670,20 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 		skconfig.SetCoreName(coreInfo.Name)
 		err := skconfig.Load(config)
 		elog.MustFatal(err)
+
 	} else if PreLoadedConfig != nil {
 		skconfig.SetCoreName(coreInfo.Name)
 		config = PreLoadedConfig
+	}
+
+	// Check for .forceconfig file - if found, delete it and flag to notify clients
+	forceConfigPath := filepath.Join(skconfig.GetConfigPath(), ".forceconfig")
+	if _, err := os.Stat(forceConfigPath); err == nil {
+		elog.Infoln("Found .forceconfig file, will notify clients to save config")
+		os.Remove(forceConfigPath)
+		if PreLoadedConfig == nil {
+			forceConfig = true // Lets not set this when we are in the preloaded (filtered) path... might change this later
+		}
 	}
 
 	clientsSetter := make(chan *pb.Parameter, 100)
