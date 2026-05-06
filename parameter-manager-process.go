@@ -9,6 +9,45 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
+func computeSmoothingStep(from, to *pb.ParameterValue, maxStep float64, vt pb.ValueType) *pb.ParameterValue {
+	result := proto.Clone(to).(*pb.ParameterValue)
+	switch vt {
+	case pb.ValueType_Floating:
+		cur, tgt := from.GetFloating(), to.GetFloating()
+		diff := tgt - cur
+		if diff > maxStep {
+			diff = maxStep
+		} else if diff < -maxStep {
+			diff = -maxStep
+		}
+		result.Value = &pb.ParameterValue_Floating{Floating: cur + diff}
+	case pb.ValueType_Integer:
+		cur, tgt := int64(from.GetInteger()), int64(to.GetInteger())
+		diff := tgt - cur
+		ms := int64(maxStep)
+		if ms < 1 {
+			ms = 1
+		}
+		if diff > ms {
+			diff = ms
+		} else if diff < -ms {
+			diff = -ms
+		}
+		result.Value = &pb.ParameterValue_Integer{Integer: int32(cur + diff)}
+	}
+	return result
+}
+
+func smoothingReachedTarget(step, target *pb.ParameterValue, vt pb.ValueType) bool {
+	switch vt {
+	case pb.ValueType_Floating:
+		return step.GetFloating() == target.GetFloating()
+	case pb.ValueType_Integer:
+		return step.GetInteger() == target.GetInteger()
+	}
+	return true
+}
+
 func (m *IBeamParameterManager) processParameter(address paramDimensionAddress) {
 	mlog := m.log
 
@@ -82,6 +121,7 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 		if isAcceptanceModeOverride {
 			parameterBuffer.isAssumedState.Store(false)
 			parameterBuffer.targetValue = proto.Clone(parameterBuffer.currentValue).(*pb.ParameterValue)
+			parameterBuffer.smoothingLastSent = nil
 			m.serverClientsStream <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue())
 			return
 		}
@@ -113,6 +153,7 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 
 			mlog.Errorf("Failed to set parameter %v '%v' in %v tries on device %v", parameterID, parameterDetail.Name, parameterDetail.RetryCount, deviceID)
 			parameterBuffer.targetValue = proto.Clone(parameterBuffer.currentValue).(*pb.ParameterValue)
+			parameterBuffer.smoothingLastSent = nil
 
 			perr := paramError(parameterID, deviceID, pb.ParameterError_MaxRetrys)
 			perr.Value = []*pb.ParameterValue{parameterBuffer.getParameterValue()}
@@ -130,9 +171,44 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 
 	switch parameterDetail.ControlStyle {
 	case pb.ControlStyle_Normal:
+		// Value smoothing: send intermediate steps instead of jumping to target
+		isSmoothingStep := false
+		var valueToSend *pb.ParameterValue
+
+		if parameterBuffer.smoothingMaxStep > 0 && parameterBuffer.smoothingLastSent != nil {
+			stepValue := computeSmoothingStep(
+				parameterBuffer.smoothingLastSent,
+				parameterBuffer.targetValue,
+				parameterBuffer.smoothingMaxStep,
+				parameterDetail.ValueType,
+			)
+
+			if smoothingReachedTarget(stepValue, parameterBuffer.targetValue, parameterDetail.ValueType) {
+				// Final step: send actual target and end smoothing
+				parameterBuffer.smoothingLastSent = nil
+				valueToSend = parameterBuffer.getParameterValue()
+			} else {
+				// Intermediate step
+				isSmoothingStep = true
+				parameterBuffer.smoothingLastSent = proto.Clone(stepValue).(*pb.ParameterValue)
+				valueToSend = &pb.ParameterValue{
+					DimensionID:    parameterBuffer.dimensionID,
+					Available:      parameterBuffer.available,
+					IsAssumedState: true,
+					Value:          stepValue.Value,
+					Invalid:        parameterBuffer.targetValue.Invalid,
+					MetaValues:     parameterBuffer.targetValue.MetaValues,
+				}
+			}
+		} else {
+			valueToSend = parameterBuffer.getParameterValue()
+		}
+
 		if parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
-			parameterBuffer.currentValue = proto.Clone(parameterBuffer.targetValue).(*pb.ParameterValue)
-			parameterBuffer.isAssumedState.Store(false)
+			parameterBuffer.currentValue = proto.Clone(valueToSend).(*pb.ParameterValue)
+			if !isSmoothingStep {
+				parameterBuffer.isAssumedState.Store(false)
+			}
 		}
 
 		// If we Have a current Option, get the Value for the option from the Option List
@@ -142,16 +218,18 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 			}
 		}
 
-		m.out <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue())
+		m.out <- b.Param(parameterID, deviceID, valueToSend)
 		parameterBuffer.tryCount++
 
 		if parameterDetail.FeedbackStyle == pb.FeedbackStyle_DelayedFeedback ||
 			parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
-			// send out assumed value to clients immediately
-			m.serverClientsStream <- b.Param(parameterID, deviceID, parameterBuffer.getParameterValue())
+			m.serverClientsStream <- b.Param(parameterID, deviceID, valueToSend)
 		}
 
-		if parameterDetail.FeedbackStyle != pb.FeedbackStyle_NoFeedback && parameterDetail.ControlDelayMs != 0 {
+		if isSmoothingStep {
+			parameterBuffer.tryCount = 0
+			m.reevaluateIn(time.Millisecond*time.Duration(parameterDetail.ControlDelayMs), parameterBuffer, parameterID, deviceID)
+		} else if parameterDetail.FeedbackStyle != pb.FeedbackStyle_NoFeedback && parameterDetail.ControlDelayMs != 0 {
 			m.reevaluateIn(time.Millisecond*time.Duration(parameterDetail.ControlDelayMs+1), parameterBuffer, parameterID, deviceID)
 		}
 	case pb.ControlStyle_Incremental:

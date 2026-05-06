@@ -15,6 +15,7 @@ const (
 	FlagIncrementalPassthrough ParamBufferConfigFlag = 1
 	FlagRateLimitExclude       ParamBufferConfigFlag = 2
 	FlagValuePassthrough       ParamBufferConfigFlag = 3
+	FlagValueSmoothing         ParamBufferConfigFlag = 4
 )
 
 // ibeamParameterValueBuffer is used for updating a ParameterValue.
@@ -33,6 +34,10 @@ type ibeamParameterValueBuffer struct {
 	dynamicOptions *pb.OptionList
 	dynamicMin     *float64
 	dynamicMax     *float64
+
+	// Value smoothing
+	smoothingMaxStep  float64            // max change per step; 0 = no smoothing
+	smoothingLastSent *pb.ParameterValue // last intermediate value sent; nil = not actively smoothing
 
 	// Additional flags
 	flags []ParamBufferConfigFlag

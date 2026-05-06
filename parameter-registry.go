@@ -44,10 +44,11 @@ type IBeamParameterRegistry struct {
 	deviceLastEvent *syncmap.Map[uint32, time.Time] //Needs to be used via getter/setter functions on registry internally
 
 	// Options for individual Parameters or models
-	modelRateLimiter         map[uint32]uint // minimum milliseconds between commands sent
-	defaultValidParams       []*pb.ModelParameterID
-	defaultUnavailableParams []*pb.ModelParameterID
-	parameterFlags           map[uint32]map[uint32][]ParamBufferConfigFlag // Model -> Parameter
+	modelRateLimiter          map[uint32]uint                              // minimum milliseconds between commands sent
+	defaultValidParams        []*pb.ModelParameterID
+	defaultUnavailableParams  []*pb.ModelParameterID
+	parameterFlags            map[uint32]map[uint32][]ParamBufferConfigFlag // Model -> Parameter
+	parameterSmoothingMaxStep map[uint32]map[uint32]float64                // Model -> Parameter -> maxStepSize
 
 	// debug info
 	parameterCount uint
@@ -722,6 +723,31 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 			}
 		}
 
+		// Retrieve smoothing config
+		var smoothingMaxStep float64
+		if modelSmoothing, exists := r.parameterSmoothingMaxStep[modelID]; exists {
+			if stepSize, exists := modelSmoothing[parameterID]; exists {
+				smoothingMaxStep = stepSize
+			}
+		}
+		if modelID != 0 && smoothingMaxStep == 0 {
+			if modelSmoothing, exists := r.parameterSmoothingMaxStep[0]; exists {
+				if stepSize, exists := modelSmoothing[parameterID]; exists {
+					smoothingMaxStep = stepSize
+				}
+			}
+		}
+
+		if smoothingMaxStep > 0 {
+			if parameterDetail.ValueType != pb.ValueType_Floating && parameterDetail.ValueType != pb.ValueType_Integer {
+				r.log.Fatalf("WithValueSmoothing is only valid for Float and Integer parameters, but '%s' is %s", parameterDetail.Name, parameterDetail.ValueType.String())
+			}
+			if parameterDetail.ControlDelayMs == 0 {
+				r.log.Fatalf("WithValueSmoothing requires ControlDelayMs to be set on parameter '%s'", parameterDetail.Name)
+			}
+		}
+
+		initialValueDimension.value.smoothingMaxStep = smoothingMaxStep
 		parameterDimensions[parameterID] = generateDimensions(parameterDetail.Dimensions, &initialValueDimension, flags)
 	}
 	r.muDetail.RUnlock()

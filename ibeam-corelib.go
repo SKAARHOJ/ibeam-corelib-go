@@ -725,14 +725,15 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 	}
 
 	registry = &IBeamParameterRegistry{
-		coreInfo:         proto.Clone(coreInfo).(*pb.CoreInfo),
-		deviceInfos:      map[uint32]*pb.DeviceInfo{},
-		deviceLastEvent:  syncmap.New[uint32, time.Time](),
-		modelRateLimiter: make(map[uint32]uint),
-		modelInfos:       map[uint32]*pb.ModelInfo{},
-		parameterDetail:  map[uint32]map[uint32]*pb.ParameterDetail{},
-		parameterValue:   map[uint32]map[uint32]*iBeamParameterDimension{},
-		log:              elog.GetLoggerForPrefix("ib/registry"),
+		coreInfo:                  proto.Clone(coreInfo).(*pb.CoreInfo),
+		deviceInfos:               map[uint32]*pb.DeviceInfo{},
+		deviceLastEvent:           syncmap.New[uint32, time.Time](),
+		modelRateLimiter:          make(map[uint32]uint),
+		parameterSmoothingMaxStep: make(map[uint32]map[uint32]float64),
+		modelInfos:                map[uint32]*pb.ModelInfo{},
+		parameterDetail:           map[uint32]map[uint32]*pb.ParameterDetail{},
+		parameterValue:            map[uint32]map[uint32]*iBeamParameterDimension{},
+		log:                       elog.GetLoggerForPrefix("ib/registry"),
 	}
 
 	sLog := elog.GetLoggerForPrefix("ib/server")

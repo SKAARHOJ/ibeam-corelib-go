@@ -367,6 +367,14 @@ valueLoop:
 			parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
 			parameterBuffer.isAssumedState.Store(true)
 			parameterBuffer.tryCount = 0
+
+			// Initialize smoothing sequence from current position
+			if parameterBuffer.smoothingMaxStep > 0 &&
+				(parameterConfig.ValueType == pb.ValueType_Floating || parameterConfig.ValueType == pb.ValueType_Integer) {
+				if parameterBuffer.smoothingLastSent == nil {
+					parameterBuffer.smoothingLastSent = proto.Clone(parameterBuffer.currentValue).(*pb.ParameterValue)
+				}
+			}
 		} else {
 			if parameterConfig.ValueType != pb.ValueType_PNG && parameterConfig.ValueType != pb.ValueType_JPEG {
 				mlog.Debugf("TargetValue %v is equal to CurrentValue", newParameterValue.Value)

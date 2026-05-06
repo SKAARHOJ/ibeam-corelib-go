@@ -338,6 +338,11 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			}
 		}
 
+		// Cancel smoothing if external feedback overrides the target
+		if parameterBuffer.smoothingLastSent != nil && didSetTarget {
+			parameterBuffer.smoothingLastSent = nil
+		}
+
 		parameterBuffer.isAssumedState.Store(assumed)
 
 		if !assumed {

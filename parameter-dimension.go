@@ -109,11 +109,12 @@ func generateDimensions(dimensionConfig []*pb.DimensionDetail, initialValueDimen
 		dimValue := initialValueDimension.value
 
 		valueWithID.value = &ibeamParameterValueBuffer{
-			flags:          bufferFlags,
-			available:      dimValue.available,
-			isAssumedState: dimValue.isAssumedState,
-			currentValue:   proto.Clone(initialValueDimension.value.currentValue).(*pb.ParameterValue),
-			targetValue:    proto.Clone(initialValueDimension.value.targetValue).(*pb.ParameterValue),
+			flags:            bufferFlags,
+			available:        dimValue.available,
+			isAssumedState:   dimValue.isAssumedState,
+			currentValue:     proto.Clone(initialValueDimension.value.currentValue).(*pb.ParameterValue),
+			targetValue:      proto.Clone(initialValueDimension.value.targetValue).(*pb.ParameterValue),
+			smoothingMaxStep: dimValue.smoothingMaxStep,
 		}
 
 		valueWithID.value.dimensionID = make([]uint32, len(dimValue.dimensionID), len(dimValue.dimensionID)+1)

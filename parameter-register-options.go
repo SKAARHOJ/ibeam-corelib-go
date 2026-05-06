@@ -35,6 +35,23 @@ func WithModelRatelimitExlude() func(r *IBeamParameterRegistry, id *pb.ModelPara
 	return setFlag(FlagRateLimitExclude)
 }
 
+// WithValueSmoothing enables value smoothing for Float and Integer parameters.
+// When a new target is set, intermediate values are sent at ControlDelayMs intervals,
+// each changing by at most maxStepSize toward the target.
+func WithValueSmoothing(maxStepSize float64) func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
+	return func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
+		setFlag(FlagValueSmoothing)(r, id)
+
+		if r.parameterSmoothingMaxStep == nil {
+			r.parameterSmoothingMaxStep = make(map[uint32]map[uint32]float64)
+		}
+		if _, exists := r.parameterSmoothingMaxStep[id.Model]; !exists {
+			r.parameterSmoothingMaxStep[id.Model] = make(map[uint32]float64)
+		}
+		r.parameterSmoothingMaxStep[id.Model][id.Parameter] = maxStepSize
+	}
+}
+
 func setFlag(flag ParamBufferConfigFlag) func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
 	return func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
 
