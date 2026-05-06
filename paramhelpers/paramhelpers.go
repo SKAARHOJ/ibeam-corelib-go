@@ -77,7 +77,7 @@ func ResolveParamMessage(pid uint32, did uint32, id string, dimensionID ...uint3
 	}
 }
 
-func DeviceError(did uint32, id, message string, args ...interface{}) *pb.Parameter {
+func DeviceError(did uint32, id, message string, args ...any) *pb.Parameter {
 	return &pb.Parameter{
 		Id:    &pb.DeviceParameterID{Device: did, Parameter: 0},
 		Error: pb.ParameterError_Custom,
@@ -95,7 +95,7 @@ func DeviceError(did uint32, id, message string, args ...interface{}) *pb.Parame
 	}
 }
 
-func DeviceWarn(did uint32, id, message string, args ...interface{}) *pb.Parameter {
+func DeviceWarn(did uint32, id, message string, args ...any) *pb.Parameter {
 	return &pb.Parameter{
 		Id:    &pb.DeviceParameterID{Device: did, Parameter: 0},
 		Error: pb.ParameterError_Custom,
@@ -132,7 +132,7 @@ func ResolveDeviceMessage(did uint32, id string) *pb.Parameter {
 }
 
 // Return a global error message
-func Error(id, message string, args ...interface{}) *pb.Parameter {
+func Error(id, message string, args ...any) *pb.Parameter {
 	return &pb.Parameter{
 		Error: pb.ParameterError_Custom,
 		Id:    &pb.DeviceParameterID{Device: 0, Parameter: 0},
@@ -151,7 +151,7 @@ func Error(id, message string, args ...interface{}) *pb.Parameter {
 }
 
 // Return a global error message
-func Warn(id, message string, args ...interface{}) *pb.Parameter {
+func Warn(id, message string, args ...any) *pb.Parameter {
 	return &pb.Parameter{
 		Error: pb.ParameterError_Custom,
 		Id:    &pb.DeviceParameterID{Device: 0, Parameter: 0},

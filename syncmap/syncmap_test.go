@@ -16,7 +16,7 @@ func randomString(length int) string {
 
 func generateArrayOfRandomStrings(n int) []string {
 	s := make([]string, n)
-	for i := 0; i < n; i++ {
+	for i := range n {
 		s[i] = randomString(16)
 	}
 	return s
