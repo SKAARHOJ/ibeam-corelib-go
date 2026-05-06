@@ -39,7 +39,7 @@ type IBeamParameterManager struct {
 	//ingestTargetCounter  atomic.Int32
 }
 
-func (m *IBeamParameterManager) SetServerConfigPtr(configptr interface{}) {
+func (m *IBeamParameterManager) SetServerConfigPtr(configptr any) {
 	m.server.configPtr = configptr
 }
 

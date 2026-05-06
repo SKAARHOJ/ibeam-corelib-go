@@ -3,6 +3,7 @@ package ibeamcorelib
 import (
 	"fmt"
 	"hash/fnv"
+	"maps"
 	"time"
 
 	"sync"
@@ -44,11 +45,11 @@ type IBeamParameterRegistry struct {
 	deviceLastEvent *syncmap.Map[uint32, time.Time] //Needs to be used via getter/setter functions on registry internally
 
 	// Options for individual Parameters or models
-	modelRateLimiter          map[uint32]uint                              // minimum milliseconds between commands sent
+	modelRateLimiter          map[uint32]uint // minimum milliseconds between commands sent
 	defaultValidParams        []*pb.ModelParameterID
 	defaultUnavailableParams  []*pb.ModelParameterID
 	parameterFlags            map[uint32]map[uint32][]ParamBufferConfigFlag // Model -> Parameter
-	parameterSmoothingMaxStep map[uint32]map[uint32]float64                // Model -> Parameter -> maxStepSize
+	parameterSmoothingMaxStep map[uint32]map[uint32]float64                 // Model -> Parameter -> maxStepSize
 
 	// debug info
 	parameterCount uint
@@ -346,12 +347,11 @@ func (r *IBeamParameterRegistry) getParameterDetail(parameterID, modelID uint32)
 		return nil, fmt.Errorf("could not find Parameter for Model with id %d", modelID)
 	}
 
-	for _, pd := range modelInfo {
-		if pd.Id.Parameter == parameterID {
-			return proto.Clone(pd).(*pb.ParameterDetail), nil
-		}
+	pd, exists := modelInfo[parameterID]
+	if !exists {
+		return nil, fmt.Errorf("could not find Parameter with id %v", parameterID)
 	}
-	return nil, fmt.Errorf("could not find Parameter with id %v", parameterID)
+	return proto.Clone(pd).(*pb.ParameterDetail), nil
 }
 
 // GetParameterValue gets a copy of the new parameter value from the state by pid, did and dimensionIDs
@@ -896,9 +896,7 @@ func (r *IBeamParameterRegistry) GetNameMapByModel(modelID uint32) map[uint32]st
 	}
 
 	nameMap := make(map[uint32]string)
-	for key, value := range model {
-		nameMap[key] = value
-	}
+	maps.Copy(nameMap, model)
 	return nameMap
 }
 
@@ -920,10 +918,12 @@ func (r *IBeamParameterRegistry) parameterIDByName(parameterName string, modelID
 // Functions for global rate limiter
 
 func (r *IBeamParameterRegistry) getLastEvent(deviceID uint32) time.Time {
-	if !r.deviceLastEvent.Has(deviceID) {
-		r.deviceLastEvent.Set(deviceID, time.Now().Add(-time.Hour))
+	t := r.deviceLastEvent.Get(deviceID)
+	if t.IsZero() {
+		t = time.Now().Add(-time.Hour)
+		r.deviceLastEvent.Set(deviceID, t)
 	}
-	return r.deviceLastEvent.Get(deviceID)
+	return t
 }
 
 func (r *IBeamParameterRegistry) setLastEvent(deviceID uint32) {

@@ -1,6 +1,8 @@
 package ibeamcorelib
 
 import (
+	"slices"
+
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
 	b "github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers"
 	"google.golang.org/protobuf/proto"
@@ -390,10 +392,5 @@ valueLoop:
 }
 
 func containsString(value string, slice []string) bool {
-	for _, sValue := range slice {
-		if value == sValue {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(slice, value)
 }

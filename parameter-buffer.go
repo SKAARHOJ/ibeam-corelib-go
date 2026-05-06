@@ -1,7 +1,8 @@
 package ibeamcorelib
 
 import (
-	"reflect"
+	"bytes"
+	"slices"
 	"sync"
 	"time"
 
@@ -48,12 +49,7 @@ type timeTimer struct {
 }
 
 func (b *ibeamParameterValueBuffer) hasFlag(flag ParamBufferConfigFlag) bool {
-	for _, f := range b.flags {
-		if f == flag {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(b.flags, flag)
 }
 
 func (b *ibeamParameterValueBuffer) getParameterValue() *pb.ParameterValue {
@@ -116,68 +112,55 @@ func (b *ibeamParameterValueBuffer) currentEquals(new *pb.ParameterValue) bool {
 	// 	 return false
 	// }
 
-	if reflect.TypeOf(b.currentValue.Value) != reflect.TypeOf(new.Value) {
-		return false
-	}
-
-	// Next we need to compare the actual values
 	switch cv := b.currentValue.Value.(type) {
 	case *pb.ParameterValue_Integer:
-		if cv.Integer != new.Value.(*pb.ParameterValue_Integer).Integer {
+		nv, ok := new.Value.(*pb.ParameterValue_Integer)
+		if !ok || cv.Integer != nv.Integer {
 			return false
 		}
 	case *pb.ParameterValue_IncDecSteps:
-		// very unlikely on ingest current...
 		return false
 	case *pb.ParameterValue_Floating:
-		if cv.Floating != new.Value.(*pb.ParameterValue_Floating).Floating {
+		nv, ok := new.Value.(*pb.ParameterValue_Floating)
+		if !ok || cv.Floating != nv.Floating {
 			return false
 		}
 	case *pb.ParameterValue_Str:
-		if cv.Str != new.Value.(*pb.ParameterValue_Str).Str {
+		nv, ok := new.Value.(*pb.ParameterValue_Str)
+		if !ok || cv.Str != nv.Str {
 			return false
 		}
 	case *pb.ParameterValue_CurrentOption:
-		if cv.CurrentOption != new.Value.(*pb.ParameterValue_CurrentOption).CurrentOption {
+		nv, ok := new.Value.(*pb.ParameterValue_CurrentOption)
+		if !ok || cv.CurrentOption != nv.CurrentOption {
 			return false
 		}
 	case *pb.ParameterValue_Cmd:
-		// very unlikely on ingest current...
 		return false
 	case *pb.ParameterValue_Binary:
-		if cv.Binary != new.Value.(*pb.ParameterValue_Binary).Binary {
+		nv, ok := new.Value.(*pb.ParameterValue_Binary)
+		if !ok || cv.Binary != nv.Binary {
 			return false
 		}
 	case *pb.ParameterValue_OptionListUpdate:
-		// this would have returned earlier already
 		return false
 	case *pb.ParameterValue_MinimumUpdate:
-		// this would have returned earlier already
 		return false
 	case *pb.ParameterValue_MaximumUpdate:
-		// this would have returned earlier already
 		return false
 	case *pb.ParameterValue_Png:
-		if !bytesEqual(cv.Png, new.Value.(*pb.ParameterValue_Png).Png) {
+		nv, ok := new.Value.(*pb.ParameterValue_Png)
+		if !ok || !bytes.Equal(cv.Png, nv.Png) {
 			return false
 		}
 	case *pb.ParameterValue_Jpeg:
-		if !bytesEqual(cv.Jpeg, new.Value.(*pb.ParameterValue_Jpeg).Jpeg) {
+		nv, ok := new.Value.(*pb.ParameterValue_Jpeg)
+		if !ok || !bytes.Equal(cv.Jpeg, nv.Jpeg) {
 			return false
 		}
-	}
-
-	return true
-}
-
-func bytesEqual(a, b []byte) bool {
-	if len(a) != len(b) {
+	default:
 		return false
 	}
-	for i, v := range a {
-		if v != b[i] {
-			return false
-		}
-	}
+
 	return true
 }

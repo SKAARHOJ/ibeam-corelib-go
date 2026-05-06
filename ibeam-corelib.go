@@ -1,7 +1,6 @@
 package ibeamcorelib
 
 import (
-	"bytes"
 	"context"
 	"crypto/md5"
 	"embed"
@@ -9,7 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -34,6 +32,8 @@ import (
 var imageFS *embed.FS
 var statusOverride string
 
+var modelImagePattern = regexp.MustCompile(`model\-[0-9]+\.png`)
+
 var DefaultDistributorChannelSize = 200 // Allows adjusting the default channel size of the distributors, needed for cores with large amounts of parameters
 var DistributorTimeoutSeconds int = 1   // Allows adjusting the default timeout for distributor... depends on how fast the core sends messages to reactor
 var forceConfig bool                    // Set to true if a .forceconfig file was found at startup, signals clients to save config
@@ -46,7 +46,7 @@ type IBeamServer struct {
 	serverClientsStream      chan *pb.Parameter
 	serverClientsDistributor map[chan *pb.Parameter]*SubscribeData
 	muDistributor            sync.RWMutex
-	configPtr                interface{} // TODO: can I not make this better ? as a fix ptr ?
+	configPtr                any // TODO: can I not make this better ? as a fix ptr ?
 	schemaBytes              []byte
 	imageFS                  *embed.FS
 	log                      *elog.Entry
@@ -132,7 +132,7 @@ func (s *IBeamServer) GetCoreConfig(_ context.Context, _ *pb.Empty) (*pb.ByteDat
 func (s *IBeamServer) SetCoreConfig(_ context.Context, input *pb.ByteData) (*pb.Empty, error) {
 	// first we need to validate config, if valid we can store it into the config file
 
-	var configMap interface{}
+	var configMap any
 	s.log.Trace("Incoming Config ", string(input.GetData()))
 	err := json.Unmarshal(input.Data, &configMap)
 	if s.log.Should(err) {
@@ -152,7 +152,7 @@ func (s *IBeamServer) SetCoreConfig(_ context.Context, input *pb.ByteData) (*pb.
 
 	// Write .forceconfig file with current unix timestamp to signal config change
 	forceConfigPath := filepath.Join(skconfig.GetConfigPath(), ".forceconfig")
-	err = os.WriteFile(forceConfigPath, []byte(fmt.Sprintf("%d", time.Now().Unix())), 0644)
+	err = os.WriteFile(forceConfigPath, fmt.Appendf(nil, "%d", time.Now().Unix()), 0644)
 	s.log.Should(err)
 
 	return &pb.Empty{}, nil
@@ -213,12 +213,7 @@ func (s *IBeamServer) GetModelInfo(_ context.Context, mIDs *pb.ModelIDs) (*pb.Mo
 }
 
 func getModelWithID(s *IBeamServer, mID uint32) *pb.ModelInfo {
-	for _, model := range s.parameterRegistry.modelInfos {
-		if model.Id == mID {
-			return model
-		}
-	}
-	return nil
+	return s.parameterRegistry.modelInfos[mID]
 }
 
 // Get returns the Parameters with their current state for given DeviceParameterIDs.
@@ -334,7 +329,7 @@ func (s *IBeamServer) GetParameterDetails(c context.Context, mpIDs *pb.ModelPara
 		for _, mpID := range mpIDs.Ids {
 			d, err := s.getParameterDetail(mpID)
 			if err != nil {
-				s.log.Errorf(err.Error())
+				s.log.Errorf("%s", err.Error())
 				return nil, err
 			}
 			rParameterDetails.Details = append(rParameterDetails.Details, d)
@@ -507,18 +502,11 @@ func (s *IBeamServer) Subscribe(dpIDs *pb.DeviceParameterIDs, stream pb.IbeamCor
 		log.ShouldWrap(err, "on sending forceconfig save message")
 	}
 
-	ping := time.NewTicker(time.Millisecond * 200)
 	for {
 		select {
-		case <-ping.C:
-			err := stream.Context().Err()
-			if err != nil {
-				s.muDistributor.Lock()
-				delete(s.serverClientsDistributor, distributor)
-				s.muDistributor.Unlock()
-				s.log.Debug("Connection to client for subscription lost ", num)
-				return nil
-			}
+		case <-stream.Context().Done():
+			s.log.Debug("Connection to client for subscription lost ", num)
+			return nil
 		case parameter, notClosed := <-distributor:
 			if !notClosed {
 				return nil //Chanel has been closed, likely by a timeout, in such a case we also need to kill client connection!
@@ -548,14 +536,13 @@ func (s *IBeamServer) GetModelImages(_ context.Context, req *pb.ModelImageReques
 		if err != nil {
 			return nil, fmt.Errorf("Could not load image directory")
 		}
-		modelPattern := regexp.MustCompile(`model\-[0-9]+\.png`)
 		images := make([]*pb.ModelImage, 0)
 
 		for _, entry := range dirEntries {
 			if entry.IsDir() {
 				continue
 			}
-			if !modelPattern.Match([]byte(entry.Name())) {
+			if !modelImagePattern.MatchString(entry.Name()) {
 				continue
 			}
 			data, err := imageFS.ReadFile(fmt.Sprintf("model_images/%s", entry.Name()))
@@ -595,15 +582,8 @@ func (s *IBeamServer) GetModelImages(_ context.Context, req *pb.ModelImageReques
 }
 
 func md5sum(data []byte) (string, error) {
-	var md5string string
-
-	hash := md5.New()
-	if _, err := io.Copy(hash, bytes.NewReader(data)); err != nil {
-		return md5string, err
-	}
-	hashInBytes := hash.Sum(nil)[:16]
-	md5string = hex.EncodeToString(hashInBytes)
-	return md5string, nil
+	sum := md5.Sum(data)
+	return hex.EncodeToString(sum[:]), nil
 }
 
 func containsDeviceParameter(dpID *pb.DeviceParameterID, dpIDs *pb.DeviceParameterIDs) bool {
@@ -638,7 +618,7 @@ func CreateServer(coreInfo *pb.CoreInfo) (manager *IBeamParameterManager, regist
 }
 
 // CreateServer sets up the ibeam server, parameter manager and parameter registry
-func CreateServerWithConfig(coreInfo *pb.CoreInfo, config interface{}) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan<- *pb.Parameter, getfromManager <-chan *pb.Parameter) {
+func CreateServerWithConfig(coreInfo *pb.CoreInfo, config any) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, settoManager chan<- *pb.Parameter, getfromManager <-chan *pb.Parameter) {
 	defaultModelInfo := &pb.ModelInfo{
 		Name:        coreInfo.Label + " Generic Model",
 		Description: "Default model of the core, inherits all possible parameters from other models",
@@ -646,10 +626,10 @@ func CreateServerWithConfig(coreInfo *pb.CoreInfo, config interface{}) (manager 
 	return CreateServerWithDefaultModelAndConfig(coreInfo, defaultModelInfo, config)
 }
 
-var PreLoadedConfig interface{}
+var PreLoadedConfig any
 
 // CreateServerWithDefaultModel sets up the ibeam server, parameter manager and parameter registry and allows to specify a default model
-func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *pb.ModelInfo, config interface{}) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, setToManager chan<- *pb.Parameter, getFromManager <-chan *pb.Parameter) {
+func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *pb.ModelInfo, config any) (manager *IBeamParameterManager, registry *IBeamParameterRegistry, setToManager chan<- *pb.Parameter, getFromManager <-chan *pb.Parameter) {
 	// Load configuration
 	if config != nil && PreLoadedConfig == nil {
 		skconfig.SetCoreName(coreInfo.Name)
@@ -684,17 +664,13 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 
 	coreInfo.HasModelImages = false // Make sure we do not allow the core to control this field
 	if imageFS != nil {
-		dirEntries, err := imageFS.ReadDir("model_images")
-		if err == nil {
-
-		}
-		modelPattern := regexp.MustCompile(`model\-[0-9]+\.png`)
+		dirEntries, _ := imageFS.ReadDir("model_images")
 
 		for _, entry := range dirEntries {
 			if entry.IsDir() {
 				continue
 			}
-			if !modelPattern.Match([]byte(entry.Name())) {
+			if !modelImagePattern.MatchString(entry.Name()) {
 				continue
 			}
 			// We have found at lease 1 image, so we are good to go

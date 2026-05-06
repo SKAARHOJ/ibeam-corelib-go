@@ -24,10 +24,7 @@ func computeSmoothingStep(from, to *pb.ParameterValue, maxStep float64, vt pb.Va
 	case pb.ValueType_Integer:
 		cur, tgt := int64(from.GetInteger()), int64(to.GetInteger())
 		diff := tgt - cur
-		ms := int64(maxStep)
-		if ms < 1 {
-			ms = 1
-		}
+		ms := max(int64(maxStep), 1)
 		if diff > ms {
 			diff = ms
 		} else if diff < -ms {

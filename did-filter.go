@@ -19,7 +19,7 @@ func ParseDIDFilter() []int {
 		return nil
 	}
 	var result []int
-	for _, sV := range strings.Split(raw, ",") {
+	for sV := range strings.SplitSeq(raw, ",") {
 		v, err := strconv.Atoi(strings.TrimSpace(sV))
 		if log.ShouldWrap(err, "on parsing DID filter: ") {
 			continue
