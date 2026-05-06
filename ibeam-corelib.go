@@ -121,25 +121,10 @@ func (s *IBeamServer) GetCoreConfigSchema(_ context.Context, _ *pb.Empty) (*pb.B
 	return &pb.ByteData{Data: s.schemaBytes}, nil
 }
 
-// GetCoreInfo returns the current active configuration of the core
+// GetCoreConfig returns the current active configuration of the core
 func (s *IBeamServer) GetCoreConfig(_ context.Context, _ *pb.Empty) (*pb.ByteData, error) {
 	jsonBytes, err := json.Marshal(s.configPtr)
 	s.log.Should(err)
-
-	// Special construction to allow multicore runner to be used
-	var didfilter []int
-	if os.Getenv("DID") != "" {
-		didfilter = make([]int, 0)
-		stringValues := strings.Split(os.Getenv("DID"), ",")
-		for _, sV := range stringValues {
-			v, err := strconv.Atoi(sV)
-			if log.ShouldWrap(err, "on parsing didfilter: ") {
-				continue
-			}
-			didfilter = append(didfilter, v)
-		}
-	}
-
 	return &pb.ByteData{Data: jsonBytes}, nil
 }
 
