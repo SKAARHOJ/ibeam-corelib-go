@@ -48,20 +48,25 @@ func smoothingReachedTarget(step, target *pb.ParameterValue, vt pb.ValueType) bo
 func (m *IBeamParameterManager) processParameter(address paramDimensionAddress) {
 	mlog := m.log
 
-	m.parameterRegistry.muValue.Lock()
-	defer m.parameterRegistry.muValue.Unlock()
+	deviceID := address.device
+	paramID := address.parameter
+
+	ds := m.parameterRegistry.loadDeviceState(deviceID)
+	if ds == nil {
+		mlog.Errorf("processParameter: unknown device %d", deviceID)
+		return
+	}
+	ds.mu.Lock()
+	defer ds.mu.Unlock()
 
 	m.parameterRegistry.muInfo.RLock()
 	defer m.parameterRegistry.muInfo.RUnlock()
 
 	m.parameterRegistry.muDetail.RLock()
 	defer m.parameterRegistry.muDetail.RUnlock()
-	// Get buffer and config
-	state := m.parameterRegistry.parameterValue
-	deviceID := address.device
-	paramID := address.parameter
+
 	modelID := m.parameterRegistry.getModelID(deviceID)
-	rootDimension := state[deviceID][address.parameter]
+	rootDimension := ds.params[address.parameter]
 	parameterDetail := m.parameterRegistry.parameterDetail[modelID][paramID]
 
 	if !rootDimension.multiIndexHasValue(address.dimensionID) {

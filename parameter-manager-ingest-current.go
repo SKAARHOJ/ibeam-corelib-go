@@ -26,9 +26,13 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 	}
 
 	// Get State and the Configuration (Details) of the Parameter
-	m.parameterRegistry.muValue.Lock()
-	defer m.parameterRegistry.muValue.Unlock()
-	state := m.parameterRegistry.parameterValue
+	ds := m.parameterRegistry.loadDeviceState(deviceID)
+	if ds == nil {
+		mlog.Errorf("ingestCurrentParameter: unknown device %d", deviceID)
+		return
+	}
+	ds.mu.Lock()
+	defer ds.mu.Unlock()
 	m.parameterRegistry.muDetail.RLock()
 	defer m.parameterRegistry.muDetail.RUnlock()
 
@@ -63,12 +67,12 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			continue
 		}
 		// Check if Dimension is Valid
-		if !state[deviceID][parameterID].multiIndexHasValue(newParameterValue.DimensionID) {
+		if !ds.params[parameterID].multiIndexHasValue(newParameterValue.DimensionID) {
 			mlog.Errorf("Received invalid dimension id  %v for %s", newParameterValue.DimensionID, m.pName(parameter.Id))
 			continue
 		}
 
-		parameterDimension, err := state[deviceID][parameterID].multiIndex(newParameterValue.DimensionID)
+		parameterDimension, err := ds.params[parameterID].multiIndex(newParameterValue.DimensionID)
 		if err != nil {
 			mlog.Error(err)
 			continue

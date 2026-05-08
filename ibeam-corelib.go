@@ -220,19 +220,20 @@ func getModelWithID(s *IBeamServer, mID uint32) *pb.ModelInfo {
 // If no IDs are given, all Parameters will be returned.
 func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rParameters *pb.Parameters, err error) {
 	rParameters = &pb.Parameters{}
-	s.parameterRegistry.muValue.RLock()
-	defer s.parameterRegistry.muValue.RUnlock()
 
-	// Unfiltered response
+	// Unfiltered response: iterate every device, hold its shard RLock briefly.
 	if len(dpIDs.Ids) == 0 {
-		for did, dState := range s.parameterRegistry.parameterValue {
-			for pid := range dState {
+		s.parameterRegistry.parameterValue.Range(func(k, v any) bool {
+			did := k.(uint32)
+			ds := v.(*deviceState)
+			ds.mu.RLock()
+			for pid := range ds.params {
 				dpID := pb.DeviceParameterID{
 					Parameter: pid,
 					Device:    did,
 				}
 
-				iv := s.parameterRegistry.getInstanceValues(&dpID, true)
+				iv := s.parameterRegistry.getInstanceValues(ds, &dpID, true)
 				if iv == nil {
 					continue
 				}
@@ -242,14 +243,17 @@ func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 					Value: iv,
 				})
 			}
-		}
+			ds.mu.RUnlock()
+			return true
+		})
 		return rParameters, err
 	}
 
 	// All Parameters for filtered device
 	if len(dpIDs.Ids) == 1 && dpIDs.Ids[0].Parameter == 0 && dpIDs.Ids[0].Device != 0 {
 		did := dpIDs.Ids[0].Device
-		if _, exists := s.parameterRegistry.parameterValue[did]; !exists {
+		ds := s.parameterRegistry.loadDeviceState(did)
+		if ds == nil {
 			rParameters.Parameters = append(rParameters.Parameters, &pb.Parameter{
 				Id:    dpIDs.Ids[0],
 				Error: pb.ParameterError_UnknownID,
@@ -257,12 +261,14 @@ func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 			})
 			return
 		}
-		for pid := range s.parameterRegistry.parameterValue[did] {
+		ds.mu.RLock()
+		defer ds.mu.RUnlock()
+		for pid := range ds.params {
 			dpID := pb.DeviceParameterID{
 				Parameter: pid,
 				Device:    did,
 			}
-			iv := s.parameterRegistry.getInstanceValues(&dpID, true)
+			iv := s.parameterRegistry.getInstanceValues(ds, &dpID, true)
 			if iv != nil {
 				rParameters.Parameters = append(rParameters.Parameters, &pb.Parameter{
 					Id:    &dpID,
@@ -281,7 +287,13 @@ func (s *IBeamServer) Get(_ context.Context, dpIDs *pb.DeviceParameterIDs) (rPar
 			err = errors.New("Failed to get instance values " + dpID.String())
 			return
 		}
-		iv := s.parameterRegistry.getInstanceValues(dpID, true)
+		ds := s.parameterRegistry.loadDeviceState(dpID.Device)
+		var iv []*pb.ParameterValue
+		if ds != nil {
+			ds.mu.RLock()
+			iv = s.parameterRegistry.getInstanceValues(ds, dpID, true)
+			ds.mu.RUnlock()
+		}
 		if len(iv) == 0 {
 			rParameters.Parameters = append(rParameters.Parameters, &pb.Parameter{
 				Id:    dpID,
@@ -693,7 +705,6 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 		parameterSmoothingMaxStep: make(map[uint32]map[uint32]float64),
 		modelInfos:                map[uint32]*pb.ModelInfo{},
 		parameterDetail:           map[uint32]map[uint32]*pb.ParameterDetail{},
-		parameterValue:            map[uint32]map[uint32]*iBeamParameterDimension{},
 		log:                       elog.GetLoggerForPrefix("ib/registry"),
 	}
 
