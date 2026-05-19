@@ -3,6 +3,7 @@ package ibeamcorelib
 import (
 	"net"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 
@@ -13,6 +14,14 @@ import (
 	log "github.com/s00500/env_logger"
 	"google.golang.org/grpc"
 )
+
+// Bound on the per-device worker pool size. Empirically 32 is enough for cores
+// with up to a few hundred devices; the worker count is min(NumCPU, this).
+const maxParameterWorkers = 32
+
+// Per-worker queue size. Total fan-in capacity is numWorkers * perWorkerQueueSize.
+// Keep generous to avoid head-of-line blocking when one device is briefly slow.
+const perWorkerQueueSize = 256
 
 // Internal version of parameterID, to not mess with protobuff mechanisma
 type paramDimensionAddress struct {
@@ -32,6 +41,14 @@ type IBeamParameterManager struct {
 	parameterEvent      chan paramDimensionAddress
 	server              *IBeamServer
 	log                 *log.Entry
+
+	// Per-device worker pool. Each (target/current/event) message is routed to
+	// a worker by deviceID % numWorkers, guaranteeing FIFO ordering per device
+	// while letting different devices be processed in parallel.
+	numWorkers    int
+	targetQueues  []chan *pb.Parameter
+	currentQueues []chan *pb.Parameter
+	eventQueues   []chan paramDimensionAddress
 
 	// Debugging
 	//processCounter       atomic.Int32
@@ -132,10 +149,18 @@ func (m *IBeamParameterManager) checkValidParameter(parameter *pb.Parameter) *pb
 	modelIndex := m.parameterRegistry.getModelID(deviceID)
 
 	// Get State and the Configuration (Details) of the Parameter, assume mutex is locked in outer layers of parameterLoop
-	state := m.parameterRegistry.parameterValue
+	ds := m.parameterRegistry.loadDeviceState(deviceID)
 	parameterConfig := m.parameterRegistry.parameterDetail[modelIndex][parameterIndex]
 	// Check if device and param id are valid and in the State
-	if _, exists := state[deviceID][parameterIndex]; !exists {
+	if ds == nil {
+		m.log.Errorf("Invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
+		return &pb.Parameter{
+			Id:    parameter.Id,
+			Error: pb.ParameterError_UnknownID,
+			Value: []*pb.ParameterValue{},
+		}
+	}
+	if _, exists := ds.params[parameterIndex]; !exists {
 		m.log.Errorf("Invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
 
 		return &pb.Parameter{
@@ -207,25 +232,77 @@ func (m *IBeamParameterManager) Start() {
 		}
 	}()
 
-	// Main Manager Routines
+	// Size the worker pool to NumCPU, capped at maxParameterWorkers.
+	n := runtime.NumCPU()
+	if n > maxParameterWorkers {
+		n = maxParameterWorkers
+	}
+	if n < 1 {
+		n = 1
+	}
+	m.numWorkers = n
+
+	m.targetQueues = make([]chan *pb.Parameter, n)
+	m.currentQueues = make([]chan *pb.Parameter, n)
+	m.eventQueues = make([]chan paramDimensionAddress, n)
+	for i := 0; i < n; i++ {
+		m.targetQueues[i] = make(chan *pb.Parameter, perWorkerQueueSize)
+		m.currentQueues[i] = make(chan *pb.Parameter, perWorkerQueueSize)
+		m.eventQueues[i] = make(chan paramDimensionAddress, perWorkerQueueSize)
+	}
+
+	// Workers: each owns one target/current/event queue triplet. Same deviceID
+	// always routes to the same worker, so per-device ordering is preserved.
+	for i := 0; i < n; i++ {
+		i := i
+		go func() {
+			for {
+				select {
+				case parameter, ok := <-m.targetQueues[i]:
+					if !ok {
+						return
+					}
+					m.ingestTargetParameter(parameter)
+				case parameter, ok := <-m.currentQueues[i]:
+					if !ok {
+						return
+					}
+					m.ingestCurrentParameter(parameter)
+				case address, ok := <-m.eventQueues[i]:
+					if !ok {
+						return
+					}
+					m.processParameter(address)
+				}
+			}
+		}()
+	}
+
+	// Dispatchers: read each source channel, route to the worker for that device.
 	go func() {
 		for parameter := range m.clientsSetterStream {
-			// 				m.log.Infof("Got set from client %v", parameter)
-			m.ingestTargetParameter(parameter)
+			m.targetQueues[m.workerFor(parameter)] <- parameter
 		}
 	}()
 	go func() {
 		for parameter := range m.in {
-			//				m.log.Infof("Got result from device %v", parameter)
-			m.ingestCurrentParameter(parameter)
+			m.currentQueues[m.workerFor(parameter)] <- parameter
 		}
 	}()
 	go func() {
 		for address := range m.parameterEvent {
-			//				m.log.Infof("Gonna proccess param %v", parameter)
-			m.processParameter(address)
+			m.eventQueues[address.device%uint32(m.numWorkers)] <- address
 		}
 	}()
+}
+
+// workerFor returns the worker index for a parameter based on its deviceID.
+// Falls back to worker 0 for messages without an Id (defensive — should be rare).
+func (m *IBeamParameterManager) workerFor(parameter *pb.Parameter) uint32 {
+	if parameter == nil || parameter.Id == nil {
+		return 0
+	}
+	return parameter.Id.Device % uint32(m.numWorkers)
 }
 
 func isDescreteValue(parameterConfig *pb.ParameterDetail, value float64) bool {

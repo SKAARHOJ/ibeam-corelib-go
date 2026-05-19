@@ -21,9 +21,13 @@ func (m *IBeamParameterManager) ingestTargetParameter(parameter *pb.Parameter) {
 	}
 
 	// Get State and the Configuration (Details) of the Parameter
-	m.parameterRegistry.muValue.Lock()
-	defer m.parameterRegistry.muValue.Unlock()
-	state := m.parameterRegistry.parameterValue
+	ds := m.parameterRegistry.loadDeviceState(deviceID)
+	if ds == nil {
+		mlog.Errorf("ingestTargetParameter: unknown device %d", deviceID)
+		return
+	}
+	ds.mu.Lock()
+	defer ds.mu.Unlock()
 
 	m.parameterRegistry.muDetail.RLock()
 	defer m.parameterRegistry.muDetail.RUnlock()
@@ -51,7 +55,7 @@ valueLoop:
 		}
 
 		// Check if dimension of the value is valid
-		if !state[deviceID][parameterID].multiIndexHasValue(newParameterValue.DimensionID) {
+		if !ds.params[parameterID].multiIndexHasValue(newParameterValue.DimensionID) {
 			mlog.Errorf("Received invalid Dimension %d for %s", newParameterValue.DimensionID, m.pName(parameter.Id))
 			m.serverClientsStream <- &pb.Parameter{
 				Id:    parameter.Id,
@@ -60,7 +64,7 @@ valueLoop:
 			}
 			continue
 		}
-		dimension, err := state[deviceID][parameterID].multiIndex(newParameterValue.DimensionID)
+		dimension, err := ds.params[parameterID].multiIndex(newParameterValue.DimensionID)
 		if err != nil {
 			mlog.Error(err)
 			continue

@@ -22,23 +22,32 @@ var cachedIDMapMu sync.RWMutex
 var cachedNameMap map[uint32]map[string]uint32
 var cachedNameMapMu sync.RWMutex
 
-type parameterDetails map[uint32]map[uint32]*pb.ParameterDetail     //Parameter Details: model, parameter
-type parameterStates map[uint32]map[uint32]*iBeamParameterDimension //Parameter States: device,parameter,dimension
+type parameterDetails map[uint32]map[uint32]*pb.ParameterDetail //Parameter Details: model, parameter
+
+// deviceState carries the per-device parameter buffer map and its own RWMutex.
+// Replaces the previous global muValue: different devices can be processed in parallel.
+// The params map is created once at RegisterDevice and is never structurally mutated afterwards
+// (only the contents of the *iBeamParameterDimension values are mutated under mu).
+type deviceState struct {
+	mu     sync.RWMutex
+	params map[uint32]*iBeamParameterDimension
+}
 
 // IBeamParameterRegistry is the storage of the core.
 // It saves all Infos about the Core, Device and Models and stores the Details and current Values of the Parameter.
 type IBeamParameterRegistry struct {
-	muInfo           sync.RWMutex // Protects both Model and DeviceInfos
-	muDetail         sync.RWMutex
-	muValue          sync.RWMutex
-	coreInfo         *pb.CoreInfo
-	deviceInfos      map[uint32]*pb.DeviceInfo
-	modelInfos       map[uint32]*pb.ModelInfo
-	parameterDetail  parameterDetails //Parameter Details: model, parameter
-	parameterValue   parameterStates  //Parameter States: device,parameter,dimension
-	ModelAutoIDs     bool             // This is not recommended to use, please do use the proper IDs for models
-	modelsDone       bool             // Sanity flag set on first call to add parameters to ensure order
-	parametersDone   atomic.Bool      // Sanity flag set on first call to add devices to ensure order
+	muInfo          sync.RWMutex // Protects both Model and DeviceInfos
+	muDetail        sync.RWMutex
+	coreInfo        *pb.CoreInfo
+	deviceInfos     map[uint32]*pb.DeviceInfo
+	modelInfos      map[uint32]*pb.ModelInfo
+	parameterDetail parameterDetails //Parameter Details: model, parameter
+	// parameterValue holds *deviceState per deviceID. sync.Map gives lock-free reads on the
+	// outer map; per-device fine-grained locks live inside deviceState.mu.
+	parameterValue   sync.Map
+	ModelAutoIDs     bool        // This is not recommended to use, please do use the proper IDs for models
+	modelsDone       bool        // Sanity flag set on first call to add parameters to ensure order
+	parametersDone   atomic.Bool // Sanity flag set on first call to add devices to ensure order
 	connectionExists bool
 	log              *log.Entry
 
@@ -62,22 +71,31 @@ func idFromName(name string) uint32 {
 	return h.Sum32()
 }
 
-// device,parameter,instance
-func (r *IBeamParameterRegistry) getInstanceValues(dpID *pb.DeviceParameterID, includeDynamicConfig bool, dimensionFilter ...[]uint32) (values []*pb.ParameterValue) {
-	deviceID := dpID.Device
-	parameterIndex := dpID.Parameter
-	_, dExists := r.parameterValue[deviceID]
-	if dpID.Device == 0 || dpID.Parameter == 0 || !dExists {
+// loadDeviceState returns the per-device state, or nil if the device is not registered.
+func (r *IBeamParameterRegistry) loadDeviceState(deviceID uint32) *deviceState {
+	v, ok := r.parameterValue.Load(deviceID)
+	if !ok {
+		return nil
+	}
+	return v.(*deviceState)
+}
+
+// getInstanceValues returns the parameter values for the given device/parameter pair.
+// Caller must hold ds.mu (read or write) for the duration of the call and use of the
+// returned values, since getValues reads buffer state that other workers may mutate.
+func (r *IBeamParameterRegistry) getInstanceValues(ds *deviceState, dpID *pb.DeviceParameterID, includeDynamicConfig bool, dimensionFilter ...[]uint32) (values []*pb.ParameterValue) {
+	if dpID.Device == 0 || dpID.Parameter == 0 || ds == nil {
 		r.log.Error("Could not get instance values for DeviceParameterID: Device:", dpID.Device, " and param: ", dpID.Parameter)
 		return nil
 	}
 
-	if _, ok := r.parameterValue[deviceID][parameterIndex]; !ok {
+	dim, ok := ds.params[dpID.Parameter]
+	if !ok {
 		r.log.Error("Could not get instance values for DeviceParameterID: Device:", dpID.Device, " and param: ", dpID.Parameter, " param does not exist")
 		return nil
 	}
 
-	return getValues(r.log, r.parameterValue[deviceID][parameterIndex], includeDynamicConfig, dimensionFilter...)
+	return getValues(r.log, dim, includeDynamicConfig, dimensionFilter...)
 }
 
 func getValues(rlog *log.Entry, dimension *iBeamParameterDimension, includeDynamicConfig bool, dimensionFilter ...[]uint32) (values []*pb.ParameterValue) {
@@ -356,21 +374,23 @@ func (r *IBeamParameterRegistry) getParameterDetail(parameterID, modelID uint32)
 
 // GetParameterValue gets a copy of the new parameter value from the state by pid, did and dimensionIDs
 func (r *IBeamParameterRegistry) GetParameterValue(parameterID, deviceID uint32, dimensionID ...uint32) (*pb.ParameterValue, error) {
-	r.muValue.RLock()
-	defer r.muValue.RUnlock()
-	state := r.parameterValue
+	ds := r.loadDeviceState(deviceID)
+	if ds == nil {
+		return nil, fmt.Errorf("getparametervalue: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
+	}
+	ds.mu.RLock()
+	defer ds.mu.RUnlock()
 
-	// first check param and deviceID
-	if _, exists := state[deviceID][parameterID]; !exists {
+	dim, exists := ds.params[parameterID]
+	if !exists {
 		return nil, fmt.Errorf("getparametervalue: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
 	}
 
-	// Check if Dimension is Valid
-	if !state[deviceID][parameterID].multiIndexHasValue(dimensionID) {
+	if !dim.multiIndexHasValue(dimensionID) {
 		return nil, fmt.Errorf("getparametervalue: invalid dimension id  %v for parameter %d and device %d", dimensionID, parameterID, deviceID)
 	}
 
-	parameterDimension, err := state[deviceID][parameterID].multiIndex(dimensionID)
+	parameterDimension, err := dim.multiIndex(dimensionID)
 	if err != nil {
 		return nil, err
 	}
@@ -386,21 +406,23 @@ func (r *IBeamParameterRegistry) GetParameterValue(parameterID, deviceID uint32,
 
 // GetParameterCurrentValue gets a copy of the current parameter value from the state by pid, did and dimensionIDs
 func (r *IBeamParameterRegistry) GetParameterCurrentValue(parameterID, deviceID uint32, dimensionID ...uint32) (*pb.ParameterValue, error) {
-	r.muValue.RLock()
-	defer r.muValue.RUnlock()
-	state := r.parameterValue
+	ds := r.loadDeviceState(deviceID)
+	if ds == nil {
+		return nil, fmt.Errorf("getcurrentparametervalue: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
+	}
+	ds.mu.RLock()
+	defer ds.mu.RUnlock()
 
-	// first check param and deviceID
-	if _, exists := state[deviceID][parameterID]; !exists {
+	dim, exists := ds.params[parameterID]
+	if !exists {
 		return nil, fmt.Errorf("getcurrentparametervalue: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
 	}
 
-	// Check if Dimension is Valid
-	if !state[deviceID][parameterID].multiIndexHasValue(dimensionID) {
+	if !dim.multiIndexHasValue(dimensionID) {
 		return nil, fmt.Errorf("getcurrentparametervalue: invalid dimension id  %v for parameter %d and device %d", dimensionID, parameterID, deviceID)
 	}
 
-	parameterDimension, err := state[deviceID][parameterID].multiIndex(dimensionID)
+	parameterDimension, err := dim.multiIndex(dimensionID)
 	if err != nil {
 		return nil, err
 	}
@@ -433,21 +455,23 @@ func (r *IBeamParameterRegistry) GetParameterOptions(parameterID, deviceID uint3
 	}
 	r.muDetail.RUnlock()
 
-	r.muValue.RLock()
-	defer r.muValue.RUnlock()
-	state := r.parameterValue
+	ds := r.loadDeviceState(deviceID)
+	if ds == nil {
+		return nil, fmt.Errorf("getoptions: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
+	}
+	ds.mu.RLock()
+	defer ds.mu.RUnlock()
 
-	// first check param and deviceID
-	if _, exists := state[deviceID][parameterID]; !exists {
+	dim, exists := ds.params[parameterID]
+	if !exists {
 		return nil, fmt.Errorf("getoptions: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
 	}
 
-	// Check if Dimension is Valid
-	if !state[deviceID][parameterID].multiIndexHasValue(dimensionID) {
+	if !dim.multiIndexHasValue(dimensionID) {
 		return nil, fmt.Errorf("getoptions: invalid dimension id  %v for parameter %d and device %d", dimensionID, parameterID, deviceID)
 	}
 
-	parameterDimension, err := state[deviceID][parameterID].multiIndex(dimensionID)
+	parameterDimension, err := dim.multiIndex(dimensionID)
 	if err != nil {
 		return nil, err
 	}
@@ -482,21 +506,23 @@ func (r *IBeamParameterRegistry) GetParameterMinMax(parameterID, deviceID uint32
 	}
 	r.muDetail.RUnlock()
 
-	r.muValue.RLock()
-	defer r.muValue.RUnlock()
-	state := r.parameterValue
+	ds := r.loadDeviceState(deviceID)
+	if ds == nil {
+		return 0, 0, fmt.Errorf("getminmax: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
+	}
+	ds.mu.RLock()
+	defer ds.mu.RUnlock()
 
-	// first check param and deviceID
-	if _, exists := state[deviceID][parameterID]; !exists {
+	dim, exists := ds.params[parameterID]
+	if !exists {
 		return 0, 0, fmt.Errorf("getminmax: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
 	}
 
-	// Check if Dimension is Valid
-	if !state[deviceID][parameterID].multiIndexHasValue(dimensionID) {
+	if !dim.multiIndexHasValue(dimensionID) {
 		return 0, 0, fmt.Errorf("getminmax: invalid dimension id  %v for parameter %d and device %d", dimensionID, parameterID, deviceID)
 	}
 
-	parameterDimension, err := state[deviceID][parameterID].multiIndex(dimensionID)
+	parameterDimension, err := dim.multiIndex(dimensionID)
 	if err != nil {
 		return 0, 0, err
 	}
@@ -570,9 +596,7 @@ func (r *IBeamParameterRegistry) ReRegisterDevice(deviceID, modelID uint32) erro
 	delete(r.deviceInfos, deviceID)
 	r.muInfo.Unlock()
 
-	r.muValue.Lock()
-	delete(r.parameterValue, deviceID)
-	r.muValue.Unlock()
+	r.parameterValue.Delete(deviceID)
 
 	// Call register device with old ID
 	_, err := r.RegisterDevice(deviceID, modelID)
@@ -606,9 +630,6 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 	}
 	r.parametersDone.Store(true)
 	r.validateAllParams()
-
-	r.muValue.Lock()
-	defer r.muValue.Unlock() // Locking here to ensure the rest of corelib does not send out weird incomplete info meanwhile...
 
 	r.muDetail.RLock()
 	if _, exists := r.parameterDetail[modelID]; !exists {
@@ -763,9 +784,7 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 	}
 	r.muInfo.Unlock()
 
-	//r.muValue.Lock() // Earlier we only locked the value around here... but now we need to use this lock to make sure the manager does not send out nonsense meanwhile
-	r.parameterValue[deviceID] = parameterDimensions
-	//r.muValue.Unlock()
+	r.parameterValue.Store(deviceID, &deviceState{params: parameterDimensions})
 
 	r.log.Debugf("Device '%v' registered with model: %v (%v)", deviceID, modelID, r.modelInfos[modelID].Name)
 	return deviceID, nil
