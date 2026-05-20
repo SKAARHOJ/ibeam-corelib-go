@@ -40,7 +40,7 @@ var forceConfig bool                    // Set to true if a .forceconfig file wa
 
 // IBeamServer implements the IbeamCoreServer interface of the generated protofile library.
 type IBeamServer struct {
-	*pb.UnimplementedIbeamCoreServer
+	pb.UnimplementedIbeamCoreServer
 	parameterRegistry        *IBeamParameterRegistry
 	clientsSetterStream      chan *pb.Parameter
 	serverClientsStream      chan *pb.Parameter
