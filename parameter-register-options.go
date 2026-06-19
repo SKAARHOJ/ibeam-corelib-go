@@ -25,7 +25,7 @@ func WithIncrementPassthrough() func(r *IBeamParameterRegistry, id *pb.ModelPara
 	return setFlag(FlagIncrementalPassthrough)
 }
 
-// WithValuePassthrough disables the manager for Normal Int and Binary Parameters
+// WithValuePassthrough disables the manager for Normal Int, Float and Binary Parameters
 func WithValuePassthrough() func(r *IBeamParameterRegistry, id *pb.ModelParameterID) {
 	return setFlag(FlagValuePassthrough)
 }

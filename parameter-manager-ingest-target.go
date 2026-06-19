@@ -301,6 +301,16 @@ valueLoop:
 					continue
 				}
 			}
+
+			if parameterBuffer.hasFlag(FlagValuePassthrough) {
+				// basically we just send this out without caring too much...
+				m.out <- &pb.Parameter{
+					Id:    parameter.Id,
+					Error: 0,
+					Value: []*pb.ParameterValue{newParameterValue},
+				}
+				continue
+			}
 		case *pb.ParameterValue_Str:
 			if parameterConfig.ValueType != pb.ValueType_String {
 				mlog.Errorf("Got Value with Type %T for %s, but it needs %v", newValue, parameterConfig.Name, pb.ValueType_name[int32(parameterConfig.ValueType)])
