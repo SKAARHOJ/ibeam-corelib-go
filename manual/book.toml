@@ -1,0 +1,32 @@
+[book]
+authors = ["SKAARHOJ"]
+description = "IBeam Core Library for Go - Developer Manual"
+language = "en"
+multilingual = false
+src = "src"
+title = "IBeam Core Library for Go"
+
+[build]
+build-dir = "book"
+create-missing = true
+preprocess = []
+use-default-preprocessors = true
+
+[preprocessor.links]
+
+[preprocessor.index]
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+smart-punctuation = true
+mathjax-support = false
+copy-fonts = true
+site-url = "/ibeam-corelib-go/"
+git-repository-url = "https://github.com/SKAARHOJ/ibeam-corelib-go"
+git-repository-icon = "fa-github"
+edit-url-template = "https://github.com/SKAARHOJ/ibeam-corelib-go/edit/master/manual/{path}"
+
+[output.html.search]
+enable = true
+limit-results = 20
