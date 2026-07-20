@@ -1,9 +1,16 @@
 # IBeam Core Library for Go
 
 This manual documents `ibeam-corelib-go`, the library used to build SKAARHOJ
-**devicecores**. A devicecore translates between the SKAARHOJ devicecore
-protocol (gRPC) and whatever protocol your actual hardware speaks, so that
-clients like **Reactor** and **IBeam Testtube** can control it.
+**devicecores** for the **BluePill** platform. A devicecore translates between
+the SKAARHOJ devicecore protocol (gRPC) and whatever protocol your actual
+hardware speaks, so that clients like **Reactor** and
+**[IBeam Testtube](https://github.com/SKAARHOJ/ibeam-testtube-releases/releases)**
+can control it.
+
+> **Why "IBeam"?** It is the historical working title of the BluePill platform,
+> now used only internally. Named after the load-bearing girder in
+> construction — a single rigid interface that keeps cores, Reactor and hardware
+> decoupled from one another. See [Introduction & Overview](intro.md).
 
 ```
 [Control Panel] → [Reactor] → [gRPC/IBeam] → [Your Devicecore] → [Device Protocol] → [Device]
@@ -29,8 +36,10 @@ Use the sidebar for the full table of contents.
 - Basic understanding of gRPC concepts
 - Familiarity with the SKAARHOJ ecosystem (Reactor, IBeam Testtube)
 
-## A working example
+## Starting from the template
 
-The `core-ibeamexample` repository is a complete, exercised devicecore that uses
-essentially every feature described here. Where this manual and that code
-disagree, the code is right.
+Rather than wiring a core up from scratch, start from
+**[core-skaarhoj-template](https://github.com/SKAARHOJ/core-skaarhoj-template)** —
+a working devicecore skeleton with the same `main.go` / `parameters.go` /
+`process.go` / `config.go` layout used throughout this manual. Clone it, rename
+it, and replace the device communication in `process.go` with your own protocol.

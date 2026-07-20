@@ -10,7 +10,22 @@ This guide walks you through creating your first devicecore using the ibeam-core
 
 ## Project Setup
 
-### 1. Initialize Your Project
+### Option A: Start from the template (recommended)
+
+[core-skaarhoj-template](https://github.com/SKAARHOJ/core-skaarhoj-template) is a
+working devicecore with the dependencies, config plumbing and file layout
+already in place:
+
+```bash
+git clone https://github.com/SKAARHOJ/core-skaarhoj-template.git my-devicecore
+cd my-devicecore
+```
+
+Then rename the module in `go.mod`, and replace the device communication in
+`process.go` and the parameter definitions in `parameters.go` with your own. The
+rest of this guide explains what those files contain and why.
+
+### Option B: From scratch
 
 ```bash
 mkdir my-devicecore
@@ -18,7 +33,7 @@ cd my-devicecore
 go mod init my-devicecore
 ```
 
-### 2. Add Dependencies
+Add the dependencies:
 
 ```bash
 go get github.com/SKAARHOJ/ibeam-corelib-go@latest
@@ -258,10 +273,19 @@ Your devicecore will start and listen on port 8502. You should see logs indicati
 
 ## Testing with IBeam Testtube
 
-1. Download IBeam Testtube from SKAARHOJ
+Testtube is the development client for devicecores. It talks the same protocol
+Reactor does, so you can exercise a core with no panel and no real hardware
+present.
+
+1. Download the latest build from
+   [ibeam-testtube-releases](https://github.com/SKAARHOJ/ibeam-testtube-releases/releases)
 2. Connect to `localhost:8502`
-3. You should see your devicecore with registered parameters
-4. Test parameter changes and observe the behavior
+3. You should see your devicecore with its registered parameters
+4. Change parameter values and watch your handler receive them on `fromManager`,
+   and your `toManager` sends appear back in the UI
+
+This round trip is the quickest way to tell whether a parameter is registered
+the way you intended before wiring up the real device.
 
 ## Configuration Support
 

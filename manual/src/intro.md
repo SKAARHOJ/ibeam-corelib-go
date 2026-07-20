@@ -1,5 +1,22 @@
 # Introduction & Overview
 
+## A note on the name "IBeam"
+
+You will see **IBeam** throughout this library, in package names, the protocol
+and the tooling — but you will not see it in any SKAARHOJ product. It was the
+original working title for what became the **BluePill** platform, and today it
+survives only as an internal name inside the codebase.
+
+The name was chosen deliberately. An I-beam is the load-bearing girder of a
+building: a rigid, standardised profile that many different structures can be
+bolted onto. That is the idea behind the architecture here — devicecores, Reactor and
+the hardware are **decoupled** from each other, each one able to change
+independently, all connected through one strong, backwardcompatible
+interface. The IBeam protocol family.
+
+So: **IBeam used to be BluePill's internal workingtitle.** When you read "IBeam protocol" or
+"IBeam core", think "the devicecore protocol" and "a devicecore".
+
 ## What is IBeam Core Library for Go?
 
 The `ibeam-corelib-go` is a comprehensive Go library designed to help developers build **devicecores** - software components that act as protocol translators and device controllers within the SKAARHOJ ecosystem. A devicecore sits between SKAARHOJ control panels (like those running Reactor) and the actual devices being controlled (cameras, switchers, audio mixers, etc.).
@@ -9,7 +26,9 @@ The `ibeam-corelib-go` is a comprehensive Go library designed to help developers
 ### Key Components
 
 - **Reactor**: SKAARHOJ's main control software running on control panels
-- **IBeam Testtube**: Development and testing client for devicecores
+- **[IBeam Testtube](https://github.com/SKAARHOJ/ibeam-testtube-releases/releases)**:
+  Development and testing client for devicecores — connect it straight to your
+  core to inspect and exercise parameters without needing a panel or reactor
 - **Devicecores**: Protocol translation services (what you build with this library)
 - **Devices**: The actual hardware being controlled (cameras, switchers, etc.)
 
