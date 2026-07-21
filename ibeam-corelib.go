@@ -786,8 +786,16 @@ func CreateServerWithDefaultModelAndConfig(coreInfo *pb.CoreInfo, defaultModel *
 						continue
 					}
 
+					// System messages (parameter 0 carrying a System value) and custom errors must
+					// bypass the parameter-id filter: a narrowed subscription still needs core-initiated
+					// messages such as SaveDeviceConfiguration and per-device error statuses. The device
+					// filter above still applies. With an empty or device-only filter these already pass.
+					isSystemMessage := parameter.Id != nil && parameter.Id.Parameter == 0 &&
+						len(parameter.Value) > 0 && parameter.Value[0].GetSystem() != nil
+					isCustomError := parameter.Error == pb.ParameterError_Custom
+
 					// Check for parameter filtering
-					if len(paramfilter.Ids) >= 1 && paramfilter.Ids[0].Parameter != 0 && !containsDeviceParameter(parameter.Id, paramfilter) {
+					if len(paramfilter.Ids) >= 1 && paramfilter.Ids[0].Parameter != 0 && !isSystemMessage && !isCustomError && !containsDeviceParameter(parameter.Id, paramfilter) {
 						sLog.Tracef("Blocked sending out of change of parameter %d (D: %d) because of device parameter id filter, %v", parameter.Id.Parameter, parameter.Id.Device, paramfilter)
 						continue
 					}
