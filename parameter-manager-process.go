@@ -207,10 +207,16 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 		}
 
 		if parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {
-			parameterBuffer.currentValue = proto.Clone(valueToSend).(*pb.ParameterValue)
 			if !isSmoothingStep {
+				// valueToSend was snapshotted while the set was still pending, so it carries
+				// isAssumedState true. On NoFeedback the value is settled the moment it goes
+				// out, and nothing pushes a correction afterwards, so a client would render
+				// it as assumed for as long as it holds it. Clear it on the value itself,
+				// not just on the buffer.
+				valueToSend.IsAssumedState = false
 				parameterBuffer.isAssumedState.Store(false)
 			}
+			parameterBuffer.currentValue = proto.Clone(valueToSend).(*pb.ParameterValue)
 		}
 
 		// If we Have a current Option, get the Value for the option from the Option List
