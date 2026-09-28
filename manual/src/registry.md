@@ -217,6 +217,9 @@ options, err := registry.GetParameterOptions(paramID, deviceID, dimensionID...)
 
 // Get current min/max values (for dynamic ranges)
 min, max, err := registry.GetParameterMinMax(paramID, deviceID, dimensionID...)
+
+// Get the current default value (dynamic default if set, otherwise the static one)
+def, err := registry.GetParameterDefault(paramID, deviceID, dimensionID...)
 ```
 
 ## Device Information

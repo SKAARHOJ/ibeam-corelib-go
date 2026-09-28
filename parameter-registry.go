@@ -132,6 +132,10 @@ func getValues(rlog *log.Entry, dimension *iBeamParameterDimension, includeDynam
 		if value.dynamicMin != nil {
 			values = append(values, b.NewMin(*value.dynamicMin, paramValue.DimensionID...))
 		}
+
+		if value.dynamicDefault != nil {
+			values = append(values, b.NewDefault(proto.Clone(value.dynamicDefault).(*pb.ParameterValue), paramValue.DimensionID...))
+		}
 		return values
 	}
 
@@ -543,6 +547,61 @@ func (r *IBeamParameterRegistry) GetParameterMinMax(parameterID, deviceID uint32
 	}
 
 	return min, max, nil
+}
+
+// GetParameterDefault gets a copy of the default value of a parameter by pid, did and dimensionIDs. If the parameter has a dynamic default set, that one is returned, otherwise the static default (can be nil)
+func (r *IBeamParameterRegistry) GetParameterDefault(parameterID, deviceID uint32, dimensionID ...uint32) (*pb.ParameterValue, error) {
+	model := r.GetModelIDByDeviceID(deviceID)
+
+	r.muDetail.RLock()
+	// first check param and model
+	if _, exists := r.parameterDetail[model][parameterID]; !exists {
+		r.muDetail.RUnlock()
+		return nil, fmt.Errorf("getdefault: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
+	}
+
+	var defaultValue *pb.ParameterValue
+	if r.parameterDetail[model][parameterID].DefaultValue != nil {
+		defaultValue = proto.Clone(r.parameterDetail[model][parameterID].DefaultValue).(*pb.ParameterValue)
+	}
+
+	if !r.parameterDetail[model][parameterID].DefaultIsDynamic {
+		r.muDetail.RUnlock()
+		return defaultValue, nil
+	}
+	r.muDetail.RUnlock()
+
+	ds := r.loadDeviceState(deviceID)
+	if ds == nil {
+		return nil, fmt.Errorf("getdefault: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
+	}
+	ds.mu.RLock()
+	defer ds.mu.RUnlock()
+
+	dim, exists := ds.params[parameterID]
+	if !exists {
+		return nil, fmt.Errorf("getdefault: invalid ID for: DeviceID %d, ParameterID %d", deviceID, parameterID)
+	}
+
+	if !dim.multiIndexHasValue(dimensionID) {
+		return nil, fmt.Errorf("getdefault: invalid dimension id  %v for parameter %d and device %d", dimensionID, parameterID, deviceID)
+	}
+
+	parameterDimension, err := dim.multiIndex(dimensionID)
+	if err != nil {
+		return nil, err
+	}
+
+	parameterBuffer, err := parameterDimension.getValue()
+	if err != nil {
+		return nil, err
+	}
+
+	if parameterBuffer.dynamicDefault != nil {
+		return proto.Clone(parameterBuffer.dynamicDefault).(*pb.ParameterValue), nil
+	}
+
+	return defaultValue, nil
 }
 
 // GetModelIDByDeviceID is a helper to get the modelid for a specific device

@@ -156,6 +156,39 @@ DefaultValue: b.String("Camera 1"), // By name
 
 **Use cases**: Input selection, modes, presets, enumerations
 
+### Dynamic Default Values
+
+The `DefaultValue` is what clients use for "reset to default" and similar actions. If the default
+depends on the device state (e.g. a camera's factory setting that differs per model or per
+channel), set `DefaultIsDynamic` and push new defaults at runtime:
+
+```go
+registry.RegisterParameter(&pb.ParameterDetail{
+    Name:             "gain",
+    // ...
+    ValueType:        pb.ValueType_Integer,
+    DefaultValue:     b.Int(0), // static default, still required
+    DefaultIsDynamic: true,
+    Dimensions:       []*pb.DimensionDetail{{Name: "Channel", Count: 4}},
+})
+
+// later, from the device communication:
+toManager <- b.Param(registry.PID("gain"), deviceID, b.NewDefault(b.Int(6), 2)) // default for channel 2
+```
+
+The default update is sent to clients on the subscribe stream, the same way as dynamic option lists
+and min/max values, and is replayed to clients that connect later. The inner value must match the
+`ValueType` (for `Opt` parameters a `b.OptIndex()` or a `b.String()` with the option name). Use
+`registry.GetParameterDefault(pid, did, dims...)` to read the current default back.
+
+Limitations:
+- The initial value of a parameter still comes from the static `DefaultValue`, a dynamic default
+  does not change the value itself
+- `GetParameterDetails` always returns the static default, only subscribed clients see dynamic ones
+- Dynamic defaults are cleared when a device is re-registered and need to be sent again
+- For `Opt` parameters with a dynamic option list, send the option list before a default that
+  refers to an option by name
+
 ### No-Value Parameters (Triggers)
 
 ```go

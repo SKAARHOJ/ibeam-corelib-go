@@ -246,6 +246,15 @@ func (r *IBeamParameterRegistry) GetParameterMinMax(parameterID, deviceID uint32
 
 Get current min/max values for numeric parameters.
 
+#### GetParameterDefault
+
+```go
+func (r *IBeamParameterRegistry) GetParameterDefault(parameterID, deviceID uint32,
+    dimensionID ...uint32) (*pb.ParameterValue, error)
+```
+
+Get the current default value: the dynamic default if one was set (see `DefaultIsDynamic`), otherwise the static `DefaultValue` (can be nil).
+
 #### GetModelIDByDeviceID
 
 ```go
@@ -347,6 +356,7 @@ func Avail(available bool, dimensionID ...uint32) *pb.ParameterValue
 func NewMin(val float64, dimensionID ...uint32) *pb.ParameterValue
 func NewMax(val float64, dimensionID ...uint32) *pb.ParameterValue
 func NewOptList(val *pb.OptionList, dimensionID ...uint32) *pb.ParameterValue
+func NewDefault(val *pb.ParameterValue, dimensionID ...uint32) *pb.ParameterValue // requires DefaultIsDynamic
 ```
 
 ### Parameter Creation

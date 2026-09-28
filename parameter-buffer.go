@@ -35,6 +35,7 @@ type ibeamParameterValueBuffer struct {
 	dynamicOptions *pb.OptionList
 	dynamicMin     *float64
 	dynamicMax     *float64
+	dynamicDefault *pb.ParameterValue
 
 	// Value smoothing
 	smoothingMaxStep  float64            // max change per step; 0 = no smoothing
@@ -147,6 +148,8 @@ func (b *ibeamParameterValueBuffer) currentEquals(new *pb.ParameterValue) bool {
 	case *pb.ParameterValue_MinimumUpdate:
 		return false
 	case *pb.ParameterValue_MaximumUpdate:
+		return false
+	case *pb.ParameterValue_DefaultUpdate:
 		return false
 	case *pb.ParameterValue_Png:
 		nv, ok := new.Value.(*pb.ParameterValue_Png)

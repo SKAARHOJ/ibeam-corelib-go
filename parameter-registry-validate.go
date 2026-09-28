@@ -1,6 +1,7 @@
 package ibeamcorelib
 
 import (
+	"fmt"
 	"strings"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
@@ -118,48 +119,13 @@ func validateParameter(rlog *log.Entry, detail *pb.ParameterDetail) {
 
 	if detail.DefaultValue != nil {
 		// Default Value Checks
-		switch detail.DefaultValue.Value.(type) {
-		case *pb.ParameterValue_Integer:
-			if detail.ValueType != pb.ValueType_Integer {
-				rlog.Fatalf("Parameter: '%v': Invalid default value for %s", detail.Name, detail.ValueType)
-			}
-		case *pb.ParameterValue_IncDecSteps:
-			rlog.Fatalf("Parameter: '%v': DefaultValue cant be IncDecSteps", detail.Name)
-		case *pb.ParameterValue_Floating:
-			if detail.ValueType != pb.ValueType_Floating {
-				rlog.Fatalf("Parameter: '%v': Invalid default value for %s", detail.Name, detail.ValueType)
-			}
-		case *pb.ParameterValue_Str:
-			if detail.ValueType != pb.ValueType_String && detail.ValueType != pb.ValueType_Opt {
-				rlog.Fatalf("Parameter: '%v': Invalid default value for %s", detail.Name, detail.ValueType)
-			}
-		case *pb.ParameterValue_CurrentOption:
-			if detail.ValueType != pb.ValueType_Opt {
-				rlog.Fatalf("Parameter: '%v': Invalid default value for %s", detail.Name, detail.ValueType)
-			}
-		case *pb.ParameterValue_Cmd:
-			rlog.Fatalf("Parameter: '%v': DefaultValue cant be Cmd", detail.Name)
-		case *pb.ParameterValue_Binary:
-			if detail.ValueType != pb.ValueType_Binary {
-				rlog.Fatalf("Parameter: '%v': Invalid default value for %s", detail.Name, detail.ValueType)
-			}
-		case *pb.ParameterValue_OptionListUpdate:
-			rlog.Fatalf("Parameter: '%v': DefaultValue cant be OptionListUpdate", detail.Name)
-		case *pb.ParameterValue_MinimumUpdate:
-			rlog.Fatalf("Parameter: '%v': DefaultValue cant be MinUpdate", detail.Name)
-		case *pb.ParameterValue_MaximumUpdate:
-			rlog.Fatalf("Parameter: '%v': DefaultValue cant be MaxUpdate", detail.Name)
-		case *pb.ParameterValue_Png:
-			if detail.ValueType != pb.ValueType_PNG {
-				rlog.Fatalf("Parameter: '%v': Invalid default value for %s", detail.Name, detail.ValueType)
-			}
-		case *pb.ParameterValue_Jpeg:
-			if detail.ValueType != pb.ValueType_JPEG {
-				rlog.Fatalf("Parameter: '%v': Invalid default value for %s", detail.Name, detail.ValueType)
-			}
-		case *pb.ParameterValue_Error:
-			rlog.Fatalf("Parameter: '%v': DefaultValue cant be CustomError", detail.Name)
+		if err := checkDefaultValue(detail.ValueType, detail.DefaultValue); err != nil {
+			rlog.Fatalf("Parameter: '%v': %v", detail.Name, err)
 		}
+	}
+
+	if detail.DefaultIsDynamic && detail.DefaultValue == nil {
+		rlog.Warnf("Parameter '%v': DefaultIsDynamic is set, but no static DefaultValue is set", detail.Name)
 	}
 
 	// Warnings
@@ -229,6 +195,7 @@ func (r *IBeamParameterRegistry) validateAllParams() {
 			}
 		}
 	}
+
 	r.muDetail.RUnlock()
 }
 
@@ -252,4 +219,59 @@ func SplitByBrackets(input string) (valid bool, stringsInBraces []string) {
 	}
 
 	return open == 0, stringsInBraces
+}
+
+// checkDefaultValue checks if a (static or dynamic) default value is valid for the given value type
+func checkDefaultValue(valueType pb.ValueType, defaultValue *pb.ParameterValue) error {
+	if defaultValue == nil {
+		return fmt.Errorf("DefaultValue is nil")
+	}
+	invalid := fmt.Errorf("Invalid default value %T for %s", defaultValue.Value, valueType)
+	switch defaultValue.Value.(type) {
+	case *pb.ParameterValue_Integer:
+		if valueType != pb.ValueType_Integer {
+			return invalid
+		}
+	case *pb.ParameterValue_IncDecSteps:
+		return fmt.Errorf("DefaultValue cant be IncDecSteps")
+	case *pb.ParameterValue_Floating:
+		if valueType != pb.ValueType_Floating {
+			return invalid
+		}
+	case *pb.ParameterValue_Str:
+		if valueType != pb.ValueType_String && valueType != pb.ValueType_Opt {
+			return invalid
+		}
+	case *pb.ParameterValue_CurrentOption:
+		if valueType != pb.ValueType_Opt {
+			return invalid
+		}
+	case *pb.ParameterValue_Cmd:
+		return fmt.Errorf("DefaultValue cant be Cmd")
+	case *pb.ParameterValue_Binary:
+		if valueType != pb.ValueType_Binary {
+			return invalid
+		}
+	case *pb.ParameterValue_OptionListUpdate:
+		return fmt.Errorf("DefaultValue cant be OptionListUpdate")
+	case *pb.ParameterValue_MinimumUpdate:
+		return fmt.Errorf("DefaultValue cant be MinUpdate")
+	case *pb.ParameterValue_MaximumUpdate:
+		return fmt.Errorf("DefaultValue cant be MaxUpdate")
+	case *pb.ParameterValue_DefaultUpdate:
+		return fmt.Errorf("DefaultValue cant be DefaultUpdate")
+	case *pb.ParameterValue_Png:
+		if valueType != pb.ValueType_PNG {
+			return invalid
+		}
+	case *pb.ParameterValue_Jpeg:
+		if valueType != pb.ValueType_JPEG {
+			return invalid
+		}
+	case *pb.ParameterValue_Error:
+		return fmt.Errorf("DefaultValue cant be CustomError")
+	case *pb.ParameterValue_System:
+		return fmt.Errorf("DefaultValue cant be System")
+	}
+	return nil
 }

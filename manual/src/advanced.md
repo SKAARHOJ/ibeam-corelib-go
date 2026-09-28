@@ -202,7 +202,7 @@ func handleMetaParameter(parameter *pb.Parameter) {
 
 ## Dynamic Parameters
 
-Dynamic parameters can change their properties (ranges, options) at runtime based on device state or configuration.
+Dynamic parameters can change their properties (ranges, options, default values) at runtime based on device state or configuration.
 
 ### Dynamic Option Lists
 
@@ -255,9 +255,31 @@ toManager <- b.Param(paramID, deviceID, b.NewMax(40.0))
 toManager <- b.Param(paramID, deviceID, b.NewMin(-30.0), b.NewMax(40.0))
 ```
 
+### Dynamic Default Values
+
+```go
+// Register with dynamic default
+registry.RegisterParameter(&pb.ParameterDetail{
+    Name:             "gain",
+    // ...
+    ValueType:        pb.ValueType_Floating,
+    DefaultValue:     b.Float(0), // static default, used until an update is sent
+    DefaultIsDynamic: true,
+})
+
+// Update the default at runtime (inner value must match the ValueType)
+toManager <- b.Param(paramID, deviceID, b.NewDefault(b.Float(6.0)))
+
+// With dimensions
+toManager <- b.Param(paramID, deviceID, b.NewDefault(b.Float(6.0), 2)) // Dimension [2]
+```
+
+The default only changes what clients use for "reset to default", it does not change the value
+itself. See [Dynamic Default Values](parameters.md#dynamic-default-values) for the limitations.
+
 ### Retrieving Dynamic Values
 
-Both getters take the dimension IDs as variadic trailing arguments
+These getters take the dimension IDs as variadic trailing arguments
 (`dimensionID ...uint32`), so they are simply omitted for parameters without dimensions:
 
 ```go
@@ -271,6 +293,12 @@ if err != nil {
 min, max, err := registry.GetParameterMinMax(paramID, deviceID)
 if err != nil {
     log.Error("Failed to get range:", err)
+}
+
+// Get current default value (dynamic default if set, otherwise the static one)
+def, err := registry.GetParameterDefault(paramID, deviceID)
+if err != nil {
+    log.Error("Failed to get default:", err)
 }
 
 // For a dimensional parameter pass the dimension IDs, here dimension [1,2]

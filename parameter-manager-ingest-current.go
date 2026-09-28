@@ -117,6 +117,29 @@ func (m *IBeamParameterManager) ingestCurrentParameter(parameter *pb.Parameter) 
 			continue
 		}
 
+		// Dynamic default updates are handled the same for all value types
+		if v, ok := newParameterValue.Value.(*pb.ParameterValue_DefaultUpdate); ok {
+			if !parameterConfig.DefaultIsDynamic {
+				mlog.Errorf("Parameter with ID %v has no dynamic default value", parameterID)
+				continue
+			}
+			if v.DefaultUpdate == nil || v.DefaultUpdate.Value == nil {
+				mlog.Errorf("Parameter with ID %v got an empty default update", parameterID)
+				continue
+			}
+			if err := checkDefaultValue(parameterConfig.ValueType, v.DefaultUpdate); err != nil {
+				mlog.Errorf("Parameter with ID %v got an invalid default update: %v", parameterID, err)
+				continue
+			}
+
+			newDefault := proto.Clone(v.DefaultUpdate).(*pb.ParameterValue)
+			newDefault.DimensionID = nil // the outer dimensionID is the one that counts
+			parameterBuffer.dynamicDefault = newDefault
+
+			m.serverClientsStream <- b.Param(parameterID, deviceID, b.NewDefault(proto.Clone(newDefault).(*pb.ParameterValue), newParameterValue.DimensionID...))
+			continue
+		}
+
 		// Check Type of Parameter
 		switch parameterConfig.ValueType {
 		case pb.ValueType_Opt:

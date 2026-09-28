@@ -282,6 +282,7 @@ b.Avail(false)             // Unavailable parameter
 b.NewMin(10.0)             // Dynamic minimum
 b.NewMax(100.0)            // Dynamic maximum
 b.NewOptList(options)      // Dynamic option list
+b.NewDefault(b.Int(6))     // Dynamic default value
 
 // Error/warning messages
 b.Error("code", "message")           // Global error

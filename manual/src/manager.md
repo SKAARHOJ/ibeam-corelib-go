@@ -173,6 +173,9 @@ toManager <- b.Param(paramID, deviceID, b.NewOptList(newOptions))
 // Change min/max values
 toManager <- b.Param(paramID, deviceID, b.NewMin(-10.0))
 toManager <- b.Param(paramID, deviceID, b.NewMax(100.0))
+
+// Change the default value (requires DefaultIsDynamic)
+toManager <- b.Param(paramID, deviceID, b.NewDefault(b.Int(6)))
 ```
 
 ## Error and Status Handling

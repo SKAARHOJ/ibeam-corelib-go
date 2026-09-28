@@ -278,6 +278,11 @@ func NewMin(val float64, dimensionID ...uint32) *pb.ParameterValue {
 	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_MinimumUpdate{MinimumUpdate: val}}
 }
 
+// NewDefault just returns a parameter value of type ParameterValue_DefaultUpdate, used to update a parameters default value (requires DefaultIsDynamic)
+func NewDefault(val *pb.ParameterValue, dimensionID ...uint32) *pb.ParameterValue {
+	return &pb.ParameterValue{DimensionID: dimensionID, Value: &pb.ParameterValue_DefaultUpdate{DefaultUpdate: val}}
+}
+
 // Available and Invalid
 
 // Avail is used to set a specific dimension values available flag
