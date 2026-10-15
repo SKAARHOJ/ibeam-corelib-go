@@ -74,6 +74,7 @@ func (s *IBeamServer) GetCoreInfo(_ context.Context, _ *pb.Empty) (*pb.CoreInfo,
 	s.muDistributor.RLock()
 	coreInfo.ConnectedClients = uint32(len(s.serverClientsDistributor))
 	s.muDistributor.RUnlock()
+	coreInfo.SupportsLogStreaming = logStreamEnabled()
 	return coreInfo, nil
 }
 
