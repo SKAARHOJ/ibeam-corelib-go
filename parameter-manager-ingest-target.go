@@ -2,6 +2,7 @@ package ibeamcorelib
 
 import (
 	"slices"
+	"time"
 
 	pb "github.com/SKAARHOJ/ibeam-corelib-go/ibeam-core"
 	b "github.com/SKAARHOJ/ibeam-corelib-go/paramhelpers"
@@ -152,8 +153,9 @@ valueLoop:
 		newParameterValue.Available = parameterBuffer.currentValue.Available // on an incoming request we can savely ignore the available, it will likely be false anyways
 
 		if !parameterBuffer.hasFlag(FlagValuePassthrough) {
-			if parameterBuffer.currentEquals(newParameterValue) {
-				// if values are equal no need to do anything
+			// Only skip when the value is both confirmed and targeted. While another value
+			// is in flight, a set back to the current value has to replace the target.
+			if parameterBuffer.currentEquals(newParameterValue) && parameterBuffer.targetEquals(newParameterValue) {
 				continue
 			}
 		}
@@ -376,12 +378,23 @@ valueLoop:
 
 		// Safe the momentary saved Value of the Parameter in the state
 
-		if !parameterBuffer.currentEquals(newParameterValue) {
+		if !parameterBuffer.currentEquals(newParameterValue) || !parameterBuffer.targetEquals(newParameterValue) {
 			if parameterConfig.ValueType != pb.ValueType_PNG && parameterConfig.ValueType != pb.ValueType_JPEG {
 				mlog.Debugf("Set new TargetValue '%v', for %s, Device: %v", newParameterValue.Value, m.pName(parameter.Id), deviceID)
 			}
+
+			// An earlier value was sent but not confirmed yet. Its feedback can still arrive
+			// after the target changed, and must not be taken as a change on the device.
+			if parameterBuffer.tryCount != 0 && parameterConfig.FeedbackStyle != pb.FeedbackStyle_NoFeedback {
+				window := time.Duration(parameterConfig.ControlDelayMs) * time.Millisecond * time.Duration(parameterConfig.RetryCount+1)
+				window = max(window, time.Duration(parameterConfig.QuarantineDelayMs)*time.Millisecond)
+				parameterBuffer.staleFeedbackUntil = parameterBuffer.lastUpdate.Add(window)
+			}
+
 			parameterBuffer.targetValue = proto.Clone(newParameterValue).(*pb.ParameterValue)
-			parameterBuffer.isAssumedState.Store(true)
+			// A set back to the confirmed value needs nothing sent unless the device later
+			// reports the earlier value, which then makes the target differ again.
+			parameterBuffer.isAssumedState.Store(!parameterBuffer.currentEquals(newParameterValue))
 			parameterBuffer.tryCount = 0
 
 			// Initialize smoothing sequence from current position

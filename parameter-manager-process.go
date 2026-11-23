@@ -228,6 +228,8 @@ func (m *IBeamParameterManager) handleSingleParameterBuffer(parameterBuffer *ibe
 
 		m.out <- b.Param(parameterID, deviceID, valueToSend)
 		parameterBuffer.tryCount++
+		// The new send is tracked by tryCount from here on
+		parameterBuffer.staleFeedbackUntil = time.Time{}
 
 		if parameterDetail.FeedbackStyle == pb.FeedbackStyle_DelayedFeedback ||
 			parameterDetail.FeedbackStyle == pb.FeedbackStyle_NoFeedback {

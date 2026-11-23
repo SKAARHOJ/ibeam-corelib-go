@@ -37,6 +37,11 @@ type ibeamParameterValueBuffer struct {
 	dynamicMax     *float64
 	dynamicDefault *pb.ParameterValue
 
+	// Set when the target changes while an earlier send has not been confirmed yet.
+	// Until then, feedback from the device is taken as the late answer to that
+	// earlier send and does not replace the target.
+	staleFeedbackUntil time.Time
+
 	// Value smoothing
 	smoothingMaxStep  float64            // max change per step; 0 = no smoothing
 	smoothingLastSent *pb.ParameterValue // last intermediate value sent; nil = not actively smoothing
@@ -101,19 +106,33 @@ func (b *ibeamParameterValueBuffer) decrementParameterValue() *pb.ParameterValue
 	}
 }
 
-// This function provides an optimized way of checking against current value without proto.Equals (which is an expensive function)
-func (b *ibeamParameterValueBuffer) currentEquals(new *pb.ParameterValue) bool {
+// awaitingOwnFeedback reports whether feedback from the device may still be the answer
+// to a value the manager sent, rather than a change made on the device itself.
+func (b *ibeamParameterValueBuffer) awaitingOwnFeedback() bool {
+	return b.tryCount != 0 || time.Now().Before(b.staleFeedbackUntil)
+}
 
-	if b.currentValue.Invalid != new.Invalid {
+func (b *ibeamParameterValueBuffer) currentEquals(new *pb.ParameterValue) bool {
+	return parameterValueEquals(b.currentValue, new)
+}
+
+func (b *ibeamParameterValueBuffer) targetEquals(new *pb.ParameterValue) bool {
+	return parameterValueEquals(b.targetValue, new)
+}
+
+// This function provides an optimized way of comparing values without proto.Equals (which is an expensive function)
+func parameterValueEquals(old, new *pb.ParameterValue) bool {
+
+	if old.Invalid != new.Invalid {
 		return false
 	}
 
 	// This check is not really needed here, we check it everywhere else manually... it only created the issue on the very first ingest when the param was sent back straight
-	// if b.currentValue.Available != new.Available {
+	// if old.Available != new.Available {
 	// 	 return false
 	// }
 
-	switch cv := b.currentValue.Value.(type) {
+	switch cv := old.Value.(type) {
 	case *pb.ParameterValue_Integer:
 		nv, ok := new.Value.(*pb.ParameterValue_Integer)
 		if !ok || cv.Integer != nv.Integer {
