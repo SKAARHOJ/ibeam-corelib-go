@@ -152,8 +152,20 @@ func validateModel(rlog *log.Entry, model *pb.ModelInfo) {
 	case "released":
 	case "mature":
 	default:
-		rlog.Fatalf("Model %s: Invalid developmentstatus, valid options are concept,beta,released,mature", model.Name)
+		rlog.Fatalf("Model %s: Invalid developmentstatus, valid options are hidden,concept,beta,released,mature", model.Name)
 	}
+}
+
+// warnIfAllModelsHidden warns when no model is left for users to select, e.g. HideGenericModel on a core without own models
+func (r *IBeamParameterRegistry) warnIfAllModelsHidden() {
+	r.muInfo.RLock()
+	defer r.muInfo.RUnlock()
+	for _, model := range r.modelInfos {
+		if model.DevelopmentStatus != "hidden" {
+			return
+		}
+	}
+	r.log.Warn("All models of this core are hidden, users will not be able to select any model")
 }
 
 func (r *IBeamParameterRegistry) validateAllParams() {

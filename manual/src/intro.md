@@ -85,6 +85,10 @@ anything else is rejected at startup with a fatal error:
 
 Note there is no `alpha` and the production value is `released`, not `release`.
 
+The generic model (ID 0) stays visible unless the core calls
+`registry.HideGenericModel()`. Do that when the core has its own models that
+should be selected instead, or when the generic model does not work for it.
+
 ## Next Steps
 
 Ready to build your first devicecore? Continue to [Getting Started](getting-started.md) to create a basic implementation, or explore [Parameter Setup](parameters.md) to understand the parameter system in detail.

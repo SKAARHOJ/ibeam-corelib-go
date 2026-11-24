@@ -617,6 +617,18 @@ func (r *IBeamParameterRegistry) GetModelIDByDeviceID(deviceID uint32) uint32 {
 	return device.ModelID
 }
 
+// HideGenericModel marks the generic model (ID 0) as hidden, so Reactor and the cloud do not offer it for selection.
+// Use it when the core has its own models that should be picked instead, or when the generic model does not work
+// for this core. Devices already using model 0 keep working, and the model stays available to the core internally.
+// The generic model is useful in most cores, so it stays visible unless this is called.
+func (r *IBeamParameterRegistry) HideGenericModel() {
+	r.muInfo.Lock()
+	defer r.muInfo.Unlock()
+	if model, exists := r.modelInfos[0]; exists {
+		model.DevelopmentStatus = "hidden"
+	}
+}
+
 // RegisterDeviceWithModelName registers a new Device in the Registry with given Modelname, if there is no it uses the generic one. If the DeviceID is 0 it will be picked automatically
 func (r *IBeamParameterRegistry) RegisterDeviceWithModelName(deviceID uint32, modelName string) (deviceIndex uint32, err error) {
 	modelID := uint32(0)
@@ -685,6 +697,7 @@ func (r *IBeamParameterRegistry) RegisterDevice(deviceID, modelID uint32) (uint3
 		if cachedIDMap == nil {
 			r.cacheIDMaps() // make sure cachedIDMap is initialized for all further usage
 		}
+		r.warnIfAllModelsHidden()
 		r.log.Debugf("Registered %d Parameters with %d Dimensional Values", r.parameterCount, r.dimensionCount)
 	}
 	r.parametersDone.Store(true)

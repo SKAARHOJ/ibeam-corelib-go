@@ -15,6 +15,9 @@ func CreateServer(coreInfo *pb.CoreInfo) (manager *IBeamParameterManager,
 
 Creates the core server components with default model.
 
+The generic model (ID 0) it creates is visible. Call
+`registry.HideGenericModel()` to hide it, see below.
+
 **Parameters:**
 - `coreInfo`: Core information structure
 
@@ -81,6 +84,29 @@ modelID := registry.RegisterModel(&pb.ModelInfo{
     Name:        "Basic Camera",
     Description: "Basic camera controls",
 }, ib.WithGlobalRateLimit(100))
+```
+
+#### HideGenericModel
+
+```go
+func (r *IBeamParameterRegistry) HideGenericModel()
+```
+
+Sets the generic model (ID 0) to the development status `hidden`, so Reactor
+and the cloud do not offer it for selection. The generic model is useful for
+most cores, so it is visible by default. Hide it only when the core has its own
+models that should be selected instead, or when the generic model does not work
+for the core.
+
+Devices already set to model 0 keep working, and the core still uses the
+generic model internally (name and ID maps, flags). If every model ends up
+hidden, a warning is logged when the first device is registered.
+
+**Example:**
+```go
+registry.RegisterModel(&pb.ModelInfo{Id: 1, Name: "Camera A", Description: "..."})
+registry.RegisterModel(&pb.ModelInfo{Id: 2, Name: "Camera B", Description: "..."})
+registry.HideGenericModel() // users should always pick Camera A or B
 ```
 
 ### Parameter Management
